@@ -1,60 +1,214 @@
-import React from 'react';
-import { Target, Trophy, Plus } from 'lucide-react';
-
-const MOCK_GOALS = [
-  { id: 1, title: 'New Macbook Pro', target: 200000, current: 120000, deadline: '2025-12-01', color: 'bg-blue-600' },
-  { id: 2, title: 'Emergency Fund', target: 100000, current: 85000, deadline: '2024-06-01', color: 'bg-green-600' },
-  { id: 3, title: 'Europe Trip', target: 300000, current: 45000, deadline: '2026-01-01', color: 'bg-purple-600' },
-];
+import React, { useState, useEffect } from 'react';
+import API from '../services/api';
+import { Plus, X, Target, Clock, Calendar, Trash2, CheckCircle, Pencil } from 'lucide-react';
+import { formatDate } from '../utils/helpers';
 
 const Goals = () => {
+  const [goals, setGoals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState(null);
+  
+  // Simplified Form State (No Money)
+  const [formData, setFormData] = useState({
+    title: '', 
+    type: 'Long Term',
+    deadline: ''
+  });
+
+  useEffect(() => { fetchGoals(); }, []);
+
+  const fetchGoals = async () => {
+    try {
+      const res = await API.get('/goals');
+      setGoals(res.data);
+      setLoading(false);
+    } catch (err) { console.error("Error fetching goals", err); setLoading(false); }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editId) {
+        const res = await API.put(`/goals/${editId}`, formData);
+        setGoals(goals.map(g => g._id === editId ? res.data : g));
+      } else {
+        const res = await API.post('/goals', formData);
+        setGoals([...goals, res.data]);
+      }
+      closeForm();
+    } catch (err) { 
+        console.error(err);
+        alert("Error saving goal. Check if Backend is deployed.");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this goal?")) return;
+    try {
+      await API.delete(`/goals/${id}`);
+      setGoals(goals.filter(g => g._id !== id));
+    } catch (err) { console.error(err); }
+  };
+
+  const handleEdit = (goal) => {
+    setFormData({
+      title: goal.title,
+      type: goal.type || 'Long Term',
+      deadline: goal.deadline ? goal.deadline.split('T')[0] : ''
+    });
+    setEditId(goal._id);
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false); setEditId(null);
+    setFormData({ title: '', type: 'Long Term', deadline: '' });
+  };
+
+  // Filter Goals
+  const longTermGoals = goals.filter(g => g.type === 'Long Term');
+  const shortTermGoals = goals.filter(g => g.type === 'Short Term');
+
+  if (loading) return <div className="p-10 text-center text-gray-500">Loading goals...</div>;
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <Target className="text-red-500" /> Financial Goals
-        </h1>
-        <button className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-800 transition">
-            <Plus className="w-4 h-4" /> New Goal
+    <div className="p-6 max-w-7xl mx-auto space-y-10">
+      
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+            <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <Target className="text-red-500" /> Goals & Deadlines
+            </h1>
+            <p className="text-sm text-gray-500">Track your objectives.</p>
+        </div>
+        <button onClick={() => setShowForm(true)} className="bg-black text-white px-5 py-2.5 rounded-xl font-bold hover:bg-gray-800 flex items-center gap-2 shadow-lg">
+            <Plus className="w-5 h-5" /> New Goal
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {MOCK_GOALS.map((goal) => {
-            const percentage = Math.min((goal.current / goal.target) * 100, 100);
-            
-            return (
-                <div key={goal.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-gray-50 rounded-xl">
-                            <Trophy className="w-6 h-6 text-yellow-500" />
-                        </div>
-                        <span className="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                            {percentage.toFixed(0)}%
-                        </span>
-                    </div>
-                    
-                    <h3 className="font-bold text-lg text-gray-800 mb-1">{goal.title}</h3>
-                    <p className="text-sm text-gray-500 mb-4">Target: ₹{goal.target.toLocaleString()} by {new Date(goal.deadline).toLocaleDateString()}</p>
-                    
-                    {/* Progress Bar */}
-                    <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden mb-2">
-                        <div 
-                            className={`h-full rounded-full transition-all duration-1000 ${goal.color}`} 
-                            style={{ width: `${percentage}%` }}
-                        ></div>
-                    </div>
-                    
-                    <div className="flex justify-between text-sm">
-                        <span className="font-bold text-gray-700">₹{goal.current.toLocaleString()}</span>
-                        <span className="text-gray-400">saved</span>
-                    </div>
-                </div>
-            );
-        })}
+      {/* SECTION 1: SHORT TERM */}
+      <div>
+          <h2 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-orange-500" /> Short Term Goals
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {shortTermGoals.map(goal => (
+                <SimpleGoalCard key={goal._id} goal={goal} handleEdit={handleEdit} handleDelete={handleDelete} color="orange" />
+            ))}
+            {shortTermGoals.length === 0 && <div className="text-gray-400 text-sm italic">No short term goals.</div>}
+          </div>
       </div>
+
+      {/* SECTION 2: LONG TERM */}
+      <div>
+          <h2 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+              <Target className="w-5 h-5 text-indigo-500" /> Long Term Goals
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {longTermGoals.map(goal => (
+                <SimpleGoalCard key={goal._id} goal={goal} handleEdit={handleEdit} handleDelete={handleDelete} color="indigo" />
+            ))}
+            {longTermGoals.length === 0 && <div className="text-gray-400 text-sm italic">No long term goals.</div>}
+          </div>
+      </div>
+
+      {/* FORM MODAL */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl relative animate-fadeIn">
+                <button onClick={closeForm} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X className="w-6 h-6" /></button>
+                <div className="p-6 border-b border-gray-100">
+                    <h2 className="text-xl font-bold text-gray-800">{editId ? 'Edit Goal' : 'Create New Goal'}</h2>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    
+                    {/* Goal Type */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Goal Type</label>
+                        <select 
+                            className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                            value={formData.type} 
+                            onChange={(e) => setFormData({...formData, type: e.target.value})}
+                        >
+                            <option value="Long Term">Long Term</option>
+                            <option value="Short Term">Short Term</option>
+                        </select>
+                    </div>
+
+                    {/* Title */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <input type="text" required placeholder="Goal Name..." className="w-full p-2 border border-gray-300 rounded-lg outline-none"
+                            value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
+                    </div>
+
+                    {/* Deadline (Now Required for both) */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Target Date / Deadline</label>
+                        <input type="date" required className="w-full p-2 border border-gray-300 rounded-lg outline-none"
+                            value={formData.deadline} onChange={(e) => setFormData({...formData, deadline: e.target.value})} />
+                    </div>
+
+                    <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">
+                        {editId ? 'Update Goal' : 'Create Goal'}
+                    </button>
+                </form>
+            </div>
+        </div>
+      )}
     </div>
   );
+};
+
+// --- INTERNAL CARD COMPONENT (No Money, Just Time) ---
+const SimpleGoalCard = ({ goal, handleEdit, handleDelete, color }) => {
+    const today = new Date();
+    const dueDate = new Date(goal.deadline);
+    const diffTime = dueDate - today;
+    const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const isOverdue = daysLeft < 0;
+
+    const theme = color === 'orange' ? 'text-orange-500 bg-orange-50' : 'text-indigo-600 bg-indigo-50';
+
+    return (
+        <div className="p-6 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between h-full transition hover:shadow-md">
+            <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-3">
+                    <div className={`p-3 rounded-xl ${theme}`}>
+                        {color === 'orange' ? <Clock className="w-6 h-6" /> : <Target className="w-6 h-6" />}
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-gray-800 text-lg leading-tight">{goal.title}</h3>
+                        <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                            <Calendar className="w-3 h-3" /> Due: {formatDate(goal.deadline)}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex gap-1">
+                    <button onClick={() => handleEdit(goal)} className="p-2 text-gray-400 hover:text-blue-500 rounded-lg"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(goal._id)} className="p-2 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                </div>
+            </div>
+
+            {/* Time Remaining */}
+            <div className="mb-6">
+                {isOverdue ? (
+                    <span className="text-red-500 font-bold text-sm bg-red-100 px-3 py-1 rounded-full">Overdue by {Math.abs(daysLeft)} days</span>
+                ) : (
+                    <div className="flex flex-col">
+                        <span className="text-3xl font-bold text-gray-800">{daysLeft}</span>
+                        <span className="text-sm text-gray-500">Days Remaining</span>
+                    </div>
+                )}
+            </div>
+
+            <button onClick={() => handleDelete(goal._id)} className="w-full py-2 rounded-xl font-bold flex items-center justify-center gap-2 bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-600 border border-gray-100 transition">
+                <CheckCircle className="w-4 h-4" /> Mark as Done
+            </button>
+        </div>
+    );
 };
 
 export default Goals;

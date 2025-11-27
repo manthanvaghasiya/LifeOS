@@ -47,10 +47,7 @@ const Navbar = () => {
           Transactions
         </Link>
         
-        <Link to="/investments" className={getLinkClass('/investments')}>
-          <TrendingUp className="w-4 h-4" />
-          Investments
-        </Link>
+        
         
         <Link to="/goals" className={getLinkClass('/goals')}>
           <Target className="w-4 h-4" />

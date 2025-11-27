@@ -7,7 +7,7 @@ import MainLayout from './components/layout/MainLayout';
 // Pages
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
-import Investments from './pages/Investments';
+
 import Goals from './pages/Goals';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -28,7 +28,7 @@ function App() {
         <Route element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/transactions" element={<Transactions />} />
-          <Route path="/investments" element={<Investments />} />
+         
           <Route path="/goals" element={<Goals />} />
           <Route path="/habits" element={<Habits />} />
         </Route>
