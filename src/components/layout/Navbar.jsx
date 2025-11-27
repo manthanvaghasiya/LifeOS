@@ -30,7 +30,7 @@ const Navbar = () => {
         <div className="p-2 bg-blue-600 rounded-lg text-white">
           <Wallet className="w-6 h-6" />
         </div>
-        <span className="text-xl font-bold tracking-tight text-gray-800">WealthFolio</span>
+        <span className="text-xl font-bold tracking-tight text-gray-800">LifeOS</span>
       </Link>
 
       
