@@ -33,7 +33,7 @@ const Navbar = () => {
         <span className="text-xl font-bold tracking-tight text-gray-800">WealthFolio</span>
       </Link>
 
-      // Find the "CENTER MENU" section in your existing Navbar.jsx and replace it with this:
+      
 
       {/* 2. CENTER MENU */}
       <div className="hidden md:flex items-center gap-1">
