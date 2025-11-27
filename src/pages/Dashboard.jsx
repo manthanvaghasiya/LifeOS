@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from '../services/api'; // <--- NEW IMPORT
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Plus, TrendingUp, TrendingDown, IndianRupee, Trash2, X, Pencil } from 'lucide-react';
+import { formatCurrency } from '../utils/helpers'; // (Optional if you added helpers, otherwise ignore)
 
-// --- STANDARD CATEGORIES LIST ---
 const DEFAULT_CATEGORIES = ['Food', 'Travel', 'Bills', 'Entertainment', 'Salary', 'Shopping', 'Investment'];
 
 const Dashboard = () => {
@@ -11,23 +11,10 @@ const Dashboard = () => {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState(null);
-
-  // Form State
-  const [formData, setFormData] = useState({
-    title: '',
-    amount: '',
-    category: 'Food',
-    type: 'expense'
-  });
-
-  // --- NEW: State for Custom Category Input ---
+  const [formData, setFormData] = useState({ title: '', amount: '', category: 'Food', type: 'expense' });
   const [customCategory, setCustomCategory] = useState('');
 
-  // Helper: Get Token
-  const getHeaders = () => {
-    const token = localStorage.getItem('token');
-    return { headers: { Authorization: `Bearer ${token}` } };
-  };
+  // ❌ DELETED: getHeaders() function is no longer needed!
 
   useEffect(() => {
     fetchTransactions();
@@ -35,8 +22,8 @@ const Dashboard = () => {
 
   const fetchTransactions = async () => {
     try {
-      // ⚠️ MAKE SURE THIS URL IS YOUR RENDER URL
-      const res = await axios.get('https://wealthfolio-api.onrender.com/api/transactions', getHeaders());
+      // ✅ CLEANER: No full URL, no getHeaders()
+      const res = await API.get('/transactions'); 
       setTransactions(res.data);
       setLoading(false);
     } catch (err) {
@@ -49,25 +36,21 @@ const Dashboard = () => {
     }
   };
 
-  // --- HANDLE SUBMIT (With Custom Category Logic) ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Prepare the data to send
     const dataToSend = { ...formData };
-    
-    // If user selected "Other", use the typed custom category instead
     if (formData.category === 'Other') {
         dataToSend.category = customCategory;
     }
 
     try {
       if (editId) {
-        await axios.put(`https://wealthfolio-api.onrender.com/api/transactions/${editId}`, dataToSend, getHeaders());
+        // ✅ CLEANER
+        await API.put(`/transactions/${editId}`, dataToSend); 
       } else {
-        await axios.post('https://wealthfolio-api.onrender.com/api/transactions', dataToSend, getHeaders());
+        // ✅ CLEANER
+        await API.post('/transactions', dataToSend);
       }
-      
       closeForm();
       fetchTransactions();
     } catch (err) {
@@ -78,40 +61,28 @@ const Dashboard = () => {
   const handleDelete = async (id) => {
     if(!window.confirm("Are you sure?")) return;
     try {
-      await axios.delete(`https://wealthfolio-api.onrender.com/api/transactions/${id}`, getHeaders());
+      // ✅ CLEANER
+      await API.delete(`/transactions/${id}`);
       fetchTransactions();
     } catch (err) {
       console.error("Error deleting", err);
     }
   };
 
-  // --- HANDLE EDIT (Detects if category is Custom) ---
+  // ... (Rest of the file: handleEdit, closeForm, Calculations, and Return JSX remain exactly the same)
+  // Just ensure you copy the handleEdit, closeForm logic and the entire return block from your previous file.
+  
+  // Quick copy of the Helper functions so this snippet works:
   const handleEdit = (transaction) => {
     setEditId(transaction._id);
-    
-    // Check if the transaction's category is in our standard list
     const isStandardCategory = DEFAULT_CATEGORIES.includes(transaction.category);
-
     if (isStandardCategory) {
-        // It's a normal category
-        setFormData({
-            title: transaction.title,
-            amount: transaction.amount,
-            category: transaction.category,
-            type: transaction.type
-        });
-        setCustomCategory(''); // Clear custom input
+        setFormData({ title: transaction.title, amount: transaction.amount, category: transaction.category, type: transaction.type });
+        setCustomCategory('');
     } else {
-        // It's a custom category (e.g. "Gym")
-        setFormData({
-            title: transaction.title,
-            amount: transaction.amount,
-            category: 'Other', // Select "Other" in dropdown
-            type: transaction.type
-        });
-        setCustomCategory(transaction.category); // Fill the text box
+        setFormData({ title: transaction.title, amount: transaction.amount, category: 'Other', type: transaction.type });
+        setCustomCategory(transaction.category);
     }
-    
     setShowForm(true);
   };
 
@@ -119,33 +90,26 @@ const Dashboard = () => {
     setShowForm(false);
     setEditId(null);
     setFormData({ title: '', amount: '', category: 'Food', type: 'expense' });
-    setCustomCategory(''); // Reset custom input
+    setCustomCategory('');
   };
-
-  // Calculations
-  const totalIncome = transactions
-    .filter(t => t.type === 'income')
-    .reduce((acc, curr) => acc + curr.amount, 0);
-  const totalExpense = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, curr) => acc + curr.amount, 0);
+  
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
+  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
   const balance = totalIncome - totalExpense;
-
-  const chartData = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, curr) => {
+  const chartData = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => {
       const found = acc.find(item => item.name === curr.category);
-      if (found) found.value += curr.amount;
-      else acc.push({ name: curr.category, value: curr.amount });
+      if (found) found.value += curr.amount; else acc.push({ name: curr.category, value: curr.amount });
       return acc;
-    }, []);
+  }, []);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Loading your finance data...</div>;
 
   return (
+    // ... PASTE YOUR JSX (HTML) HERE (It is unchanged) ...
+    // Since the JSX is very long, I am skipping it here to save space. 
+    // You just need to keep the exact same JSX you had before.
     <div className="p-6 max-w-7xl mx-auto space-y-8 relative">
-      
-      {/* Metrics Section */}
+      {/* Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6 rounded-2xl text-white shadow-lg">
           <p className="text-blue-100 text-sm font-medium mb-1">Total Balance</p>
@@ -161,7 +125,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Charts Section */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Expense Analysis</h3>
@@ -190,7 +154,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* List Section */}
+      {/* List */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
             <h3 className="text-lg font-bold text-gray-800">Recent Transactions</h3>
@@ -217,7 +181,7 @@ const Dashboard = () => {
         </ul>
       </div>
 
-      {/* POPUP FORM */}
+      {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl relative">
@@ -245,34 +209,18 @@ const Dashboard = () => {
                         </div>
                     </div>
                     
-                    {/* CATEGORY DROPDOWN */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                         <select className="w-full p-2 border border-gray-300 rounded-lg outline-none mb-2" 
                             value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}>
-                            
-                            {/* Standard Options */}
-                            {DEFAULT_CATEGORIES.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                            
-                            {/* Other Option */}
+                            {DEFAULT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                             <option value="Other">Other (Type manually)</option>
                         </select>
-
-                        {/* NEW: Input appears only if "Other" is selected */}
                         {formData.category === 'Other' && (
-                            <input 
-                                type="text" 
-                                placeholder="Type your custom category..." 
-                                required
-                                className="w-full p-2 border border-blue-300 bg-blue-50 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                                value={customCategory} 
-                                onChange={(e) => setCustomCategory(e.target.value)} 
-                            />
+                            <input type="text" placeholder="Type your custom category..." required className="w-full p-2 border border-blue-300 bg-blue-50 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                                value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} />
                         )}
                     </div>
-
                     <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">
                         {editId ? 'Update Transaction' : 'Save Transaction'}
                     </button>
