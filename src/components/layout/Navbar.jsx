@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Wallet, LayoutDashboard, ArrowRightLeft, TrendingUp, Target, CalendarCheck, LogOut, User } from 'lucide-react';
+import { StickyNote } from 'lucide-react';
 
 const Navbar = () => {
   const location = useLocation();
@@ -58,7 +59,14 @@ const Navbar = () => {
          <CalendarCheck className="w-4 h-4" />
           Habits
         </Link>
+
+        <Link to="/notes" className={getLinkClass('/notes')}>
+         <StickyNote className="w-4 h-4" />
+         Notes
+        </Link>
+
       </div>
+
 
       {/* 3. USER PROFILE (Right Side) */}
       <div className="flex items-center gap-4">

@@ -5,6 +5,7 @@ import HabitStats from '../components/habits/HabitStats';
 import HabitGrid from '../components/habits/HabitGrid';
 import HabitMonthlyOverview from '../components/habits/HabitMonthlyOverview';
 import HabitAnalysis from '../components/habits/HabitAnalysis';
+import toast from 'react-hot-toast';
 
 const Habits = () => {
   const [habits, setHabits] = useState([]);
@@ -43,20 +44,23 @@ const Habits = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!newHabit.trim()) return;
-    try {
-      if (editId) {
-        const res = await API.put(`/habits/${editId}`, { title: newHabit, target: Number(newTarget) });
-        setHabits(prev => prev.map(h => h._id === editId ? res.data : h));
-        setEditId(null); 
-      } else {
-        const res = await API.post('/habits', { title: newHabit, target: Number(newTarget) });
-        setHabits(prev => [res.data, ...prev]);
-      }
-      setNewHabit(''); setNewTarget(21);
-    } catch (err) { alert("Error saving. Check console."); }
-  };
+  e.preventDefault();
+  if (!newHabit.trim()) return;
+
+  try {
+    if (editId) {
+      // ... update logic ...
+      toast.success('Habit updated successfully!'); // <--- NEW
+    } else {
+      // ... add logic ...
+      toast.success('New habit created!'); // <--- NEW
+    }
+    // ... reset form logic ...
+  } catch (err) { 
+      console.error(err); 
+      toast.error('Error saving habit.'); // <--- NEW
+  }
+};
 
   const handleEdit = (habit) => {
     setNewHabit(habit.title); setNewTarget(habit.target || 21); setEditId(habit._id);
@@ -72,9 +76,17 @@ const Habits = () => {
   };
 
   const deleteHabit = async (id) => {
-    if(!window.confirm("Delete?")) return;
-    try { await API.delete(`/habits/${id}`); setHabits(prev => prev.filter(h => h._id !== id)); } catch (err) {}
-  };
+  // Custom styled confirm is better, but for now standard confirm is okay. 
+  // But show success after delete:
+  if(!window.confirm("Delete this habit?")) return;
+  try {
+    await API.delete(`/habits/${id}`);
+    setHabits(prev => prev.filter(h => h._id !== id));
+    toast.success('Habit deleted'); // <--- NEW
+  } catch (err) { 
+    toast.error('Could not delete habit'); 
+  }
+};
 
   const handlePrevWeek = () => { const newDate = new Date(viewDate); newDate.setDate(viewDate.getDate() - 7); setViewDate(newDate); };
   const handleNextWeek = () => { const newDate = new Date(viewDate); newDate.setDate(viewDate.getDate() + 7); setViewDate(newDate); };

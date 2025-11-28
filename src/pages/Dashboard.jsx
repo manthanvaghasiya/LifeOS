@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { Plus, IndianRupee, Pencil, Trash2, ArrowRightLeft, X, TrendingUp, Wallet } from 'lucide-react';
-
+import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 // Import BOTH Charts
 import ExpenseBreakdown from '../components/dashboard/ExpenseBreakdown';
 import FinancialAnalytics from '../components/dashboard/FinancialAnalytics';
@@ -105,8 +105,7 @@ const Dashboard = () => {
 
   const balance = totalIncome - totalExpensesRaw;
 
-  if (loading) return <div className="p-10 text-center text-gray-500">Loading...</div>;
-
+  if (loading) return <DashboardSkeleton />;
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8 relative">
       
