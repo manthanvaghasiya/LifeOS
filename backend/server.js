@@ -9,6 +9,11 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Keep Alive Route
+app.get('/ping', (req, res) => {
+  res.send('Pong! Server is awake.');
+});
+
 // ROUTES
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/transactions', require('./routes/transactions'));
@@ -30,3 +35,5 @@ const PORT = process.env.PORT || 5000;
 connectDB().then(() => {
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 });
+
+// Force update for Goals feature
