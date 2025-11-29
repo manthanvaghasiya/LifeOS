@@ -15,6 +15,7 @@ app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/habits', require('./routes/habits')); // <--- CHECK THIS LINE
 app.use('/api/goals', require('./routes/goals'));
 app.use('/api/notes', require('./routes/notes'));
+
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);
