@@ -1,13 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Wallet, LayoutDashboard, ArrowRightLeft, TrendingUp, Target, CalendarCheck, LogOut, User } from 'lucide-react';
-import { StickyNote } from 'lucide-react';
+import { Wallet, LayoutDashboard, ArrowRightLeft, CalendarCheck, Target, LogOut, StickyNote } from 'lucide-react';
 
 const Navbar = () => {
   const location = useLocation();
   
-  // Get User Data from Local Storage (or default to John Doe)
-  const user = JSON.parse(localStorage.getItem('user')) || { name: 'John Doe' };
+  // Get User Data from Local Storage
+  const user = JSON.parse(localStorage.getItem('user')) || { name: 'User' };
 
   // Logout Logic
   const handleLogout = () => {
@@ -31,10 +30,8 @@ const Navbar = () => {
         <div className="p-2 bg-blue-600 rounded-lg text-white">
           <Wallet className="w-6 h-6" />
         </div>
-        <span className="text-xl font-bold tracking-tight text-gray-800">LifeOS | Life Operating System</span>
+        <span className="text-xl font-bold tracking-tight text-gray-800">LifeOS</span>
       </Link>
-
-      
 
       {/* 2. CENTER MENU */}
       <div className="hidden md:flex items-center gap-1">
@@ -43,41 +40,36 @@ const Navbar = () => {
           Dashboard
         </Link>
         
+        <Link to="/habits" className={getLinkClass('/habits')}>
+          <CalendarCheck className="w-4 h-4" />
+          Habits
+        </Link>
+
         <Link to="/transactions" className={getLinkClass('/transactions')}>
           <ArrowRightLeft className="w-4 h-4" />
           Transactions
         </Link>
-        
-        
         
         <Link to="/goals" className={getLinkClass('/goals')}>
           <Target className="w-4 h-4" />
           Goals
         </Link>
 
-        <Link to="/habits" className={getLinkClass('/habits')}>
-         <CalendarCheck className="w-4 h-4" />
-          Habits
-        </Link>
-
         <Link to="/notes" className={getLinkClass('/notes')}>
-         <StickyNote className="w-4 h-4" />
-         Notes
+          <StickyNote className="w-4 h-4" />
+          Notes
         </Link>
-
       </div>
 
-
-      {/* 3. USER PROFILE (Right Side) */}
+      {/* 3. USER PROFILE */}
       <div className="flex items-center gap-4">
         {/* User Badge */}
         <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
             <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold shadow-sm">
-                {user.name ? user.name.charAt(0).toUpperCase() : 'J'}
+                {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="hidden sm:block">
                 <p className="text-sm font-bold text-gray-700 leading-none">{user.name}</p>
-                <p className="text-xs text-gray-500 mt-1">Full Stack Dev</p>
             </div>
         </div>
 

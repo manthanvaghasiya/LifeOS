@@ -9,12 +9,7 @@ const Goals = () => {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   
-  // Simplified Form State (No Money)
-  const [formData, setFormData] = useState({
-    title: '', 
-    type: 'Long Term',
-    deadline: ''
-  });
+  const [formData, setFormData] = useState({ title: '', type: 'Long Term', deadline: '' });
 
   useEffect(() => { fetchGoals(); }, []);
 
@@ -23,7 +18,7 @@ const Goals = () => {
       const res = await API.get('/goals');
       setGoals(res.data);
       setLoading(false);
-    } catch (err) { console.error("Error fetching goals", err); setLoading(false); }
+    } catch (err) { console.error(err); setLoading(false); }
   };
 
   const handleSubmit = async (e) => {
@@ -37,14 +32,20 @@ const Goals = () => {
         setGoals([...goals, res.data]);
       }
       closeForm();
-    } catch (err) { 
-        console.error(err);
-        alert("Error saving. Please Ensure you pushed Backend code to GitHub.");
-    }
+    } catch (err) { alert("Error saving goal."); }
+  };
+
+  // --- NEW: TOGGLE COMPLETION (Keep goal, change color) ---
+  const handleToggle = async (id) => {
+    // Optimistic Update
+    setGoals(goals.map(g => g._id === id ? { ...g, isCompleted: !g.isCompleted } : g));
+    try {
+        await API.put(`/goals/${id}/toggle`);
+    } catch (err) { fetchGoals(); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this goal?")) return;
+    if (!window.confirm("Permanently delete this goal?")) return;
     try {
       await API.delete(`/goals/${id}`);
       setGoals(goals.filter(g => g._id !== id));
@@ -72,87 +73,72 @@ const Goals = () => {
   if (loading) return <div className="p-10 text-center text-gray-500">Loading goals...</div>;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-10">
+    <div className="p-6 max-w-7xl mx-auto space-y-8">
       
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <Target className="text-red-500" /> Goals & Deadlines
+                <Target className="text-red-500" /> Goals
             </h1>
-            <p className="text-sm text-gray-500">Track your life objectives.</p>
+            <p className="text-sm text-gray-500">Track your objectives.</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="bg-black text-white px-5 py-2.5 rounded-xl font-bold hover:bg-gray-800 flex items-center gap-2 shadow-lg">
-            <Plus className="w-5 h-5" /> New Goal
+        <button onClick={() => setShowForm(true)} className="bg-black text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-800 flex items-center gap-2 text-sm">
+            <Plus className="w-4 h-4" /> New Goal
         </button>
       </div>
 
-      {/* SECTION 1: SHORT TERM */}
+      {/* SECTION 1: SHORT TERM (Compact Grid) */}
       <div>
-          <h2 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-orange-500" /> Short Term Goals
+          <h2 className="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-orange-500" /> Short Term Goals
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {shortTermGoals.map(goal => (
-                <GoalCard key={goal._id} goal={goal} handleEdit={handleEdit} handleDelete={handleDelete} />
+                <GoalCard key={goal._id} goal={goal} handleEdit={handleEdit} handleDelete={handleDelete} handleToggle={handleToggle} />
             ))}
-            {shortTermGoals.length === 0 && <div className="text-gray-400 text-sm italic">No short term goals.</div>}
+            {shortTermGoals.length === 0 && <div className="text-gray-400 text-xs italic">No goals found.</div>}
           </div>
       </div>
 
-      {/* SECTION 2: LONG TERM */}
+      {/* SECTION 2: LONG TERM (Compact Grid) */}
       <div>
-          <h2 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
-              <Target className="w-5 h-5 text-indigo-500" /> Long Term Goals
+          <h2 className="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
+              <Target className="w-4 h-4 text-indigo-500" /> Long Term Goals
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {longTermGoals.map(goal => (
-                <GoalCard key={goal._id} goal={goal} handleEdit={handleEdit} handleDelete={handleDelete} />
+                <GoalCard key={goal._id} goal={goal} handleEdit={handleEdit} handleDelete={handleDelete} handleToggle={handleToggle} />
             ))}
-            {longTermGoals.length === 0 && <div className="text-gray-400 text-sm italic">No long term goals.</div>}
+            {longTermGoals.length === 0 && <div className="text-gray-400 text-xs italic">No goals found.</div>}
           </div>
       </div>
 
       {/* FORM MODAL */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl relative animate-fadeIn">
-                <button onClick={closeForm} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X className="w-6 h-6" /></button>
-                <div className="p-6 border-b border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-800">{editId ? 'Edit Goal' : 'Create New Goal'}</h2>
+            <div className="bg-white rounded-xl w-full max-w-sm shadow-2xl">
+                <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                    <h2 className="text-lg font-bold text-gray-800">{editId ? 'Edit Goal' : 'New Goal'}</h2>
+                    <button onClick={closeForm}><X className="w-5 h-5 text-gray-400" /></button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    
-                    {/* Goal Type */}
+                <form onSubmit={handleSubmit} className="p-4 space-y-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Goal Type</label>
-                        <select 
-                            className="w-full p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                            value={formData.type} 
-                            onChange={(e) => setFormData({...formData, type: e.target.value})}
-                        >
+                        <label className="block text-xs font-bold text-gray-600 mb-1">Type</label>
+                        <select className="w-full p-2 border rounded-lg text-sm" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})}>
                             <option value="Long Term">Long Term</option>
                             <option value="Short Term">Short Term</option>
                         </select>
                     </div>
-
-                    {/* Title */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                        <input type="text" required placeholder="Goal Name..." className="w-full p-2 border border-gray-300 rounded-lg outline-none"
-                            value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
+                        <label className="block text-xs font-bold text-gray-600 mb-1">Title</label>
+                        <input type="text" required className="w-full p-2 border rounded-lg text-sm" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
                     </div>
-
-                    {/* Deadline (Required for both now) */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Target Date / Deadline</label>
-                        <input type="date" required className="w-full p-2 border border-gray-300 rounded-lg outline-none"
-                            value={formData.deadline} onChange={(e) => setFormData({...formData, deadline: e.target.value})} />
+                        <label className="block text-xs font-bold text-gray-600 mb-1">Deadline</label>
+                        <input type="date" required className="w-full p-2 border rounded-lg text-sm" value={formData.deadline} onChange={(e) => setFormData({...formData, deadline: e.target.value})} />
                     </div>
-
-                    <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">
-                        {editId ? 'Update Goal' : 'Create Goal'}
-                    </button>
+                    <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-blue-700">Save</button>
                 </form>
             </div>
         </div>

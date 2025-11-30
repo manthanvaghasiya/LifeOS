@@ -18,6 +18,11 @@ const GoalSchema = new mongoose.Schema({
   deadline: {
     type: Date,
     required: [true, 'Please add a deadline']
+  },
+  // NEW FIELD: Tracks completion without deleting
+  isCompleted: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
