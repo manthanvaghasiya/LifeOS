@@ -1,263 +1,318 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
-import { Plus, IndianRupee, Pencil, Trash2, ArrowRightLeft, X, TrendingUp, Wallet } from 'lucide-react';
-
-// Import Components
-import ExpenseBreakdown from '../components/dashboard/ExpenseBreakdown';
-import FinancialAnalytics from '../components/dashboard/FinancialAnalytics';
-import DashboardSkeleton from '../components/skeletons/DashboardSkeleton'; // Ensure you have this
+import { formatCurrency, formatDate } from '../utils/helpers';
+import {
+    Plus, CheckCircle, Circle, Target, Calendar,
+    Wallet, TrendingUp, ArrowRight, Clock, IndianRupee, Landmark, Banknote
+} from 'lucide-react';
+import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 
 const DEFAULT_CATEGORIES = ['Food', 'Travel', 'Bills', 'Entertainment', 'Salary', 'Shopping', 'Health', 'Education', 'Investment'];
 
 const Dashboard = () => {
-  const [transactions, setTransactions] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [editId, setEditId] = useState(null);
-  
-  // Form State
-  const [formData, setFormData] = useState({ title: '', amount: '', category: 'Food', type: 'expense' });
-  const [customCategory, setCustomCategory] = useState('');
-  
-  // Custom Transaction Type State
-  const [txType, setTxType] = useState('expense'); 
+    const [transactions, setTransactions] = useState([]);
+    const [habits, setHabits] = useState([]);
+    const [goals, setGoals] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchTransactions(); }, []);
+    // Form State (Initialized correctly with 'Bank')
+    const [showForm, setShowForm] = useState(false);
+    const [formData, setFormData] = useState({
+        title: '',
+        amount: '',
+        category: 'Food',
+        type: 'expense',
+        paymentMode: 'Bank'   // ✅
+    });
 
-  const fetchTransactions = async () => {
-    try {
-      const res = await API.get('/transactions');
-      setTransactions(res.data);
-      setLoading(false);
-    } catch (err) { console.error(err); setLoading(false); }
-  };
-
-  // --- DYNAMIC CATEGORY LOGIC (The Fix) ---
-  // 1. Get all categories currently used in your database
-  const usedCategories = transactions.map(t => t.category);
-  // 2. Merge Defaults + Used, remove duplicates using Set
-  const availableCategories = [...new Set([...DEFAULT_CATEGORIES, ...usedCategories])];
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
     
-    let finalType = txType;
-    let finalCategory = formData.category;
 
-    if (txType === 'investment') {
-        finalType = 'expense';
-        finalCategory = 'Investment';
-    } else if (finalCategory === 'Other') {
-        // Use the manual input
-        finalCategory = customCategory; 
-    }
+    const [customCategory, setCustomCategory] = useState('');
 
-    const dataToSend = { 
-        ...formData, 
-        type: finalType,
-        category: finalCategory
+    useEffect(() => { fetchAllData(); }, []);
+
+    const fetchAllData = async () => {
+        try {
+            const [txRes, habitRes, goalRes] = await Promise.all([
+                API.get('/transactions'),
+                API.get('/habits'),
+                API.get('/goals')
+            ]);
+            setTransactions(txRes.data);
+            setHabits(habitRes.data);
+            setGoals(goalRes.data);
+            setLoading(false);
+        } catch (err) { console.error(err); setLoading(false); }
     };
 
-    try {
-      if (editId) {
-        const res = await API.put(`/transactions/${editId}`, dataToSend);
-        setTransactions(transactions.map(t => t._id === editId ? res.data : t));
-      } else {
-        const res = await API.post('/transactions', dataToSend);
-        setTransactions([res.data, ...transactions]);
-      }
-      closeForm();
-    } catch (err) { console.error(err); }
-  };
+    // --- LOGIC ---
+    const todayObj = new Date();
+    const todayStr = todayObj.toISOString().split('T')[0];
+    const todayDateString = todayObj.toLocaleDateString();
 
-  const handleDelete = async (id) => {
-    if(!window.confirm("Delete?")) return;
-    try {
-      await API.delete(`/transactions/${id}`);
-      setTransactions(transactions.filter(t => t._id !== id));
-    } catch (err) { console.error(err); }
-  };
+    const incompleteHabits = habits.filter(h => !h.completedDates.includes(todayStr));
 
-  const handleEdit = (t) => {
-    setEditId(t._id);
-    
-    // Check if category is in our dynamic list
-    const isStandard = availableCategories.includes(t.category);
-    
-    let uiType = t.type;
-    if (t.category === 'Investment') uiType = 'investment';
+    const activeGoals = goals
+        .filter(g => !g.isCompleted)
+        .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
 
-    setTxType(uiType);
-    setFormData({ title: t.title, amount: t.amount, category: isStandard ? t.category : 'Other', type: t.type });
-    
-    if (!isStandard) setCustomCategory(t.category);
-    setShowForm(true);
-  };
+    const todayTransactions = transactions.filter(t =>
+        new Date(t.date).toLocaleDateString() === todayDateString
+    );
 
-  const closeForm = () => {
-    setShowForm(false); setEditId(null);
-    setFormData({ title: '', amount: '', category: 'Food', type: 'expense' });
-    setTxType('expense');
-    setCustomCategory('');
-  };
+    const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, c) => acc + c.amount, 0);
+    const totalInvested = transactions.filter(t => t.type === 'expense' && t.category === 'Investment').reduce((acc, c) => acc + c.amount, 0);
+    const totalExpensesRaw = transactions.filter(t => t.type === 'expense').reduce((acc, c) => acc + c.amount, 0);
+    const totalRealExpenses = totalExpensesRaw - totalInvested;
+    const balance = totalIncome - totalExpensesRaw;
 
-  // --- SMART CALCULATIONS ---
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, c) => acc + c.amount, 0);
-  
-  const totalInvested = transactions
-    .filter(t => t.type === 'expense' && t.category === 'Investment')
-    .reduce((acc, c) => acc + c.amount, 0);
+    // CASH VS BANK BREAKDOWN (Calculated from Transaction History)
+    const bankBalance = transactions.reduce((acc, t) => {
+        // Skip Cash transactions
+        if (t.paymentMode === 'Cash') return acc;
+        return t.type === 'income' ? acc + t.amount : acc - t.amount;
+    }, 0);
 
-  const totalExpensesRaw = transactions.filter(t => t.type === 'expense').reduce((acc, c) => acc + c.amount, 0);
-  const totalRealExpenses = totalExpensesRaw - totalInvested;
+    const cashBalance = transactions.reduce((acc, t) => {
+        // Only count Cash transactions
+        if (t.paymentMode !== 'Cash') return acc;
+        return t.type === 'income' ? acc + t.amount : acc - t.amount;
+    }, 0);
 
-  const balance = totalIncome - totalExpensesRaw;
+    // --- ACTIONS ---
+    const handleToggleHabit = async (id) => {
+        setHabits(prev => prev.map(h => h._id === id ? { ...h, completedDates: [...h.completedDates, todayStr] } : h));
+        try { await API.put(`/habits/${id}/toggle`, { date: todayStr }); } catch (err) { fetchAllData(); }
+    };
 
-  if (loading) return <DashboardSkeleton />;
+    const handleToggleGoal = async (id) => {
+        setGoals(prev => prev.map(g => g._id === id ? { ...g, isCompleted: true } : g));
+        try { await API.put(`/goals/${id}/toggle`); } catch (err) { fetchAllData(); }
+    };
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8 relative">
-      
-      {/* 1. HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div>
-            <h1 className="text-2xl font-bold text-gray-800">Financial Dashboard</h1>
-            <p className="text-gray-500 text-sm">Overview of your current financial status.</p>
-        </div>
-        <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-lg shadow-blue-200">
-            <Plus className="w-5 h-5" /> Add Transaction
-        </button>
-      </div>
+    const handleQuickAdd = async (e) => {
+        e.preventDefault();
+        const finalCategory = formData.category === 'Other' ? customCategory : formData.category;
+        try {
+            const res = await API.post('/transactions', {
+                ...formData,
+                category: finalCategory,
+                date: new Date()
+            });
+            setTransactions([res.data, ...transactions]);
+            setShowForm(false);
+            setFormData({ title: '', amount: '', category: 'Food', type: 'expense', paymentMode: 'Bank' });
+            setCustomCategory('');
+        } catch (err) { alert('Error adding'); }
+    };
 
-      {/* 2. SUMMARY CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6 rounded-2xl text-white shadow-lg">
-          <p className="text-blue-100 text-sm font-medium mb-1">Total Balance</p>
-          <h2 className="text-3xl font-bold flex items-center"><IndianRupee className="w-6 h-6 mr-1" /> {balance}</h2>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-gray-500 text-sm mb-1">Total Income</p>
-          <h2 className="text-2xl font-bold text-green-600 flex items-center">+ <IndianRupee className="w-5 h-5" /> {totalIncome}</h2>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-gray-500 text-sm mb-1">Total Expenses</p>
-          <h2 className="text-2xl font-bold text-red-600 flex items-center">- <IndianRupee className="w-5 h-5" /> {totalRealExpenses}</h2>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex justify-between items-start">
-             <div>
-                <p className="text-gray-500 text-sm mb-1">Total Invested</p>
-                <h2 className="text-2xl font-bold text-purple-600 flex items-center">
-                    <IndianRupee className="w-5 h-5" /> {totalInvested}
-                </h2>
-             </div>
-             <div className="p-2 bg-purple-50 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-purple-600" />
-             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* 3. CHARTS SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 h-full">
-            <FinancialAnalytics transactions={transactions} />
-        </div>
-        <div className="lg:col-span-1 h-full">
-            <ExpenseBreakdown transactions={transactions} />
-        </div>
-      </div>
+    if (loading) return <DashboardSkeleton />;
 
-      {/* 4. RECENT TRANSACTIONS */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <ArrowRightLeft className="w-5 h-5 text-gray-500" /> Recent Transactions
-            </h3>
-        </div>
-        <ul>
-            {transactions.map((t) => (
-                <li key={t._id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-none">
-                    <div className="flex items-center gap-4">
-                        <div className={`w-2 h-10 rounded-full ${t.category === 'Investment' ? 'bg-purple-500' : (t.type === 'income' ? 'bg-green-500' : 'bg-red-500')}`}></div>
-                        <div>
-                            <p className="font-semibold text-gray-800">{t.title}</p>
-                            <p className="text-xs text-gray-500">{new Date(t.date).toLocaleDateString()} • {t.category}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <span className={`font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                            {t.type === 'income' ? '+' : '-'} ₹{t.amount}
-                        </span>
-                        <div className="flex gap-2">
-                            <button onClick={() => handleEdit(t)} className="text-gray-400 hover:text-blue-500"><Pencil className="w-4 h-4" /></button>
-                            <button onClick={() => handleDelete(t._id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-                        </div>
-                    </div>
-                </li>
-            ))}
-            {transactions.length === 0 && <div className="p-8 text-center text-gray-400">No transactions found.</div>}
-        </ul>
-      </div>
+    return (
+        <div className="p-6 max-w-7xl mx-auto space-y-8 animate-fade-in">
 
-      {/* FORM MODAL */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl relative">
-                <button onClick={closeForm} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X className="w-6 h-6" /></button>
-                <h2 className="text-2xl font-bold mb-6">{editId ? 'Edit Transaction' : 'Add Transaction'}</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
+            {/* 1. HEADER */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-800">Hello, Achiever</h1>
+                    <p className="text-gray-500 text-sm">Here is your daily briefing.</p>
+                </div>
+                <button onClick={() => setShowForm(true)} className="bg-black text-white px-5 py-2.5 rounded-xl font-bold hover:bg-gray-800 flex items-center gap-2 shadow-lg transition transform hover:scale-105">
+                    <Plus className="w-5 h-5" /> Quick Spend
+                </button>
+            </div>
+
+            {/* 2. SUMMARY CARDS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+                {/* TOTAL BALANCE (Split View) */}
+                <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl text-white shadow-xl shadow-blue-200 flex flex-col justify-between">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                        <input type="text" required className="w-full p-2 border border-gray-300 rounded-lg outline-none" 
-                            value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
+                        <p className="text-blue-100 text-xs font-bold uppercase tracking-wider mb-1">Total Net Worth</p>
+                        <h2 className="text-3xl font-bold flex items-center gap-1"><IndianRupee className="w-6 h-6" /> {balance.toLocaleString()}</h2>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Bank vs Cash Mini-Bar */}
+                    <div className="mt-4 pt-4 border-t border-white/20 flex justify-between text-xs font-medium text-blue-100">
+                        <span className="flex items-center gap-1"><Landmark className="w-3 h-3" /> Bank: {formatCurrency(bankBalance)}</span>
+                        <span className="flex items-center gap-1"><Banknote className="w-3 h-3" /> Cash: {formatCurrency(cashBalance)}</span>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Income</p>
+                    <h2 className="text-2xl font-bold text-green-600">+ {formatCurrency(totalIncome)}</h2>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Net Expenses</p>
+                    <h2 className="text-2xl font-bold text-red-600">- {formatCurrency(totalRealExpenses)}</h2>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                    <div className="flex justify-between items-start">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                            <input type="number" required className="w-full p-2 border border-gray-300 rounded-lg outline-none" 
-                                value={formData.amount} onChange={(e) => setFormData({...formData, amount: Number(e.target.value)})} />
+                            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Invested</p>
+                            <h2 className="text-2xl font-bold text-purple-600">{formatCurrency(totalInvested)}</h2>
                         </div>
-                        <div>
-                             <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                             <select className="w-full p-2 border border-gray-300 rounded-lg outline-none" 
-                                value={txType} onChange={(e) => setTxType(e.target.value)}>
-                                <option value="income">Income (+)</option>
-                                <option value="expense">Expense (-)</option>
-                                <option value="investment">Investment (Asset)</option>
-                             </select>
+                        <div className="p-2 bg-purple-50 rounded-lg"><TrendingUp className="w-5 h-5 text-purple-600" /></div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 3. MAIN SPLIT LAYOUT (50/50) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+
+                {/* --- LEFT: HABITS --- */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-2xl">
+                        <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                            <CheckCircle className="w-5 h-5 text-green-600" /> Daily Habits
+                        </h3>
+                        <span className="text-xs font-bold bg-green-100 text-green-700 px-3 py-1 rounded-full">{incompleteHabits.length} Remaining</span>
+                    </div>
+
+                    <div className="p-4 space-y-3">
+                        {incompleteHabits.length > 0 ? (
+                            incompleteHabits.map(habit => (
+                                <div key={habit._id} className="group flex items-center justify-between p-4 bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-100 rounded-xl transition-all cursor-pointer" onClick={() => handleToggleHabit(habit._id)}>
+                                    <div className="flex items-center gap-4">
+                                        <Circle className="w-6 h-6 text-gray-300 group-hover:text-green-500 transition-colors" strokeWidth={2} />
+                                        <span className="font-semibold text-gray-700 text-lg">{habit.title}</span>
+                                    </div>
+                                    <span className="text-xs font-bold text-gray-400 bg-white px-2 py-1 rounded border border-gray-100 shadow-sm">{habit.target} days</span>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-12 text-center">
+                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <CheckCircle className="w-8 h-8 text-green-600" />
+                                </div>
+                                <h4 className="font-bold text-gray-800">All Habits Completed!</h4>
+                                <p className="text-sm text-gray-500">You are unstoppable today.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* --- RIGHT: GOALS & SPENDING --- */}
+                <div className="flex flex-col gap-8">
+
+                    {/* BLOCK A: GOALS */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                        <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-2xl">
+                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                <Target className="w-5 h-5 text-orange-600" /> Pending Goals
+                            </h3>
+                            <span className="text-xs font-bold bg-orange-100 text-orange-700 px-2 py-1 rounded-full">{activeGoals.length}</span>
+                        </div>
+
+                        <div className="p-3 space-y-3">
+                            {activeGoals.map(goal => {
+                                const isOverdue = new Date(goal.deadline) < new Date().setHours(0, 0, 0, 0);
+                                return (
+                                    <div key={goal._id} className="p-4 border border-gray-100 rounded-xl hover:shadow-md transition bg-white flex justify-between items-center group">
+                                        <div>
+                                            <h4 className="font-bold text-gray-800 text-sm mb-1">{goal.title}</h4>
+                                            <span className={`text-[10px] px-2 py-0.5 rounded ${isOverdue ? 'bg-red-100 text-red-700 font-bold' : 'bg-gray-100 text-gray-500'}`}>
+                                                {formatDate(goal.deadline)}
+                                            </span>
+                                        </div>
+                                        <button onClick={(e) => { e.stopPropagation(); handleToggleGoal(goal._id); }} className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition">
+                                            <ArrowRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                            {activeGoals.length === 0 && <div className="py-8 text-center text-gray-400 text-sm">No active goals.</div>}
                         </div>
                     </div>
-                    
-                    {/* DYNAMIC CATEGORY DROPDOWN */}
-                    {txType !== 'investment' && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                            <select className="w-full p-2 border border-gray-300 rounded-lg outline-none mb-2" 
-                                value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}>
-                                {/* Map over AVAILABLE categories (Defaults + History) */}
-                                {availableCategories.filter(c => c !== 'Investment').map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                                <option value="Other">Other (Type manually)</option>
-                            </select>
-                            
-                            {formData.category === 'Other' && (
-                                <input type="text" placeholder="Type custom category..." required className="w-full p-2 border border-blue-300 bg-blue-50 rounded-lg outline-none"
-                                    value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} />
+
+                    {/* BLOCK B: TODAY'S SPENDING */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col flex-1">
+                        <div className="p-5 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl">
+                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-purple-600" /> Today's Spending
+                            </h3>
+                        </div>
+
+                        <div className="p-0">
+                            {todayTransactions.length > 0 ? (
+                                <ul className="divide-y divide-gray-100">
+                                    {todayTransactions.map(t => (
+                                        <li key={t._id} className="p-4 flex justify-between items-center hover:bg-gray-50 transition">
+                                            <div className="flex items-center gap-3">
+                                                <div>
+                                                    <p className="font-bold text-xs text-gray-800">{t.title}</p>
+                                                    <p className="text-[10px] text-gray-400">{t.category}</p>
+                                                </div>
+                                                {/* Payment Mode Badge */}
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 ${t.paymentMode === 'Cash' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
+                                                    {t.paymentMode === 'Cash' ? <Banknote className="w-3 h-3" /> : <Landmark className="w-3 h-3" />}
+                                                </span>
+                                            </div>
+                                            <span className={`font-bold text-sm ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                                {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <div className="py-8 text-center text-gray-400 text-sm">No spendings today.</div>
                             )}
                         </div>
-                    )}
+                    </div>
 
-                    <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">
-                        {editId ? 'Update' : 'Save'}
-                    </button>
-                </form>
+                </div>
             </div>
+
+            {/* QUICK ADD MODAL */}
+            {showForm && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn backdrop-blur-sm">
+                    <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl scale-100">
+                        <h3 className="font-bold text-xl mb-6 text-gray-800">Add Today's Spend</h3>
+                        <form onSubmit={handleQuickAdd} className="space-y-4">
+                            <input type="text" placeholder="What is it?" required className="w-full p-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <input type="number" placeholder="Amount" required className="w-full p-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50" value={formData.amount} onChange={e => setFormData({ ...formData, amount: Number(e.target.value) })} />
+
+                                {/* PAYMENT MODE SELECTOR */}
+                                <select
+                                    className="w-full p-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                                    value={formData.paymentMode}
+                                    onChange={e => setFormData({ ...formData, paymentMode: e.target.value })}
+                                >
+                                    <option value="Bank">Bank</option>
+                                    <option value="Cash">Cash</option>
+                                </select>
+
+
+                            </div>
+
+                            <select className="w-full p-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                                value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
+                                {DEFAULT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                <option value="Other">Other</option>
+                            </select>
+
+                            {formData.category === 'Other' && (
+                                <input type="text" placeholder="Type Category" required className="w-full p-4 border border-blue-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50" value={customCategory} onChange={e => setCustomCategory(e.target.value)} />
+                            )}
+
+                            <div className="flex gap-3">
+                                <button type="button" onClick={() => setFormData({ ...formData, type: 'expense' })} className={`flex-1 p-3 rounded-xl font-bold text-sm transition ${formData.type === 'expense' ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-gray-50 text-gray-400'}`}>Expense</button>
+                                <button type="button" onClick={() => setFormData({ ...formData, type: 'income' })} className={`flex-1 p-3 rounded-xl font-bold text-sm transition ${formData.type === 'income' ? 'bg-green-100 text-green-600 border border-green-200' : 'bg-gray-50 text-gray-400'}`}>Income</button>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button type="button" onClick={() => setShowForm(false)} className="flex-1 p-3 text-gray-500 hover:bg-gray-100 rounded-xl font-medium">Cancel</button>
+                                <button type="submit" className="flex-1 bg-black text-white p-3 rounded-xl font-bold hover:bg-gray-800 shadow-lg">Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
         </div>
-      )}
-    </div>
-  );
+    );
 };
 
 export default Dashboard;

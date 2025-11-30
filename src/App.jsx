@@ -1,14 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast'; // <--- IMPORT THIS
+import { Toaster } from 'react-hot-toast'; 
 
 // Layouts
 import MainLayout from './components/layout/MainLayout';
 
 // Pages
 import Dashboard from './pages/Dashboard';
+import Financial from './pages/Financial'; // NEW IMPORT
 import Habits from './pages/Habits';
-import Transactions from './pages/Transactions';
 import Goals from './pages/Goals';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -19,7 +19,6 @@ function App() {
 
   return (
     <Router>
-      {/* Add the Toaster here. It will show popups on top of everything */}
       <Toaster position="top-right" reverseOrder={false} />
       
       <Routes>
@@ -29,7 +28,7 @@ function App() {
         <Route element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/habits" element={<Habits />} />
-          <Route path="/transactions" element={<Transactions />} />
+          <Route path="/transactions" element={<Financial />} /> {/* UPDATED ROUTE */}
           <Route path="/goals" element={<Goals />} />
           <Route path="/notes" element={<Notes />} />
         </Route>

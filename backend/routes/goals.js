@@ -20,37 +20,45 @@ router.post('/', protect, async (req, res) => {
       title,
       type,
       deadline,
-      isCompleted: false // Default
+      isCompleted: false 
     });
     res.status(201).json(goal);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-// 3. TOGGLE COMPLETION (New Route) ✅
+// 3. TOGGLE COMPLETION
 router.put('/:id/toggle', protect, async (req, res) => {
   try {
     const goal = await Goal.findById(req.params.id);
     if (!goal) return res.status(404).json({ msg: 'Goal not found' });
     if (goal.user.toString() !== req.user.id) return res.status(401).json({ msg: 'Not authorized' });
 
-    goal.isCompleted = !goal.isCompleted; // Switch True/False
+    goal.isCompleted = !goal.isCompleted; 
     await goal.save();
     res.json(goal);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// 4. UPDATE GOAL (Edit Details)
+// 4. UPDATE GOAL
 router.put('/:id', protect, async (req, res) => {
   try {
-    const goal = await Goal.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(goal);
+    const goal = await Goal.findById(req.params.id);
+    if (!goal) return res.status(404).json({ msg: 'Goal not found' });
+    if (goal.user.toString() !== req.user.id) return res.status(401).json({ msg: 'Not authorized' });
+
+    const updatedGoal = await Goal.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updatedGoal);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 // 5. DELETE GOAL
 router.delete('/:id', protect, async (req, res) => {
   try {
-    await Goal.findByIdAndDelete(req.params.id);
+    const goal = await Goal.findById(req.params.id);
+    if (!goal) return res.status(404).json({ msg: 'Goal not found' });
+    if (goal.user.toString() !== req.user.id) return res.status(401).json({ msg: 'Not authorized' });
+
+    await goal.deleteOne(); 
     res.json({ msg: 'Goal removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

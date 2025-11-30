@@ -1,9 +1,8 @@
-// File: backend/models/Transaction.js
 const mongoose = require('mongoose');
 
 const TransactionSchema = new mongoose.Schema({
   user: {
-    type: mongoose.Schema.Types.ObjectId, // This links to the User ID
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
     ref: 'User'
   },
@@ -20,6 +19,11 @@ const TransactionSchema = new mongoose.Schema({
     type: String,
     enum: ['income', 'expense'],
     required: true
+  },
+  paymentMode: {
+    type: String,
+    enum: ['Cash', 'Bank'],
+    required: true       // ❗ no default, must come from frontend
   },
   category: {
     type: String,

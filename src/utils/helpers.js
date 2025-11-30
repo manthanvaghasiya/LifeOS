@@ -11,6 +11,7 @@ export const formatCurrency = (amount) => {
 
 // Format Dates (e.g., 2023-11-20 -> 20 Nov 2023)
 export const formatDate = (dateString) => {
+  if (!dateString) return '';
   return new Date(dateString).toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
