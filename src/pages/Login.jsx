@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { LogIn, Wallet, ArrowRight, Sparkles } from 'lucide-react';
+import API from '../services/api'; // <--- IMPORT CENTRAL API
+import { LogIn, Wallet, Sparkles } from 'lucide-react';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -10,14 +10,15 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Use the local API URL if you haven't deployed backend changes yet
-      const res = await axios.post('http://localhost:5000/api/auth/login', formData);
+      // NOW USES THE LINK FROM src/services/api.js (Render or Local)
+      const res = await API.post('/auth/login', formData);
+      
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data));
       navigate('/');
       window.location.reload();
     } catch (err) {
-      alert('Invalid Credentials');
+      alert(err.response?.data?.message || 'Invalid Credentials');
     }
   };
 
@@ -66,11 +67,10 @@ const Login = () => {
             </p>
         </div>
 
-        {/* Right: Decorative Image/Gradient */}
+        {/* Right: Decorative */}
         <div className="w-full md:w-1/2 bg-gradient-to-br from-blue-600 to-indigo-900 relative hidden md:flex flex-col justify-center items-center text-white p-12 text-center overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-20 -mt-20"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500 opacity-20 rounded-full blur-3xl -ml-20 -mb-20"></div>
-            
             <div className="relative z-10">
                 <div className="mb-6 inline-flex p-4 bg-white/10 rounded-full backdrop-blur-md border border-white/20 shadow-xl">
                     <Sparkles className="w-8 h-8 text-yellow-300" />

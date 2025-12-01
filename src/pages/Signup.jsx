@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import API from '../services/api'; // <--- IMPORT CENTRAL API
 import { UserPlus, Wallet, Sparkles } from 'lucide-react';
 
 const Signup = () => {
@@ -10,7 +10,9 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', formData);
+      // NOW USES THE LINK FROM src/services/api.js
+      const res = await API.post('/auth/register', formData);
+      
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data));
       navigate('/');
@@ -28,7 +30,6 @@ const Signup = () => {
         <div className="w-full md:w-1/2 bg-gray-900 relative hidden md:flex flex-col justify-center items-center text-white p-12 text-center overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-gray-800 via-gray-950 to-black"></div>
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-600 opacity-20 rounded-full blur-3xl"></div>
-            
             <div className="relative z-10">
                 <h3 className="text-3xl font-bold mb-4">Join the Club</h3>
                 <p className="text-gray-400 text-lg leading-relaxed max-w-xs mx-auto">
