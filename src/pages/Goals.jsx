@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { 
-  Plus, X, Target, Clock, Sparkles, Mountain, Flag, 
-  Calendar, CheckCircle2, MoreVertical, Pencil, Trash2, CheckSquare 
+  Plus, X, Target, Clock, Sparkles, Mountain, 
+  Calendar, CheckCircle2, MoreVertical, Pencil, Trash2, CheckSquare, Link as LinkIcon 
 } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
 
 const Goals = () => {
   const [goals, setGoals] = useState([]);
-  const [tasks, setTasks] = useState([]); // Added Tasks State
+  const [tasks, setTasks] = useState([]); 
   const [loading, setLoading] = useState(true);
   
   // Goals Form State
@@ -21,6 +21,7 @@ const Goals = () => {
   const [newTask, setNewTask] = useState('');
   const [priority, setPriority] = useState('Medium');
   const [dueDate, setDueDate] = useState('');
+  const [linkedGoalId, setLinkedGoalId] = useState(''); // <--- NEW STATE
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -73,9 +74,16 @@ const Goals = () => {
     e.preventDefault();
     if (!newTask.trim()) return;
     try {
-      const res = await API.post('/tasks', { title: newTask, priority, dueDate: dueDate || new Date() });
+      // Send linkedGoalId to backend
+      const res = await API.post('/tasks', { 
+          title: newTask, 
+          priority, 
+          dueDate: dueDate || new Date(),
+          linkedGoal: linkedGoalId || null 
+      });
       setTasks([...tasks, res.data]);
-      setNewTask(''); setPriority('Medium'); setDueDate('');
+      // Reset Form
+      setNewTask(''); setPriority('Medium'); setDueDate(''); setLinkedGoalId('');
     } catch (err) { alert('Error adding task'); }
   };
 
@@ -90,16 +98,11 @@ const Goals = () => {
   };
 
   // --- DATA FILTERING ---
-  const todayDateString = new Date().toLocaleDateString();
-  
-  const visibleGoals = goals.filter(g => {
-      if (!g.isCompleted) return true;
-      return new Date(g.updatedAt).toLocaleDateString() === todayDateString;
-  });
+  const visibleGoals = goals.filter(g => !g.isCompleted || new Date(g.updatedAt).toLocaleDateString() === new Date().toLocaleDateString());
   const longTermGoals = visibleGoals.filter(g => g.type === 'Long Term');
   const shortTermGoals = visibleGoals.filter(g => g.type === 'Short Term');
 
-  // Sort Tasks: Pending > High Priority > Date
+  // Filter Tasks
   const sortedTasks = tasks.sort((a, b) => {
     if (a.isCompleted !== b.isCompleted) return a.isCompleted - b.isCompleted;
     const pOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
@@ -131,11 +134,10 @@ const Goals = () => {
         {/* 3-COLUMN LAYOUT */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             
-            {/* COLUMN 1: DAILY TASKS (The Execution) */}
+            {/* COLUMN 1: DAILY TASKS */}
             <div className="bg-white rounded-[2.5rem] shadow-xl shadow-blue-100/50 border border-blue-50 flex flex-col relative overflow-hidden min-h-[600px]">
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
                 
-                {/* Task Header */}
                 <div className="p-6 border-b border-gray-50 flex justify-between items-center">
                     <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                         <div className="p-2 bg-blue-100 rounded-xl text-blue-600"><CheckSquare className="w-5 h-5" /></div>
@@ -148,12 +150,32 @@ const Goals = () => {
                 <div className="p-4 border-b border-gray-50 bg-gray-50/50">
                     <form onSubmit={addTask} className="space-y-3">
                         <input type="text" placeholder="Add a new task..." className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none text-sm font-medium focus:ring-2 focus:ring-blue-500/20" value={newTask} onChange={(e) => setNewTask(e.target.value)} />
-                        <div className="flex gap-2">
-                            <select className="p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 outline-none" value={priority} onChange={(e) => setPriority(e.target.value)}>
-                                <option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option>
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                            <select className="p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 outline-none cursor-pointer" value={priority} onChange={(e) => setPriority(e.target.value)}>
+                                <option value="High">High Priority</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
                             </select>
-                            <input type="date" className="p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 outline-none" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-                            <button type="submit" className="ml-auto bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition shadow-md"><Plus className="w-4 h-4" /></button>
+                            <input type="date" className="p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 outline-none cursor-pointer" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                        </div>
+
+                        {/* NEW: Link to Goal Dropdown */}
+                        <div className="flex gap-2">
+                            <div className="relative flex-1">
+                                <select 
+                                    className="w-full p-2 pl-8 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 outline-none appearance-none cursor-pointer hover:border-blue-300 transition"
+                                    value={linkedGoalId} 
+                                    onChange={(e) => setLinkedGoalId(e.target.value)}
+                                >
+                                    <option value="">Link to Goal (Optional)</option>
+                                    {shortTermGoals.map(g => (
+                                        <option key={g._id} value={g._id}>{g.title}</option>
+                                    ))}
+                                </select>
+                                <LinkIcon className="w-3 h-3 absolute left-3 top-2.5 text-gray-400" />
+                            </div>
+                            <button type="submit" className="bg-blue-600 text-white px-4 rounded-lg hover:bg-blue-700 transition shadow-md"><Plus className="w-4 h-4" /></button>
                         </div>
                     </form>
                 </div>
@@ -173,7 +195,7 @@ const Goals = () => {
                 </div>
             </div>
 
-            {/* COLUMN 2: SHORT TERM GOALS */}
+            {/* COLUMN 2: SHORT TERM */}
             <div className="bg-white rounded-[2.5rem] shadow-xl shadow-orange-100/50 border border-orange-50 flex flex-col relative overflow-hidden min-h-[600px]">
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-orange-400 to-red-500"></div>
                 <div className="p-6 border-b border-gray-50 flex justify-between items-center">
@@ -189,7 +211,7 @@ const Goals = () => {
                 </div>
             </div>
 
-            {/* COLUMN 3: LONG TERM GOALS */}
+            {/* COLUMN 3: LONG TERM */}
             <div className="bg-white rounded-[2.5rem] shadow-xl shadow-indigo-100/50 border border-indigo-50 flex flex-col relative overflow-hidden min-h-[600px]">
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-400 to-purple-500"></div>
                 <div className="p-6 border-b border-gray-50 flex justify-between items-center">
@@ -229,19 +251,26 @@ const Goals = () => {
   );
 };
 
-// --- SUB-COMPONENTS ---
-
+// --- TASK ITEM WITH LINKED GOAL BADGE ---
 const TaskItem = ({ task, toggleTask, deleteTask }) => {
     const isCompleted = task.isCompleted;
     return (
         <div className={`group flex items-center justify-between p-3 rounded-xl border transition-all duration-300 hover:shadow-sm ${isCompleted ? 'bg-gray-50 border-gray-100' : 'bg-white border-gray-100 hover:border-blue-100'}`}>
             <div className="flex items-center gap-3 flex-1 overflow-hidden">
-                <button onClick={() => toggleTask(task._id)} className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${isCompleted ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 text-transparent hover:border-blue-400'}`}><CheckCircle2 className="w-3.5 h-3.5" /></button>
+                <button onClick={() => toggleTask(task._id)} className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${isCompleted ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 text-transparent hover:border-blue-400'}`}><CheckSquare className="w-3.5 h-3.5" /></button>
                 <div className="flex flex-col min-w-0">
                     <span className={`text-sm font-medium truncate ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{task.title}</span>
                     {!isCompleted && (
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${task.priority === 'High' ? 'bg-red-50 text-red-600' : task.priority === 'Medium' ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'}`}>{task.priority}</span>
+                            
+                            {/* LINKED GOAL BADGE */}
+                            {task.linkedGoal && (
+                                <span className="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                    <LinkIcon className="w-2.5 h-2.5" /> {task.linkedGoal.title}
+                                </span>
+                            )}
+                            
                             <span className="text-[9px] text-gray-400 flex items-center gap-1"><Calendar className="w-2.5 h-2.5" /> {formatDate(task.dueDate)}</span>
                         </div>
                     )}
@@ -251,6 +280,8 @@ const TaskItem = ({ task, toggleTask, deleteTask }) => {
         </div>
     );
 };
+
+// ... GoalItem and EmptyState remain same as before
 
 const GoalItem = ({ goal, handleToggle, handleEdit, handleDelete, menuOpenId, setMenuOpenId }) => {
     const isOverdue = new Date(goal.deadline) < new Date().setHours(0,0,0,0) && !goal.isCompleted;

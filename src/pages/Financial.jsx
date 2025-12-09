@@ -5,7 +5,7 @@ import Papa from 'papaparse';
 import {
   Plus, Search, Download, Filter, ChevronLeft, ChevronRight, Pencil, Trash2, Save, X,
   TrendingUp, Wallet, ArrowUpRight, ArrowDownLeft, Landmark, Banknote, Calendar, ArrowRight,
-  CreditCard, PieChart, Sparkles, SlidersHorizontal, IndianRupee
+  CreditCard, PieChart, Sparkles, SlidersHorizontal, IndianRupee, MessageSquare // Added MessageSquare icon
 } from 'lucide-react';
 import ExpenseBreakdown from '../components/dashboard/ExpenseBreakdown';
 import FinancialAnalytics from '../components/dashboard/FinancialAnalytics';
@@ -16,17 +16,31 @@ const Financial = () => {
   const [allTransactions, setAllTransactions] = useState([]); 
   const [loading, setLoading] = useState(true);
   
+  // VIEW STATE
   const [viewDate, setViewDate] = useState(new Date());
+
+  // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Form State
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [txType, setTxType] = useState('expense');
-  const [formData, setFormData] = useState({ title: '', amount: '', paymentMode: 'Bank', transferTo: 'Cash', category: 'Food' });
+  
+  // ADDED 'reason' TO STATE
+  const [formData, setFormData] = useState({ 
+    title: '', 
+    amount: '', 
+    paymentMode: 'Bank', 
+    transferTo: 'Cash', 
+    category: 'Food',
+    reason: '', // <--- NEW FIELD
+    date: new Date().toISOString().split('T')[0]
+  });
   const [customCategory, setCustomCategory] = useState('');
 
   useEffect(() => { fetchTransactions(); }, []);
@@ -39,13 +53,12 @@ const Financial = () => {
     } catch (err) { console.error(err); setLoading(false); }
   };
 
-  // --- FILTER BY MONTH (Controls Income/Expense Cards & Charts) ---
+  // --- DATA LOGIC ---
   const currentMonthTransactions = allTransactions.filter(t => {
     const tDate = new Date(t.date);
     return tDate.getMonth() === viewDate.getMonth() && tDate.getFullYear() === viewDate.getFullYear();
   });
 
-  // --- LIFETIME NET WORTH (Does NOT filter by month) ---
   const calculateTotalBalance = (mode) => {
     return allTransactions.reduce((acc, t) => {
       const tMode = t.paymentMode || 'Bank'; 
@@ -64,7 +77,6 @@ const Financial = () => {
   const investmentBalance = calculateTotalBalance('Investment');
   const totalNetWorth = bankBalance + cashBalance + investmentBalance;
 
-  // --- MONTHLY STATS (Uses filtered data) ---
   const monthlyIncome = currentMonthTransactions.filter(t => t.type === 'income').reduce((acc, c) => acc + c.amount, 0);
   const monthlyInvested = currentMonthTransactions.filter(t => t.type === 'expense' && t.category === 'Investment').reduce((acc, c) => acc + c.amount, 0);
   const monthlyExpenses = currentMonthTransactions.filter(t => t.type === 'expense' && t.category !== 'Investment').reduce((acc, c) => acc + c.amount, 0);
@@ -84,7 +96,8 @@ const Financial = () => {
       type: txType,
       category: finalCategory,
       paymentMode: formData.paymentMode,
-      date: new Date()
+      reason: formData.reason, // <--- SEND REASON
+      date: formData.date || new Date()
     };
 
     try {
@@ -115,7 +128,9 @@ const Financial = () => {
       amount: t.amount,
       paymentMode: t.paymentMode || 'Bank',
       transferTo: isTransfer ? t.category : 'Cash',
-      category: !isTransfer && isStandard ? t.category : 'Other'
+      category: !isTransfer && isStandard ? t.category : 'Other',
+      reason: t.reason || '', // <--- LOAD REASON
+      date: t.date ? new Date(t.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
     });
     if (!isTransfer && !isStandard) setCustomCategory(t.category);
     setShowForm(true);
@@ -123,7 +138,10 @@ const Financial = () => {
 
   const closeForm = () => {
     setShowForm(false); setEditId(null);
-    setFormData({ title: '', amount: '', category: 'Food', paymentMode: 'Bank', transferTo: 'Cash' });
+    setFormData({ 
+        title: '', amount: '', category: 'Food', paymentMode: 'Bank', transferTo: 'Cash', reason: '',
+        date: new Date().toISOString().split('T')[0] 
+    });
     setTxType('expense'); setCustomCategory('');
   };
 
@@ -134,7 +152,8 @@ const Financial = () => {
       Category: t.category,
       Type: t.type.toUpperCase(),
       Source: t.paymentMode || 'Bank',
-      Amount: t.amount
+      Amount: t.amount,
+      Reason: t.reason || '' // <--- EXPORT REASON
     }));
     const csv = Papa.unparse(csvData);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -159,7 +178,7 @@ const Financial = () => {
     <div className="min-h-screen bg-gray-50/50 p-6 pb-20">
       <div className="max-w-7xl mx-auto space-y-10 animate-fade-in">
         
-        {/* 1. PREMIUM HEADER */}
+        {/* HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-end gap-6">
             <div>
                 <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
@@ -187,8 +206,9 @@ const Financial = () => {
             </div>
         </div>
 
-        {/* 2. SUMMARY CARDS */}
+        {/* SUMMARY CARDS (Keeping your existing layout) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Net Worth */}
             <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-800 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-blue-200/50 transition-transform hover:scale-[1.02]">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full blur-3xl opacity-10 -mr-16 -mt-16"></div>
                 <div className="relative z-10 flex flex-col justify-between h-full">
@@ -203,7 +223,6 @@ const Financial = () => {
                 </div>
             </div>
             
-            {/* Monthly Cards */}
             <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/40 border border-gray-100 hover:shadow-2xl transition-all duration-300 group">
                 <div className="flex justify-between items-start mb-6">
                     <div className="p-3.5 bg-green-50 rounded-2xl text-green-600 group-hover:bg-green-100 transition-colors"><TrendingUp className="w-7 h-7" /></div>
@@ -232,19 +251,19 @@ const Financial = () => {
             </div>
         </div>
 
-        {/* 3. CHARTS */}
+        {/* CHARTS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 min-h-[350px]"><FinancialAnalytics transactions={currentMonthTransactions} /></div>
             <div className="lg:col-span-1 min-h-[350px]"><ExpenseBreakdown transactions={currentMonthTransactions} /></div>
         </div>
 
-        {/* 4. TABLE */}
+        {/* TABLE */}
         <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
             <div className="p-8 border-b border-gray-100 flex flex-col md:flex-row gap-6 items-center bg-white">
                 <div className="relative flex-1 w-full"><Search className="absolute left-5 top-4 w-5 h-5 text-gray-400" /><input type="text" placeholder={`Search ${formattedMonth}...`} className="w-full pl-14 pr-4 py-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-700 font-bold transition-all placeholder-gray-400" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} /></div>
                 <div className="flex gap-3 w-full md:w-auto">
                     <div className="flex items-center gap-3 bg-gray-50 px-5 py-4 rounded-2xl cursor-pointer hover:bg-gray-100 transition group"><SlidersHorizontal className="w-4 h-4 text-gray-500 group-hover:text-gray-800" /><select className="bg-transparent outline-none text-sm font-bold text-gray-600 cursor-pointer w-full" value={filterType} onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}><option value="all">All Types</option><option value="income">Incomes</option><option value="expense">Expenses</option><option value="transfer">Transfers</option></select></div>
-                    <select className="px-5 py-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold text-gray-600 hover:bg-gray-100 transition cursor-pointer" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="highest">Highest</option><option value="lowest">Lowest</option></select>
+                    <select className="px-5 py-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold text-gray-600 hover:bg-gray-100 transition cursor-pointer" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="highest">Highest Amount</option><option value="lowest">Lowest Amount</option></select>
                 </div>
             </div>
             <div className="overflow-x-auto">
@@ -255,7 +274,10 @@ const Financial = () => {
                     const displayMode = t.paymentMode || 'Bank'; 
                     return (
                         <tr key={t._id} className="group border-b border-gray-50 last:border-0 hover:bg-blue-50/30 transition-colors">
-                            <td className="p-6 pl-10 text-gray-500">{formatDate(t.date)}</td>
+                            <td className="p-6 pl-10 text-gray-500">
+                                <div>{formatDate(t.date)}</div>
+                                {t.reason && <div className="text-[10px] text-gray-400 mt-1 italic max-w-[120px] truncate">{t.reason}</div>} {/* Show Reason */}
+                            </td>
                             <td className="p-6"><span className="font-bold text-gray-800 text-base">{t.title}</span></td>
                             <td className="p-6">
                                 {t.type === 'transfer' ? (
@@ -269,7 +291,6 @@ const Financial = () => {
                         </tr>
                     );
                 })}
-                {paginatedData.length === 0 && <tr><td colSpan="5" className="p-20 text-center text-gray-400 italic">No transactions found for {formattedMonth}.</td></tr>}
                 </tbody>
             </table>
             </div>
@@ -288,11 +309,33 @@ const Financial = () => {
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-5">
                 {txType !== 'transfer' && (<div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Title</label><input type="text" required className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 font-bold text-gray-800 transition-all placeholder-gray-400" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. Grocery" /></div>)}
+                
+                {/* DATE FIELD */}
+                <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Date</label>
+                    <input type="date" required className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 font-bold text-gray-800 cursor-pointer" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+                </div>
+
                 <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Amount</label><input type="number" required className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 font-bold text-gray-800 transition-all placeholder-gray-400" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })} placeholder="0.00" /></div>
+                
+                {/* TRANSFER SECTION WITH REASON */}
                 {txType === 'transfer' ? (
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">From</label><select className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-700 appearance-none cursor-pointer" value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="Investment">Investment</option></select></div>
-                        <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">To</label><select className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-700 appearance-none cursor-pointer" value={formData.transferTo} onChange={(e) => setFormData({ ...formData, transferTo: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="Investment">Investment</option></select></div>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">From</label><select className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-700 appearance-none cursor-pointer" value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="Investment">Investment</option></select></div>
+                            <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">To</label><select className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-700 appearance-none cursor-pointer" value={formData.transferTo} onChange={(e) => setFormData({ ...formData, transferTo: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="Investment">Investment</option></select></div>
+                        </div>
+                        {/* REASON INPUT */}
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Reason (Optional)</label>
+                            <input 
+                                type="text" 
+                                placeholder="Why this transfer?" 
+                                className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 font-bold text-gray-800 transition-all placeholder-gray-400" 
+                                value={formData.reason} 
+                                onChange={(e) => setFormData({ ...formData, reason: e.target.value })} 
+                            />
+                        </div>
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 gap-4">
@@ -300,7 +343,9 @@ const Financial = () => {
                         <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Source</label><select className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-700 appearance-none cursor-pointer" value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option></select></div>
                     </div>
                 )}
+                
                 {txType !== 'transfer' && formData.category === 'Other' && <input type="text" placeholder="Type category..." required className="w-full p-4 bg-blue-50 text-blue-800 font-bold border-none rounded-2xl outline-none" value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} />}
+                
                 <button type="submit" className="w-full bg-gray-900 text-white p-4 rounded-2xl font-bold hover:bg-black shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 mt-2">{editId ? 'Update Transaction' : 'Save Transaction'}</button>
                 </form>
             </div>

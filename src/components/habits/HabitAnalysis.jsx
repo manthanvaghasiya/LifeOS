@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, AlertTriangle, ArrowDownRight, CheckCircle2, ArrowUpRight } from 'lucide-react';
+import { Trophy, AlertTriangle, ArrowDownRight, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const HabitAnalysis = ({ topHabitsMonthly, auditData, daysInLeaderboardMonth }) => {
   return (
@@ -41,36 +41,41 @@ const HabitAnalysis = ({ topHabitsMonthly, auditData, daysInLeaderboardMonth }) 
             </div>
         </div>
 
-        {/* ACTION REQUIRED CARD */}
+        {/* ACTION REQUIRED CARD (Smart Messages) */}
         <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 h-full flex flex-col">
             <h3 className="font-bold text-xl text-gray-900 mb-8 flex items-center gap-3">
                 <div className="p-2 bg-red-100 rounded-xl text-red-600"><AlertTriangle className="w-5 h-5" /></div>
-                Action Required
+                Action Required (Bottom 7)
             </h3>
             
             <div className="flex-1">
               {auditData.length > 0 ? (
                   <div className="space-y-3">
-                      {auditData.map((habit) => (
-                          <div key={habit._id} className="flex items-center justify-between p-4 bg-red-50/50 border border-red-100 rounded-2xl hover:bg-red-50 transition-colors">
-                              <div className="flex flex-col">
-                                  <span className="font-bold text-gray-800 text-sm">{habit.title}</span>
-                                  <span className="text-xs text-red-600 font-medium">Dropped by {Math.abs(habit.diff)}%</span>
+                      {auditData.map((habit) => {
+                          const isDropping = habit.diff < 0;
+                          return (
+                              <div key={habit._id} className="flex items-center justify-between p-4 bg-red-50/50 border border-red-100 rounded-2xl hover:bg-red-50 transition-colors">
+                                  <div className="flex flex-col">
+                                      <span className="font-bold text-gray-800 text-sm">{habit.title}</span>
+                                      <span className="text-xs text-red-600 font-medium">
+                                          {isDropping ? `Dropped by ${Math.abs(habit.diff)}%` : 'Low Consistency'}
+                                      </span>
+                                  </div>
+                                  <div className={`flex items-center gap-1 font-bold text-sm px-3 py-1.5 rounded-lg shadow-sm ${isDropping ? 'bg-white text-red-600' : 'bg-white text-orange-500'}`}>
+                                      {isDropping ? <ArrowDownRight className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                                      {habit.currConsistency}%
+                                  </div>
                               </div>
-                              <div className="flex items-center gap-1 text-red-600 font-bold text-sm bg-white px-3 py-1.5 rounded-lg shadow-sm">
-                                  <ArrowDownRight className="w-4 h-4" />
-                                  {habit.currConsistency}%
-                              </div>
-                          </div>
-                      ))}
+                          );
+                      })}
                   </div>
               ) : (
                   <div className="h-full flex flex-col items-center justify-center text-center py-8">
                       <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                           <CheckCircle2 className="w-8 h-8 text-green-600" />
                       </div>
-                      <h4 className="font-bold text-gray-800 mb-1">All Systems Go!</h4>
-                      <p className="text-sm text-gray-500 max-w-[200px]">No declining habits found. You are staying consistent.</p>
+                      <h4 className="font-bold text-gray-800 mb-1">Excellent!</h4>
+                      <p className="text-sm text-gray-500 max-w-[200px]">No habits are struggling right now. Keep it up!</p>
                   </div>
               )}
             </div>

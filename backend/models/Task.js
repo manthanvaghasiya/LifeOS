@@ -24,6 +24,12 @@ const TaskSchema = new mongoose.Schema({
     type: Date,
     default: Date.now 
   },
+  // --- NEW FIELD: LINK TO GOAL ---
+  linkedGoal: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Goal',
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

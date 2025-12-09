@@ -14,14 +14,12 @@ const Dashboard = () => {
   const [transactions, setTransactions] = useState([]);
   const [habits, setHabits] = useState([]);
   const [goals, setGoals] = useState([]);
-  const [tasks, setTasks] = useState([]); // Added Tasks
+  const [tasks, setTasks] = useState([]); 
   const [loading, setLoading] = useState(true);
   
-  // User Name
   const user = JSON.parse(localStorage.getItem('user')) || { name: 'Achiever' };
   const firstName = user.name.split(' ')[0]; 
 
-  // Form State
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ title: '', amount: '', category: 'Food', type: 'expense', paymentMode: 'Bank' });
   const [customCategory, setCustomCategory] = useState('');
@@ -34,7 +32,7 @@ const Dashboard = () => {
         API.get('/transactions'),
         API.get('/habits'),
         API.get('/goals'),
-        API.get('/tasks') // Fetch Tasks
+        API.get('/tasks') 
       ]);
       setTransactions(txRes.data);
       setHabits(habitRes.data);
@@ -52,17 +50,31 @@ const Dashboard = () => {
   // 1. FILTER: Incomplete Habits
   const incompleteHabits = habits.filter(h => !h.completedDates.includes(todayStr));
 
-  // 2. FILTER: Pending Tasks (Daily)
-  const pendingTasks = tasks.filter(t => !t.isCompleted).sort((a, b) => {
+  // 2. FILTER: Pending Tasks (TODAY + OVERDUE ONLY)
+  // Fix: We filter out any task where dueDate > Today
+  const pendingTasks = tasks.filter(t => {
+      if (t.isCompleted) return false;
+      
+      const taskDate = new Date(t.dueDate);
+      const today = new Date();
+      
+      // Reset time to compare only dates
+      taskDate.setHours(0,0,0,0);
+      today.setHours(0,0,0,0);
+      
+      // Show if Due Date is Today or in the Past (Overdue)
+      return taskDate.getTime() <= today.getTime();
+  }).sort((a, b) => {
       const pOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
-      return pOrder[a.priority] - pOrder[b.priority];
-  }).slice(0, 3); // Show max 3 tasks to save space
+      if (pOrder[a.priority] !== pOrder[b.priority]) return pOrder[a.priority] - pOrder[b.priority];
+      return new Date(a.dueDate) - new Date(b.dueDate);
+  }).slice(0, 3); 
 
   // 3. FILTER: Pending Short Term Goals
   const pendingShortTermGoals = goals
     .filter(g => !g.isCompleted && g.type === 'Short Term')
     .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
-    .slice(0, 3); // Show max 3 goals
+    .slice(0, 3); 
 
   // 4. FILTER: Today's Transactions
   const todayTransactions = transactions.filter(t => 
@@ -86,7 +98,7 @@ const Dashboard = () => {
   const investmentBalance = calculateBalance('Investment');
   const totalNetWorth = bankBalance + cashBalance + investmentBalance;
 
-  // Monthly Logic for Cards
+  // Monthly Logic
   const currentMonthTransactions = transactions.filter(t => {
     const tDate = new Date(t.date);
     return tDate.getMonth() === todayObj.getMonth() && tDate.getFullYear() === todayObj.getFullYear();
@@ -233,7 +245,7 @@ const Dashboard = () => {
                   
                   <div className="p-5 space-y-6">
                       
-                      {/* 1. TASKS SECTION */}
+                      {/* 1. TASKS SECTION (TODAY + OVERDUE ONLY) */}
                       {pendingTasks.length > 0 && (
                           <div>
                               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Daily Tasks</p>
@@ -296,7 +308,7 @@ const Dashboard = () => {
           </div>
       </div>
       
-      {/* QUICK ADD MODAL (Existing code...) */}
+      {/* QUICK ADD MODAL */}
       {showForm && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
             <div className="bg-white p-8 rounded-[2rem] w-full max-w-sm shadow-2xl relative transform transition-all scale-100">

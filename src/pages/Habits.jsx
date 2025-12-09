@@ -115,7 +115,7 @@ const Habits = () => {
   });
   const avgDailyConsistency = monthlyStats.length === 0 ? 0 : Math.round(monthlyStats.reduce((acc, curr) => acc + curr.percent, 0) / monthlyStats.length);
 
-  // TOP 7 PERFORMERS
+  // TOP 7 PERFORMERS (Highest Consistency First)
   const topHabitsMonthly = habits.map(habit => ({
       ...habit, monthlyCount: habit.completedDates.filter(d => d.startsWith(leaderboardMonth)).length
   })).sort((a, b) => b.monthlyCount - a.monthlyCount).slice(0, 7); 
@@ -126,15 +126,16 @@ const Habits = () => {
   const daysPassedInCurrentMonth = new Date().getDate(); 
   const totalDaysInPrevMonth = new Date(prevDateObj.getFullYear(), prevDateObj.getMonth() + 1, 0).getDate(); 
 
-  // TOP 7 DECLINES (Action Required)
+  // ACTION REQUIRED: BOTTOM 7 PERFORMERS (Lowest Consistency First)
+  // Logic: Calculate consistency, then Sort ASCENDING (Low -> High), take bottom 7
   const auditData = habits.map(habit => {
       const prevC = Math.round((habit.completedDates.filter(d => d.startsWith(prevMonthStr)).length / totalDaysInPrevMonth) * 100);
       const currC = Math.round((habit.completedDates.filter(d => d.startsWith(currentMonthStr)).length / daysPassedInCurrentMonth) * 100);
       return { ...habit, prevConsistency: prevC, currConsistency: currC, diff: currC - prevC };
   })
-  .filter(h => h.diff < 0) // Only negative trends
-  .sort((a, b) => a.diff - b.diff) // Sort by biggest drop
-  .slice(0, 7); // Changed from 5 to 7
+  .sort((a, b) => a.currConsistency - b.currConsistency) // Sort Lowest to Highest
+  .filter(h => h.currConsistency < 100) // Don't show perfect habits in "Action Required"
+  .slice(0, 5);
 
   return (
     <div className="min-h-screen bg-gray-50/50 p-6 pb-20">

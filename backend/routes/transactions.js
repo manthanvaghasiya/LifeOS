@@ -6,21 +6,19 @@ const { protect } = require('../middleware/authMiddleware');
 // 1. GET ALL
 router.get('/', protect, async (req, res) => {
   try {
-    const transactions = await Transaction
-      .find({ user: req.user.id })
-      .sort({ date: -1 });
+    const transactions = await Transaction.find({ user: req.user.id }).sort({ date: -1 });
     res.json(transactions);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// 2. ADD TRANSACTION
+// 2. ADD TRANSACTION (Updated)
 router.post('/', protect, async (req, res) => {
   try {
-    const { title, amount, type, category, date, paymentMode } = req.body;
+    // Extract 'reason' from request body
+    const { title, amount, type, category, date, paymentMode, reason } = req.body;
 
-    // Validation: Ensure valid mode
     if (!['Cash', 'Bank', 'Investment'].includes(paymentMode)) {
       return res.status(400).json({ message: 'Invalid Payment Mode' });
     }
@@ -32,7 +30,8 @@ router.post('/', protect, async (req, res) => {
       type,
       category,
       date: date || Date.now(),
-      paymentMode
+      paymentMode,
+      reason // Save the reason
     });
 
     res.status(201).json(transaction);
@@ -41,7 +40,7 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// 3. UPDATE TRANSACTION
+// 3. UPDATE TRANSACTION (Updated)
 router.put('/:id', protect, async (req, res) => {
   try {
     const existing = await Transaction.findById(req.params.id);
@@ -50,7 +49,7 @@ router.put('/:id', protect, async (req, res) => {
 
     const updated = await Transaction.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      req.body, // This automatically updates 'reason' if sent
       { new: true }
     );
 

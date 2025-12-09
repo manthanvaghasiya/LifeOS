@@ -17,18 +17,25 @@ const TransactionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['income', 'expense', 'transfer'], // Added 'transfer'
+    enum: ['income', 'expense', 'transfer'],
     required: true
   },
   paymentMode: {
     type: String,
-    enum: ['Cash', 'Bank', 'Investment'], // Added 'Investment'
+    enum: ['Cash', 'Bank', 'Investment'],
     required: true
   },
   category: {
     type: String,
-    required: true // For transfers, this will store the 'Destination' (e.g., "To Cash")
+    required: true 
   },
+  // --- NEW FIELD ---
+  reason: {
+    type: String,
+    required: false, // Optional
+    trim: true
+  },
+  // ----------------
   date: {
     type: Date,
     default: Date.now
