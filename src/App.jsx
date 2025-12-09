@@ -13,6 +13,8 @@ import Goals from './pages/Goals';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Notes from './pages/Notes';
+import Settings from './pages/Settings';
+import NotFound from './pages/NotFound';
 
 function App() {
   const isAuthenticated = !!localStorage.getItem('token');
@@ -31,6 +33,8 @@ function App() {
           <Route path="/transactions" element={<Financial />} /> {/* UPDATED ROUTE */}
           <Route path="/goals" element={<Goals />} />
           <Route path="/notes" element={<Notes />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" />} />

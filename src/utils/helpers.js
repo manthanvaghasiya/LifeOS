@@ -1,6 +1,4 @@
-// File: src/utils/helpers.js
-
-// Format Numbers to Indian Currency (e.g., 50000 -> ₹50,000)
+// Format numbers as Currency (Indian Rupee)
 export const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -9,12 +7,17 @@ export const formatCurrency = (amount) => {
   }).format(amount);
 };
 
-// Format Dates (e.g., 2023-11-20 -> 20 Nov 2023)
+// Format Dates (e.g., "Oct 24, 2025")
 export const formatDate = (dateString) => {
   if (!dateString) return '';
-  return new Date(dateString).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  });
+  const options = { year: 'numeric', month: 'short', day: 'numeric' };
+  return new Date(dateString).toLocaleDateString('en-US', options);
+};
+
+// Get Greeting based on time
+export const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good Morning';
+  if (hour < 18) return 'Good Afternoon';
+  return 'Good Evening';
 };
