@@ -5,6 +5,7 @@ import {
   Calendar, CheckCircle2, MoreVertical, Pencil, Trash2, CheckSquare, Link as LinkIcon 
 } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
+import { addXP } from '../utils/gamification';
 
 const Goals = () => {
   const [goals, setGoals] = useState([]);
@@ -53,8 +54,15 @@ const Goals = () => {
   };
 
   const toggleGoal = async (id) => {
-    setGoals(goals.map(g => g._id === id ? { ...g, isCompleted: !g.isCompleted, updatedAt: new Date().toISOString() } : g));
-    try { await API.put(`/goals/${id}/toggle`); } catch (err) { fetchAll(); }
+    const goal = goals.find(g => g._id === id);
+    const isCompleting = !goal.isCompleted;
+
+    setGoals(goals.map(g => g._id === id ? { ...g, isCompleted: isCompleting, updatedAt: new Date().toISOString() } : g));
+    
+    try { 
+        await API.put(`/goals/${id}/toggle`); 
+        if (isCompleting) addXP(50); // BIG REWARD
+    } catch (err) { fetchAll(); }
   };
 
   const deleteGoal = async (id) => {
@@ -88,10 +96,16 @@ const Goals = () => {
   };
 
   const toggleTask = async (id) => {
-    setTasks(tasks.map(t => t._id === id ? { ...t, isCompleted: !t.isCompleted } : t));
-    try { await API.put(`/tasks/${id}/toggle`); } catch (err) { fetchAll(); }
-  };
+    const task = tasks.find(t => t._id === id);
+    const isCompleting = !task.isCompleted;
 
+    setTasks(tasks.map(t => t._id === id ? { ...t, isCompleted: isCompleting } : t));
+    
+    try { 
+        await API.put(`/tasks/${id}/toggle`); 
+        if (isCompleting) addXP(20); // MEDIUM REWARD
+    } catch (err) { fetchAll(); }
+  };
   const deleteTask = async (id) => {
     if(!window.confirm("Delete task?")) return;
     try { await API.delete(`/tasks/${id}`); setTasks(tasks.filter(t => t._id !== id)); } catch (err) {}

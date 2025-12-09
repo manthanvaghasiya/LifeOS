@@ -47,4 +47,39 @@ router.delete('/profile', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: 'Delete failed' }); }
 });
 
+// ... existing imports and routes
+
+// 4. GAIN XP (The Level Up Logic)
+router.put('/xp', protect, async (req, res) => {
+  try {
+    const { xp } = req.body; // e.g., { xp: 20 }
+    const user = await User.findById(req.user.id);
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.currentXP += xp;
+
+    // CHECK FOR LEVEL UP
+    let leveledUp = false;
+    if (user.currentXP >= user.requiredXP) {
+      user.level += 1;
+      user.currentXP -= user.requiredXP; // Carry over extra XP
+      user.requiredXP = user.level * 100; // Harder to reach next level
+      leveledUp = true;
+    }
+
+    await user.save();
+
+    res.json({
+      level: user.level,
+      currentXP: user.currentXP,
+      requiredXP: user.requiredXP,
+      leveledUp // Tell frontend to show fireworks
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'XP Error' });
+  }
+});
+
+
 module.exports = router;

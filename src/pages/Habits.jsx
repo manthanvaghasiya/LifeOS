@@ -9,6 +9,7 @@ import HabitStats from '../components/habits/HabitStats';
 import HabitGrid from '../components/habits/HabitGrid';
 import HabitMonthlyOverview from '../components/habits/HabitMonthlyOverview';
 import HabitAnalysis from '../components/habits/HabitAnalysis';
+import { addXP } from '../utils/gamification';
 
 const Habits = () => {
   const [habits, setHabits] = useState([]);
@@ -73,10 +74,25 @@ const Habits = () => {
   const cancelEdit = () => { setEditId(null); setNewHabit(''); setNewTarget(21); };
 
   const toggleHabitDate = async (id, date) => {
+    // 1. Check if we are completing it (not un-checking)
+    const habit = habits.find(h => h._id === id);
+    const isCompleting = !habit.completedDates.includes(date);
+
+    // 2. Optimistic UI Update
     setHabits(prev => prev.map(h => h._id === id ? {
-      ...h, completedDates: h.completedDates.includes(date) ? h.completedDates.filter(d => d !== date) : [...h.completedDates, date]
+      ...h, completedDates: isCompleting 
+        ? [...h.completedDates, date] 
+        : h.completedDates.filter(d => d !== date)
     } : h));
-    try { await API.put(`/habits/${id}/toggle`, { date }); } 
+
+    try { 
+        await API.put(`/habits/${id}/toggle`, { date }); 
+        
+        // 3. AWARD XP IF COMPLETING
+        if (isCompleting) {
+            addXP(10); // +10 XP
+        }
+    } 
     catch (err) { fetchHabits(); } 
   };
 
