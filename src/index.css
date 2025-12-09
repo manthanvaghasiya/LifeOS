@@ -2,21 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
-/* --- ADD THIS FOR PREMIUM SCROLLING --- */
 @layer utilities {
-  /* Hide scrollbar for Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  /* Hide scrollbar for IE, Edge and Firefox */
   .no-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 
-/* Global Background */
+/* GLOBAL TRANSITION FOR SMOOTH DARK MODE */
 body {
-  background-color: #f9fafb; /* Light Gray */
-  color: #111827; /* Dark Gray Text */
+  @apply transition-colors duration-300 ease-in-out;
+}
+
+/* Dark Mode Defaults */
+html.dark body {
+  background-color: #030712; /* Gray 950 - Very Dark */
+  color: #f3f4f6; /* Gray 100 - Very Light Text */
+}
+
+/* Light Mode Defaults */
+body {
+  background-color: #f9fafb;
+  color: #111827;
 }
