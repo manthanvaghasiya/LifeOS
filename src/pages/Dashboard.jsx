@@ -4,7 +4,7 @@ import { formatCurrency, formatDate } from '../utils/helpers';
 import { 
   Plus, CheckCircle, Circle, Target, Calendar, 
   Wallet, TrendingUp, ArrowRight, Clock, IndianRupee, 
-  Landmark, Banknote, Sparkles, CreditCard, X, PieChart 
+  Landmark, Banknote, Sparkles, CreditCard, X, PieChart, CheckSquare, Layers 
 } from 'lucide-react';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 
@@ -14,6 +14,7 @@ const Dashboard = () => {
   const [transactions, setTransactions] = useState([]);
   const [habits, setHabits] = useState([]);
   const [goals, setGoals] = useState([]);
+  const [tasks, setTasks] = useState([]); // Added Tasks
   const [loading, setLoading] = useState(true);
   
   // User Name
@@ -29,69 +30,69 @@ const Dashboard = () => {
 
   const fetchAllData = async () => {
     try {
-      const [txRes, habitRes, goalRes] = await Promise.all([
+      const [txRes, habitRes, goalRes, taskRes] = await Promise.all([
         API.get('/transactions'),
         API.get('/habits'),
-        API.get('/goals')
+        API.get('/goals'),
+        API.get('/tasks') // Fetch Tasks
       ]);
       setTransactions(txRes.data);
       setHabits(habitRes.data);
       setGoals(goalRes.data);
+      setTasks(taskRes.data);
       setLoading(false);
     } catch (err) { console.error(err); setLoading(false); }
   };
 
-  // --- DATE LOGIC ---
+  // --- LOGIC ---
   const todayObj = new Date();
   const todayStr = todayObj.toISOString().split('T')[0];
   const todayDateString = todayObj.toLocaleDateString(); 
-  const currentMonth = todayObj.getMonth();
-  const currentYear = todayObj.getFullYear();
 
-  // --- FILTER 1: CURRENT MONTH TRANSACTIONS (For Income/Expense Cards) ---
-  const thisMonthTransactions = transactions.filter(t => {
-    const tDate = new Date(t.date);
-    return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
-  });
+  // 1. FILTER: Incomplete Habits
+  const incompleteHabits = habits.filter(h => !h.completedDates.includes(todayStr));
 
-  // --- FILTER 2: TODAY'S TRANSACTIONS (For List) ---
+  // 2. FILTER: Pending Tasks (Daily)
+  const pendingTasks = tasks.filter(t => !t.isCompleted).sort((a, b) => {
+      const pOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+      return pOrder[a.priority] - pOrder[b.priority];
+  }).slice(0, 3); // Show max 3 tasks to save space
+
+  // 3. FILTER: Pending Short Term Goals
+  const pendingShortTermGoals = goals
+    .filter(g => !g.isCompleted && g.type === 'Short Term')
+    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
+    .slice(0, 3); // Show max 3 goals
+
+  // 4. FILTER: Today's Transactions
   const todayTransactions = transactions.filter(t => 
     new Date(t.date).toLocaleDateString() === todayDateString
   );
 
-  // --- 1. LIFETIME NET WORTH CALCULATION (ALL DATA) ---
-  const calculateLifetimeBalance = (mode) => {
+  // --- FINANCIAL CALCULATIONS ---
+  const calculateBalance = (mode) => {
     return transactions.reduce((acc, t) => {
       const tMode = t.paymentMode || 'Bank'; 
-      // Money In
       if (tMode === mode && t.type === 'income') return acc + t.amount;
-      if (t.type === 'transfer' && t.category === mode) return acc + t.amount;
-      // Money Out
+      if (t.type === 'transfer' && t.category === mode) return acc + t.amount; 
       if (tMode === mode && t.type === 'expense') return acc - t.amount;
-      if (tMode === mode && t.type === 'transfer') return acc - t.amount;
+      if (tMode === mode && t.type === 'transfer') return acc - t.amount; 
       return acc;
     }, 0);
   };
 
-  const bankBalance = calculateLifetimeBalance('Bank');
-  const cashBalance = calculateLifetimeBalance('Cash');
-  const investmentBalance = calculateLifetimeBalance('Investment');
+  const bankBalance = calculateBalance('Bank');
+  const cashBalance = calculateBalance('Cash');
+  const investmentBalance = calculateBalance('Investment');
   const totalNetWorth = bankBalance + cashBalance + investmentBalance;
 
-  // --- 2. MONTHLY STATS (THIS MONTH ONLY) ---
-  const monthlyIncome = thisMonthTransactions
-    .filter(t => t.type === 'income')
-    .reduce((acc, c) => acc + c.amount, 0);
-
-  const monthlyExpenses = thisMonthTransactions
-    .filter(t => t.type === 'expense' && t.category !== 'Investment') // Exclude investment deposits from expense
-    .reduce((acc, c) => acc + c.amount, 0);
-
-  // --- OTHER FILTERS ---
-  const incompleteHabits = habits.filter(h => !h.completedDates.includes(todayStr));
-  const activeGoals = goals
-    .filter(g => !g.isCompleted) 
-    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+  // Monthly Logic for Cards
+  const currentMonthTransactions = transactions.filter(t => {
+    const tDate = new Date(t.date);
+    return tDate.getMonth() === todayObj.getMonth() && tDate.getFullYear() === todayObj.getFullYear();
+  });
+  const monthlyIncome = currentMonthTransactions.filter(t => t.type === 'income').reduce((acc, c) => acc + c.amount, 0);
+  const monthlyExpenses = currentMonthTransactions.filter(t => t.type === 'expense' && t.category !== 'Investment').reduce((acc, c) => acc + c.amount, 0);
 
   // --- ACTIONS ---
   const handleToggleHabit = async (id) => {
@@ -104,12 +105,17 @@ const Dashboard = () => {
     try { await API.put(`/goals/${id}/toggle`); } catch (err) { fetchAllData(); }
   };
 
+  const handleToggleTask = async (id) => {
+    setTasks(prev => prev.map(t => t._id === id ? { ...t, isCompleted: true } : t));
+    try { await API.put(`/tasks/${id}/toggle`); } catch (err) { fetchAllData(); }
+  };
+
   const handleQuickAdd = async (e) => {
     e.preventDefault();
     const finalCategory = formData.category === 'Other' ? customCategory : formData.category;
     try {
         const res = await API.post('/transactions', { ...formData, category: finalCategory, date: new Date() });
-        setTransactions([res.data, ...transactions]); // Add to local state instantly
+        setTransactions([res.data, ...transactions]);
         setShowForm(false);
         setFormData({ title: '', amount: '', category: 'Food', type: 'expense', paymentMode: 'Bank' });
         setCustomCategory('');
@@ -121,7 +127,7 @@ const Dashboard = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8 animate-fade-in bg-gray-50/50 min-h-screen">
       
-      {/* HEADER */}
+      {/* 1. HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
             <div className="flex items-center gap-2">
@@ -134,19 +140,13 @@ const Dashboard = () => {
             </p>
         </div>
         
-        <button 
-            onClick={() => setShowForm(true)} 
-            className="group bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 flex items-center gap-3 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-        >
-            <div className="bg-white/20 p-1 rounded-lg"><Plus className="w-4 h-4" /></div>
-            Quick Spend
+        <button onClick={() => setShowForm(true)} className="group bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 flex items-center gap-3 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div className="bg-white/20 p-1 rounded-lg"><Plus className="w-4 h-4" /></div> Quick Spend
         </button>
       </div>
 
-      {/* SUMMARY CARDS */}
+      {/* 2. SUMMARY CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        
-        {/* Net Worth (LIFETIME) */}
         <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-3xl text-white shadow-2xl transition-transform hover:scale-[1.02]">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-3xl opacity-10 -mr-16 -mt-16"></div>
           <div className="relative z-10 flex flex-col justify-between h-full">
@@ -161,7 +161,6 @@ const Dashboard = () => {
           </div>
         </div>
         
-        {/* Income (MONTHLY) */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 group">
           <div className="flex items-start justify-between mb-4">
              <div className="p-3 bg-green-50 rounded-2xl text-green-600 group-hover:bg-green-100 transition-colors"><TrendingUp className="w-6 h-6" /></div>
@@ -171,7 +170,6 @@ const Dashboard = () => {
           <h2 className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(monthlyIncome)}</h2>
         </div>
 
-        {/* Expenses (MONTHLY) */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 group">
           <div className="flex items-start justify-between mb-4">
              <div className="p-3 bg-red-50 rounded-2xl text-red-600 group-hover:bg-red-100 transition-colors"><CreditCard className="w-6 h-6" /></div>
@@ -181,7 +179,6 @@ const Dashboard = () => {
           <h2 className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(monthlyExpenses)}</h2>
         </div>
 
-        {/* Invested (LIFETIME VALUE) */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 group">
           <div className="flex items-start justify-between mb-4">
              <div className="p-3 bg-purple-50 rounded-2xl text-purple-600 group-hover:bg-purple-100 transition-colors"><PieChart className="w-6 h-6" /></div>
@@ -192,7 +189,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 3. LAYOUT (Habits & Goals/Spending) */}
+      {/* 3. MAIN SPLIT LAYOUT */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           
           {/* LEFT: HABITS */}
@@ -221,28 +218,58 @@ const Dashboard = () => {
               </div>
           </div>
 
-          {/* RIGHT: GOALS & SPENDING */}
+          {/* RIGHT: TASKS & GOALS (SPLIT) + SPENDING */}
           <div className="flex flex-col gap-8">
+              
+              {/* BLOCK A: PENDING ACTIONS (TASKS + SHORT TERM GOALS) */}
               <div className="bg-white rounded-3xl shadow-lg shadow-gray-200/50 border border-gray-100 flex flex-col relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-red-500"></div>
                   <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-                      <h3 className="text-lg font-bold text-gray-900 flex items-center gap-3"><div className="p-2 bg-orange-100 rounded-xl text-orange-600"><Target className="w-5 h-5" /></div> Pending Goals</h3>
-                      <span className="text-xs font-bold bg-orange-100 text-orange-700 px-3 py-1 rounded-lg">{activeGoals.length}</span>
+                      <h3 className="text-lg font-bold text-gray-900 flex items-center gap-3">
+                          <div className="p-2 bg-orange-100 rounded-xl text-orange-600"><Layers className="w-5 h-5" /></div> Pending Actions
+                      </h3>
+                      <span className="text-xs font-bold bg-orange-100 text-orange-700 px-3 py-1 rounded-lg">{pendingTasks.length + pendingShortTermGoals.length}</span>
                   </div>
-                  <div className="p-5 space-y-3">
-                      {activeGoals.map(goal => {
-                          const isOverdue = new Date(goal.deadline) < new Date().setHours(0,0,0,0);
-                          return (
-                              <div key={goal._id} className="p-4 border border-gray-100 rounded-2xl hover:shadow-md transition-all bg-white flex justify-between items-center group">
-                                  <div><h4 className="font-medium text-gray-800 text-sm mb-1">{goal.title}</h4><span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isOverdue ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-500'}`}>{isOverdue ? 'Overdue' : formatDate(goal.deadline)}</span></div>
-                                  <button onClick={(e) => { e.stopPropagation(); handleToggleGoal(goal._id); }} className="text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 p-2 rounded-xl transition-all"><CheckCircle className="w-5 h-5" /></button>
+                  
+                  <div className="p-5 space-y-6">
+                      
+                      {/* 1. TASKS SECTION */}
+                      {pendingTasks.length > 0 && (
+                          <div>
+                              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Daily Tasks</p>
+                              <div className="space-y-2">
+                                  {pendingTasks.map(t => (
+                                      <div key={t._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 hover:bg-white hover:shadow-sm transition cursor-pointer" onClick={() => handleToggleTask(t._id)}>
+                                          <div className={`w-5 h-5 border-2 rounded flex items-center justify-center ${t.priority === 'High' ? 'border-red-400' : 'border-gray-300'}`}><CheckSquare className="w-3 h-3 text-transparent hover:text-gray-400"/></div>
+                                          <span className="text-sm font-medium text-gray-700">{t.title}</span>
+                                      </div>
+                                  ))}
                               </div>
-                          );
-                      })}
-                      {activeGoals.length === 0 && <div className="py-8 text-center text-gray-400 text-sm font-medium italic">No active goals.</div>}
+                          </div>
+                      )}
+
+                      {/* 2. SHORT TERM GOALS SECTION */}
+                      {pendingShortTermGoals.length > 0 && (
+                          <div>
+                              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Short Term Goals</p>
+                              <div className="space-y-2">
+                                  {pendingShortTermGoals.map(g => (
+                                      <div key={g._id} className="flex items-center gap-3 p-3 bg-orange-50/50 rounded-xl border border-orange-100 hover:bg-orange-50 hover:shadow-sm transition cursor-pointer" onClick={() => handleToggleGoal(g._id)}>
+                                          <div className="w-5 h-5 border-2 border-orange-300 rounded-full flex items-center justify-center"><Target className="w-3 h-3 text-transparent hover:text-orange-400"/></div>
+                                          <span className="text-sm font-medium text-gray-800">{g.title}</span>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+                      )}
+
+                      {pendingTasks.length === 0 && pendingShortTermGoals.length === 0 && (
+                          <div className="py-8 text-center text-gray-400 text-sm font-medium italic">Nothing pending. You are caught up!</div>
+                      )}
                   </div>
               </div>
 
+              {/* BLOCK B: SPENDING */}
               <div className="bg-white rounded-3xl shadow-lg shadow-gray-200/50 border border-gray-100 flex flex-col flex-1 relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-indigo-500"></div>
                   <div className="p-6 border-b border-gray-50 flex justify-between items-center">
@@ -269,7 +296,7 @@ const Dashboard = () => {
           </div>
       </div>
       
-      {/* QUICK ADD MODAL (Already provided, keeping same) */}
+      {/* QUICK ADD MODAL (Existing code...) */}
       {showForm && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
             <div className="bg-white p-8 rounded-[2rem] w-full max-w-sm shadow-2xl relative transform transition-all scale-100">

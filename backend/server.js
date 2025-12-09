@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const taskRoutes = require('./routes/tasks');
 
 dotenv.config();
 const app = express();
@@ -20,6 +21,7 @@ app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/habits', require('./routes/habits')); // <--- CHECK THIS LINE
 app.use('/api/goals', require('./routes/goals'));
 app.use('/api/notes', require('./routes/notes'));
+app.use('/api/tasks', taskRoutes);
 
 const connectDB = async () => {
   try {
