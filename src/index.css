@@ -2,29 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .no-scrollbar::-webkit-scrollbar {
+/* Smooth Theme Transition for everything */
+html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+}
+
+/* Hide scrollbar but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
     display: none;
-  }
-  .no-scrollbar {
+}
+.no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
-  }
-}
-
-/* GLOBAL TRANSITION FOR SMOOTH DARK MODE */
-body {
-  @apply transition-colors duration-300 ease-in-out;
-}
-
-/* Dark Mode Defaults */
-html.dark body {
-  background-color: #030712; /* Gray 950 - Very Dark */
-  color: #f3f4f6; /* Gray 100 - Very Light Text */
-}
-
-/* Light Mode Defaults */
-body {
-  background-color: #f9fafb;
-  color: #111827;
 }
