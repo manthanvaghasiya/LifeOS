@@ -32,7 +32,7 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
   }, [location]);
 
-  // Lock Body Scroll when Menu is Open (Mobile Fix)
+  // Lock Body Scroll when Menu is Open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -117,7 +117,7 @@ const Navbar = () => {
                 </div>
             </Link>
 
-            {/* MOBILE MENU TOGGLE (Higher Z-Index to stay clickable) */}
+            {/* MOBILE MENU TOGGLE */}
             <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
                 className="lg:hidden p-2.5 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition shadow-sm"
@@ -128,7 +128,6 @@ const Navbar = () => {
       </div>
 
       {/* --- MOBILE FULLSCREEN MENU --- */}
-      {/* Fixed inset-0 covers entire screen. Z-50 puts it below the toggle button (Z-60) but above everything else. */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl flex flex-col pt-28 px-6 h-screen overflow-y-auto">
             
@@ -150,7 +149,7 @@ const Navbar = () => {
                 </div>
             </div>
 
-            {/* Large Navigation Links */}
+            {/* Navigation Links */}
             <div className="space-y-3">
                 <Link to="/" className={getLinkClass('/', true)} onClick={closeMenu}><LayoutDashboard className="w-6 h-6" /> Dashboard</Link>
                 <Link to="/habits" className={getLinkClass('/habits', true)} onClick={closeMenu}><CalendarCheck className="w-6 h-6" /> Habits</Link>
@@ -159,7 +158,8 @@ const Navbar = () => {
                 <Link to="/notes" className={getLinkClass('/notes', true)} onClick={closeMenu}><StickyNote className="w-6 h-6" /> Notes</Link>
             </div>
 
-            <div className="h-px bg-gray-100 dark:bg-gray-800 my-8"></div>
+            {/* DIVIDER LINE (Made Darker & Visible) */}
+            <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-6"></div>
 
             {/* Bottom Actions */}
             <div className="space-y-4 pb-20">
