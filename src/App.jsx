@@ -6,22 +6,21 @@ import { ThemeProvider } from './context/ThemeContext';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 
-// Pages
+// Real Pages
 import Dashboard from './pages/Dashboard';
 import Financial from './pages/Financial';
+import Habits from './pages/Habits';     // <--- Newly Created
+import Goals from './pages/Goals';       // <--- Newly Created
+import Notes from './pages/Notes';       // <--- Newly Created
+import Settings from './pages/Settings'; // <--- Newly Created
 
-// --- PLACEHOLDER PAGES (Until you build the real files) ---
-// These prevent the "Go to Dashboard" error
-const Habits = () => <div className="p-10 text-center text-2xl font-bold dark:text-white">Habits Page (Coming Soon)</div>;
-const Goals = () => <div className="p-10 text-center text-2xl font-bold dark:text-white">Goals Page (Coming Soon)</div>;
-const Notes = () => <div className="p-10 text-center text-2xl font-bold dark:text-white">Notes Page (Coming Soon)</div>;
-const Settings = () => <div className="p-10 text-center text-2xl font-bold dark:text-white">Settings Page (Coming Soon)</div>;
+// Auth Placeholders (You can replace these later)
 const Login = () => <div className="h-screen flex items-center justify-center dark:text-white">Login Page</div>;
 const Signup = () => <div className="h-screen flex items-center justify-center dark:text-white">Signup Page</div>;
 
 const App = () => {
-  // Mock Auth - Change this logic when you implement real auth
-  const isAuthenticated = true; // Set to true for testing
+  // Mock Auth - change to real logic later
+  const isAuthenticated = true; 
 
   return (
     <ThemeProvider>
@@ -37,20 +36,18 @@ const App = () => {
               <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
               <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to="/" />} />
 
-              {/* --- DASHBOARD (Home) --- */}
+              {/* --- MAIN APP ROUTES --- */}
+              {/* If logged in, show page. If not, redirect to Login */}
               <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
-
-              {/* --- FINANCE --- */}
               <Route path="/transactions" element={isAuthenticated ? <Financial /> : <Navigate to="/login" />} />
-
-              {/* --- MISSING ROUTES (The Fix) --- */}
               <Route path="/habits" element={isAuthenticated ? <Habits /> : <Navigate to="/login" />} />
               <Route path="/goals" element={isAuthenticated ? <Goals /> : <Navigate to="/login" />} />
               <Route path="/notes" element={isAuthenticated ? <Notes /> : <Navigate to="/login" />} />
               <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
 
-              {/* --- CATCH ALL (Redirects unknown to Dashboard) --- */}
-              <Route path="*" element={<Navigate to="/" />} />
+              {/* --- 404 CATCH ALL --- */}
+              {/* This helps debug. If a route is wrong, it shows 404 instead of Dashboard */}
+              <Route path="*" element={<div className="p-20 text-center text-xl">404 - Page Not Found</div>} />
             </Routes>
           </main>
 
