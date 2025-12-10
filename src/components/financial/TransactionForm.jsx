@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../services/api';
-import { X } from 'lucide-react';
+import { X, ArrowRight } from 'lucide-react';
 
 const DEFAULT_CATEGORIES = ['Food', 'Travel', 'Bills', 'Entertainment', 'Salary', 'Shopping', 'Health', 'Education', 'Investment'];
 const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
@@ -8,6 +8,7 @@ const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', '
 const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   const [txType, setTxType] = useState('expense');
   
+  // Default State
   const [formData, setFormData] = useState({ 
     title: '', amount: '', paymentMode: 'Bank', transferTo: 'Cash', 
     category: 'Food', investmentType: 'SIP', profitAmount: '', 
@@ -17,69 +18,87 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   const [customCategory, setCustomCategory] = useState('');
   const [isWithdrawalWithProfit, setIsWithdrawalWithProfit] = useState(false);
 
-  // Initialize form
+  // --- INITIALIZATION (Handle Edit Mode) ---
   useEffect(() => {
     if (initialData) {
       setTxType(initialData.type);
-      const formattedDate = initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : '';
+      
+      // Safe Date Format
+      const formattedDate = initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      
       setFormData({
-        ...initialData,
+        title: initialData.title || '',
+        amount: initialData.amount || '',
+        paymentMode: initialData.paymentMode || 'Bank',
+        // Restore Transfer Destination
+        transferTo: initialData.type === 'transfer' ? (initialData.transferTo || 'Cash') : 'Cash',
+        category: initialData.category || 'Food',
+        investmentType: initialData.investmentType || 'SIP',
         date: formattedDate,
         profitAmount: ''
       });
+
       // Handle Custom Category
-      if (!DEFAULT_CATEGORIES.includes(initialData.category) && !INVESTMENT_TYPES.includes(initialData.category) && initialData.category !== 'Transfer') {
+      const isStandard = DEFAULT_CATEGORIES.includes(initialData.category) || INVESTMENT_TYPES.includes(initialData.category);
+      if (!isStandard && initialData.category !== 'Transfer' && initialData.category !== 'Investment') {
           setCustomCategory(initialData.category);
+          setFormData(prev => ({ ...prev, category: 'Other' }));
       }
     }
   }, [initialData]);
 
-  // Helper to check if Investment is involved in Transfer
-  const isInvestmentTransfer = txType === 'transfer' && (formData.paymentMode === 'Investment' || formData.transferTo === 'Investment');
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const finalDate = formData.date ? new Date(formData.date) : new Date();
-    
-    // LOGIC: Determine Category based on Context
-    let finalCategory;
-    if (txType === 'transfer') {
-        // If Investment involved, Category = Selected Investment Type (e.g. SIP)
-        if (isInvestmentTransfer) {
-            finalCategory = formData.category; // User selected "SIP" or "IPO"
-        } else {
-            finalCategory = 'Transfer'; // Standard Bank<->Cash
-        }
-    } else {
-        // Normal Income/Expense
-        finalCategory = formData.category === 'Other' ? customCategory : formData.category;
-    }
+    const finalDate = formData.date;
 
     try {
-      // 1. WITHDRAWAL WITH PROFIT LOGIC
+      // 1. WITHDRAWAL LOGIC (Smart Split: Principal + Profit)
       if (txType === 'transfer' && formData.paymentMode === 'Investment' && isWithdrawalWithProfit) {
         const total = Number(formData.amount);
         const profit = Number(formData.profitAmount);
         const principal = total - profit;
 
+        // A. Principal Transfer (Reduces Investment)
         const transferRes = await API.post('/transactions', {
-          title: `Withdrawal: ${formData.title} (Principal)`, amount: principal, type: 'transfer', 
-          category: finalCategory, // e.g. "IPO"
-          paymentMode: 'Investment', investmentType: finalCategory, date: finalDate
+          title: `Withdrawal: ${formData.title} (Principal)`, 
+          amount: principal, 
+          type: 'transfer', 
+          category: 'Investment', 
+          transferTo: formData.transferTo, 
+          paymentMode: 'Investment', 
+          investmentType: formData.investmentType, 
+          date: finalDate
         });
+        
+        // B. Profit Income (Adds to Bank as Income)
         const profitRes = await API.post('/transactions', {
-          title: `Profit: ${formData.title}`, amount: profit, type: 'income', 
-          category: 'Investment Return', paymentMode: formData.transferTo, date: finalDate
+          title: `Profit: ${formData.title}`, 
+          amount: profit, 
+          type: 'income', 
+          category: 'Investment Return', 
+          paymentMode: formData.transferTo, 
+          date: finalDate
         });
+        
         onSuccess([profitRes.data, transferRes.data]);
       } 
       // 2. STANDARD LOGIC
       else {
-        // Determine Investment Type field
+        // Determine Final Category
+        let finalCategory = formData.category;
+        
+        if (txType === 'transfer') {
+            // For Transfers, Category is strictly about the Type of transfer
+            if (formData.transferTo === 'Investment') finalCategory = 'Investment';
+            else finalCategory = 'Transfer';
+        } else if (formData.category === 'Other') {
+            finalCategory = customCategory;
+        }
+
+        // Determine Investment Type (Only save if relevant)
         let finalInvType = null;
-        // If Category is an Investment Type (e.g. SIP), set invType to SIP
-        if (INVESTMENT_TYPES.includes(finalCategory)) {
-            finalInvType = finalCategory;
+        if (finalCategory === 'Investment' || formData.paymentMode === 'Investment' || INVESTMENT_TYPES.includes(finalCategory)) {
+            finalInvType = formData.investmentType;
         }
 
         const payload = {
@@ -119,51 +138,54 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          
           {/* Title */}
           <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Title</label><input type="text" required className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 font-bold text-gray-800 dark:text-white" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} /></div>
           
           {/* Amount */}
-          <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Amount {isWithdrawalWithProfit && "(Total)"}</label><input type="number" required className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 font-bold text-gray-800 dark:text-white" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })} /></div>
+          <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Amount {isWithdrawalWithProfit && "(Total Received)"}</label><input type="number" required className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 font-bold text-gray-800 dark:text-white" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })} /></div>
 
-          {/* Date (Only on Edit) */}
+          {/* Date (Only Show on Edit) */}
           {initialData && (
             <div className="animate-fadeIn"><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Date</label><input type="date" required className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 font-bold text-gray-800 dark:text-white cursor-pointer" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} /></div>
           )}
 
-          {/* Profit Split (Withdrawals) */}
-          {txType === 'transfer' && formData.paymentMode === 'Investment' && formData.transferTo === 'Bank' && (
-            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-2xl border border-green-100 dark:border-green-800">
-              <div className="flex items-center justify-between mb-2"><label className="text-xs font-bold text-green-700 dark:text-green-400 uppercase">Include Profit?</label><input type="checkbox" className="w-5 h-5 accent-green-600 cursor-pointer" checked={isWithdrawalWithProfit} onChange={(e) => setIsWithdrawalWithProfit(e.target.checked)} /></div>
-              {isWithdrawalWithProfit && <input type="number" placeholder="Profit Amount" className="w-full p-3 bg-white dark:bg-gray-900 border border-green-200 dark:border-green-700 rounded-xl outline-none font-bold text-green-700 dark:text-green-400" value={formData.profitAmount} onChange={(e) => setFormData({...formData, profitAmount: Number(e.target.value)})} />}
+          {/* TRANSFER FIELDS */}
+          {txType === 'transfer' && (
+            <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">From</label><select className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none font-bold text-gray-700 dark:text-gray-300" value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="Investment">Investment</option></select></div>
+                    <div className="flex items-center justify-center pt-6"><ArrowRight className="w-5 h-5 text-gray-400" /></div>
+                    <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">To</label><select className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none font-bold text-gray-700 dark:text-gray-300" value={formData.transferTo} onChange={(e) => setFormData({ ...formData, transferTo: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="Investment">Investment</option></select></div>
+                </div>
+
+                {/* Investment Type Selection */}
+                {(formData.transferTo === 'Investment' || formData.paymentMode === 'Investment') && (
+                    <div className="animate-fadeIn">
+                        <label className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase ml-1 mb-1 block">Investment Type</label>
+                        <select className="w-full p-4 bg-purple-50 dark:bg-purple-900/20 border-none rounded-2xl outline-none font-bold text-purple-700 dark:text-purple-300" value={formData.investmentType} onChange={(e) => setFormData({...formData, investmentType: e.target.value})}>
+                            {INVESTMENT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+                        </select>
+                    </div>
+                )}
+
+                {/* Profit Checkbox */}
+                {formData.paymentMode === 'Investment' && formData.transferTo === 'Bank' && (
+                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-2xl border border-green-100 dark:border-green-800 animate-fadeIn">
+                        <div className="flex items-center justify-between mb-2"><label className="text-xs font-bold text-green-700 dark:text-green-400 uppercase">Include Profit?</label><input type="checkbox" className="w-5 h-5 accent-green-600 cursor-pointer" checked={isWithdrawalWithProfit} onChange={(e) => setIsWithdrawalWithProfit(e.target.checked)} /></div>
+                        {isWithdrawalWithProfit && <input type="number" placeholder="Profit Amount" className="w-full p-3 bg-white dark:bg-gray-900 border border-green-200 dark:border-green-700 rounded-xl outline-none font-bold text-green-700 dark:text-green-400" value={formData.profitAmount} onChange={(e) => setFormData({...formData, profitAmount: Number(e.target.value)})} />}
+                    </div>
+                )}
             </div>
           )}
 
-          {/* TRANSFER LOGIC */}
-          {txType === 'transfer' ? (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">From</label><select className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none font-bold text-gray-700 dark:text-gray-300" value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="Investment">Investment</option></select></div>
-                <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">To</label><select className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none font-bold text-gray-700 dark:text-gray-300" value={formData.transferTo} onChange={(e) => setFormData({ ...formData, transferTo: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="Investment">Investment</option></select></div>
-              </div>
-              
-              {/* SMART CATEGORY: Only Show if Investment Involved */}
-              {isInvestmentTransfer && (
-                <div className="mt-4 animate-fadeIn">
-                    <label className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase ml-1 mb-1 block">Investment Category</label>
-                    <select className="w-full p-4 bg-purple-50 dark:bg-purple-900/20 border-none rounded-2xl outline-none font-bold text-purple-700 dark:text-purple-300" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
-                        {INVESTMENT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
-                    </select>
-                </div>
-              )}
-            </>
-          ) : (
-            // INCOME / EXPENSE LOGIC
+          {/* INCOME/EXPENSE FIELDS */}
+          {txType !== 'transfer' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
                   <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Category</label>
                   <select className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none font-bold text-gray-700 dark:text-gray-300" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
                     {DEFAULT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                    <optgroup label="Investments">{INVESTMENT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}</optgroup>
                     <option value="Other">Other</option>
                   </select>
               </div>
@@ -171,10 +193,9 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
             </div>
           )}
           
-          {/* Custom Category Input (Only for non-transfer) */}
           {txType !== 'transfer' && formData.category === 'Other' && <input type="text" placeholder="Type category name..." required className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 font-bold border-none rounded-2xl outline-none animate-fadeIn" value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} />}
           
-          <button type="submit" className="w-full bg-gray-900 dark:bg-white dark:text-black text-white p-4 rounded-2xl font-bold hover:bg-black dark:hover:bg-gray-200 shadow-xl mt-2 transition-transform transform hover:-translate-y-1">
+          <button type="submit" className="w-full bg-gray-900 dark:bg-white dark:text-black text-white p-4 rounded-2xl font-bold hover:bg-black dark:hover:bg-gray-200 shadow-xl mt-2">
             {initialData ? 'Update Transaction' : 'Save Transaction'}
           </button>
         </form>

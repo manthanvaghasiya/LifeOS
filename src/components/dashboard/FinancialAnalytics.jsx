@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
-import { Filter, TrendingUp } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
+
+// Constants must match other files to ensure logic consistency
+const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
 
 const FinancialAnalytics = ({ transactions }) => {
   // State to toggle visibility of specific lines
@@ -19,7 +22,7 @@ const FinancialAnalytics = ({ transactions }) => {
 
     const grouped = {};
     
-    // Sort transactions by date
+    // Sort transactions by date (Oldest to Newest)
     const sortedTx = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
 
     sortedTx.forEach(t => {
@@ -33,20 +36,28 @@ const FinancialAnalytics = ({ transactions }) => {
         grouped[key] = { name: key, income: 0, expense: 0, investment: 0, sortId: sortKey };
       }
       
-      // LOGIC: Smart Categorization
+      // LOGIC: Smart Categorization for the Graph
+      
+      // 1. Income
       if (t.type === 'income') {
         grouped[key].income += t.amount;
       } 
+      
+      // 2. Investment (Expense as Inv OR Transfer To Inv)
       else if (
-        (t.type === 'expense' && t.category === 'Investment') || 
-        (t.type === 'transfer' && t.category === 'Investment') ||
-        (t.investmentType && t.investmentType !== 'None')
+        t.category === 'Investment' || 
+        INVESTMENT_TYPES.includes(t.category) ||
+        t.investmentType
       ) {
-        // Classify as Investment
-        grouped[key].investment += t.amount;
+        // Only count positive flow into investment (Money In)
+        // We exclude withdrawals (paymentMode === 'Investment') so the graph shows "How much did I invest?"
+        if (t.type === 'expense' || (t.type === 'transfer' && t.paymentMode !== 'Investment')) {
+            grouped[key].investment += t.amount;
+        }
       } 
+      
+      // 3. Expense (Standard)
       else if (t.type === 'expense') {
-        // Standard Expense
         grouped[key].expense += t.amount;
       }
     });
@@ -64,7 +75,7 @@ const FinancialAnalytics = ({ transactions }) => {
             {payload.map((entry, index) => (
                 <div key={index} className="flex items-center justify-between gap-6 min-w-[140px]">
                     <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: entry.color }}></div>
+                        <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: entry.stroke }}></div>
                         <span className="text-xs font-bold text-gray-600 dark:text-gray-300 capitalize">{entry.name}</span>
                     </div>
                     <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
@@ -178,6 +189,7 @@ const FinancialAnalytics = ({ transactions }) => {
                         fillOpacity={1} 
                         fill="url(#colorInvestment)" 
                         animationDuration={1500}
+                        stackId="1"
                     />
                 )}
                 {activeSeries.income && (

@@ -4,11 +4,13 @@ import { formatCurrency } from '../utils/helpers';
 import { generateInsights } from '../utils/smartInsights';
 import { 
   Plus, CheckCircle, Target, Clock, 
-  Wallet, TrendingUp, Landmark, Banknote, Sparkles, CreditCard, X, PieChart, CheckSquare, Layers,
-  Lightbulb, AlertTriangle, CheckCircle2, Info, IndianRupee 
+  Wallet, TrendingUp, Landmark, Banknote, Sparkles, CreditCard, PieChart, Layers,
+  Lightbulb, AlertTriangle, CheckCircle2, Info, IndianRupee, CheckSquare
 } from 'lucide-react';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 
+// Must match Finance Page exactly
+const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
 const DEFAULT_CATEGORIES = ['Food', 'Travel', 'Bills', 'Entertainment', 'Salary', 'Shopping', 'Health', 'Education', 'Investment'];
 
 const Dashboard = () => {
@@ -43,29 +45,64 @@ const Dashboard = () => {
     } catch (err) { console.error(err); setLoading(false); }
   };
 
-  // --- LOGIC ---
+  // --- DATE LOGIC ---
   const todayObj = new Date();
   const todayStr = todayObj.toISOString().split('T')[0];
   const todayDateString = todayObj.toLocaleDateString(); 
   const currentMonth = todayObj.getMonth();
   const currentYear = todayObj.getFullYear();
 
-  // Filter: This Month's Transactions
   const thisMonthTransactions = transactions.filter(t => {
     const tDate = new Date(t.date);
     return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
   });
-
   const todayTransactions = transactions.filter(t => new Date(t.date).toLocaleDateString() === todayDateString);
 
-  // --- 1. LIFETIME NET WORTH ---
+  // --- 1. ACCURATE LIFETIME BALANCE (Matches Financial.jsx) ---
   const calculateLifetimeBalance = (mode) => {
     return transactions.reduce((acc, t) => {
-      const tMode = t.paymentMode || 'Bank'; 
-      if (tMode === mode && t.type === 'income') return acc + t.amount;
-      if (t.type === 'transfer' && t.category === mode) return acc + t.amount;
-      if (tMode === mode && t.type === 'expense') return acc - t.amount;
-      if (tMode === mode && t.type === 'transfer') return acc - t.amount;
+      const source = t.paymentMode || 'Bank'; 
+      const destination = t.transferTo; 
+      
+      // --- LOGIC FOR BANK & CASH ---
+      if (mode === 'Bank' || mode === 'Cash') {
+          // Income
+          if (source === mode && t.type === 'income') return acc + t.amount;
+          
+          // Transfer IN
+          if (t.type === 'transfer') {
+              if (destination === mode) return acc + t.amount;
+              // Fallback: Investment withdrawals usually go to Bank if not specified
+              if (!destination && source === 'Investment' && mode === 'Bank') return acc + t.amount;
+          }
+
+          // Expense
+          if (source === mode && t.type === 'expense') return acc - t.amount;
+
+          // Transfer OUT
+          if (source === mode && t.type === 'transfer') {
+              if (destination === mode) return acc; // Ignore self-transfer
+              return acc - t.amount;
+          }
+      }
+
+      // --- LOGIC FOR INVESTMENT ---
+      if (mode === 'Investment') {
+          const isInvCategory = t.category === 'Investment' || INVESTMENT_TYPES.includes(t.category);
+          
+          // Add: Money entering Investment
+          if (t.type === 'expense' && isInvCategory) return acc + t.amount;
+          if (t.type === 'transfer') {
+              if (destination === 'Investment') return acc + t.amount;
+              if (!destination && source !== 'Investment' && isInvCategory) return acc + t.amount;
+          }
+
+          // Subtract: Money leaving Investment
+          if (source === 'Investment' && t.type === 'transfer') {
+              if (destination === 'Bank' || destination === 'Cash' || !destination) return acc - t.amount;
+          }
+      }
+      
       return acc;
     }, 0);
   };
@@ -76,24 +113,25 @@ const Dashboard = () => {
   const totalNetWorth = bankBalance + cashBalance + investmentBalance;
 
   // --- 2. MONTHLY STATS ---
-  const monthlyIncome = thisMonthTransactions
-    .filter(t => t.type === 'income')
-    .reduce((acc, c) => acc + c.amount, 0);
+  const monthlyIncome = thisMonthTransactions.filter(t => t.type === 'income').reduce((acc, c) => acc + c.amount, 0);
+  
+  // Expenses (Strictly excluding investments)
+  const monthlyExpenses = thisMonthTransactions.filter(t => 
+    t.type === 'expense' && 
+    t.category !== 'Investment' && 
+    !INVESTMENT_TYPES.includes(t.category)
+  ).reduce((acc, c) => acc + c.amount, 0);
 
-  // Expenses: Exclude Investment
-  const monthlyExpenses = thisMonthTransactions
-    .filter(t => t.type === 'expense' && t.category !== 'Investment') 
-    .reduce((acc, c) => acc + c.amount, 0);
-
-  // --- FIXED: NET MONTHLY INVESTMENT (IN - OUT) ---
+  // Monthly Invested (Net)
   const monthlyInvested = thisMonthTransactions.reduce((acc, t) => {
-    // 1. Money Added (Transfer TO Investment OR Expense categorized as Investment)
-    if ((t.type === 'transfer' && t.category === 'Investment') || (t.type === 'expense' && t.category === 'Investment')) {
-        return acc + t.amount;
-    }
-    // 2. Money Removed (Transfer FROM Investment)
-    if (t.type === 'transfer' && t.paymentMode === 'Investment') {
-        return acc - t.amount;
+    // Check if it's investment related
+    const isInv = t.category === 'Investment' || INVESTMENT_TYPES.includes(t.category) || t.investmentType;
+    
+    if (isInv) {
+        // Money In (Expense or Transfer In)
+        if (t.type === 'expense' || (t.type === 'transfer' && t.paymentMode !== 'Investment')) return acc + t.amount;
+        // Money Out (Withdrawal)
+        if (t.type === 'transfer' && t.paymentMode === 'Investment') return acc - t.amount;
     }
     return acc;
   }, 0);
@@ -110,7 +148,7 @@ const Dashboard = () => {
   };
   const insightStyle = getInsightStyle(dailyInsight.type);
 
-  // Other filters
+  // --- PENDING ITEMS ---
   const incompleteHabits = habits.filter(h => !h.completedDates.includes(todayStr));
   const pendingTasks = tasks.filter(t => !t.isCompleted).sort((a, b) => {
       const pOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
@@ -122,6 +160,7 @@ const Dashboard = () => {
   const handleToggleGoal = async (id) => { setGoals(prev => prev.map(g => g._id === id ? { ...g, isCompleted: true } : g)); try { await API.put(`/goals/${id}/toggle`); } catch (err) { fetchAllData(); } };
   const handleToggleTask = async (id) => { setTasks(prev => prev.map(t => t._id === id ? { ...t, isCompleted: true } : t)); try { await API.put(`/tasks/${id}/toggle`); } catch (err) { fetchAllData(); } };
   
+  // Quick Add Logic
   const handleQuickAdd = async (e) => {
     e.preventDefault();
     const finalCategory = formData.category === 'Other' ? customCategory : formData.category;
@@ -156,7 +195,7 @@ const Dashboard = () => {
         </button>
       </div>
 
-      {/* SMART INSIGHT CARD */}
+      {/* INSIGHT CARD */}
       <div className={`p-6 rounded-3xl border ${insightStyle.border} bg-white dark:bg-gray-900/60 dark:border-gray-800 shadow-sm flex flex-col md:flex-row items-start md:items-center gap-5 transition-all duration-500 hover:shadow-md`}>
           <div className={`p-3 rounded-2xl ${insightStyle.bg} shadow-lg shadow-gray-200 dark:shadow-none shrink-0`}>{insightStyle.icon}</div>
           <div>
@@ -167,7 +206,7 @@ const Dashboard = () => {
 
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Net Worth (LIFETIME) */}
+        {/* Net Worth */}
         <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-3xl text-white shadow-2xl transition-transform hover:scale-[1.02]">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-3xl opacity-10 -mr-16 -mt-16"></div>
           <div className="relative z-10 flex flex-col justify-between h-full">
@@ -182,7 +221,7 @@ const Dashboard = () => {
           </div>
         </div>
         
-        {/* Income (MONTHLY) */}
+        {/* Monthly Cards */}
         <div className="bg-white dark:bg-gray-900/60 dark:border-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 group">
           <div className="flex items-start justify-between mb-4">
              <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-2xl text-green-600 dark:text-green-400 group-hover:bg-green-100 transition-colors"><TrendingUp className="w-6 h-6" /></div>
@@ -192,7 +231,6 @@ const Dashboard = () => {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{formatCurrency(monthlyIncome)}</h2>
         </div>
 
-        {/* Expenses (MONTHLY) */}
         <div className="bg-white dark:bg-gray-900/60 dark:border-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 group">
           <div className="flex items-start justify-between mb-4">
              <div className="p-3 bg-red-50 dark:bg-red-900/30 rounded-2xl text-red-600 dark:text-red-400 group-hover:bg-red-100 transition-colors"><CreditCard className="w-6 h-6" /></div>
@@ -202,21 +240,20 @@ const Dashboard = () => {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{formatCurrency(monthlyExpenses)}</h2>
         </div>
 
-        {/* Invested (MONTHLY NET) */}
         <div className="bg-white dark:bg-gray-900/60 dark:border-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 group">
           <div className="flex items-start justify-between mb-4">
              <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-2xl text-purple-600 dark:text-purple-400 group-hover:bg-purple-100 transition-colors"><PieChart className="w-6 h-6" /></div>
              <span className="text-[10px] font-bold bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 px-2 py-1 rounded-lg">This Month</span>
           </div>
-          <p className="text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-wider">Net Invested</p>
+          <p className="text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-wider">Invested</p>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{formatCurrency(monthlyInvested)}</h2>
         </div>
       </div>
 
-      {/* 3. MAIN SPLIT LAYOUT */}
+      {/* --- GRID LAYOUT FOR HABITS & TASKS --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           
-          {/* LEFT: HABITS */}
+          {/* Habits */}
           <div className="bg-white dark:bg-gray-900/60 dark:border-gray-800 rounded-3xl shadow-lg shadow-gray-200/50 dark:shadow-none border border-gray-100 flex flex-col h-full min-h-[450px] relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-emerald-500"></div>
               <div className="p-6 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center bg-white/50 dark:bg-transparent backdrop-blur-sm">
@@ -242,10 +279,8 @@ const Dashboard = () => {
               </div>
           </div>
 
-          {/* RIGHT SIDE */}
           <div className="flex flex-col gap-8">
-              
-              {/* PENDING ACTIONS */}
+              {/* Tasks */}
               <div className="bg-white dark:bg-gray-900/60 dark:border-gray-800 rounded-3xl shadow-lg shadow-gray-200/50 dark:shadow-none border border-gray-100 flex flex-col relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-red-500"></div>
                   <div className="p-6 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center">
@@ -254,7 +289,6 @@ const Dashboard = () => {
                       </h3>
                       <span className="text-xs font-bold bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 px-3 py-1 rounded-lg">{pendingTasks.length + pendingShortTermGoals.length}</span>
                   </div>
-                  
                   <div className="p-5 space-y-6">
                       {pendingTasks.length > 0 && (
                           <div>
@@ -288,7 +322,7 @@ const Dashboard = () => {
                   </div>
               </div>
 
-              {/* SPENDING */}
+              {/* Today's Spending List */}
               <div className="bg-white dark:bg-gray-900/60 dark:border-gray-800 rounded-3xl shadow-lg shadow-gray-200/50 dark:shadow-none border border-gray-100 flex flex-col flex-1 relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-indigo-500"></div>
                   <div className="p-6 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center">
@@ -317,7 +351,7 @@ const Dashboard = () => {
 
       {showForm && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-[2rem] w-full max-w-sm shadow-2xl relative transform transition-all scale-100 border dark:border-gray-800">
+            <div className="bg-white dark:bg-gray-900 p-8 rounded-[2rem] w-full max-w-sm shadow-2xl relative border dark:border-gray-800">
                 <button onClick={() => setShowForm(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><X className="w-5 h-5 text-gray-500" /></button>
                 <h3 className="font-bold text-2xl mb-1 text-gray-900 dark:text-white">Quick Spend</h3>
                 <p className="text-gray-500 text-sm mb-6">Track it before you forget it.</p>
