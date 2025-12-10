@@ -132,7 +132,7 @@ const Navbar = () => {
         <div className="lg:hidden fixed inset-0 z-50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl flex flex-col pt-28 px-6 h-screen overflow-y-auto">
             
             {/* User Info Card */}
-            <div className="flex items-center gap-4 mb-8 bg-gray-50 dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+            <div className="flex items-center gap-4 mb-8 bg-gray-50 dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm shrink-0">
                 <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg">
                     {initials}
                 </div>
@@ -150,7 +150,7 @@ const Navbar = () => {
             </div>
 
             {/* Navigation Links */}
-            <div className="space-y-3">
+            <div className="space-y-3 shrink-0">
                 <Link to="/" className={getLinkClass('/', true)} onClick={closeMenu}><LayoutDashboard className="w-6 h-6" /> Dashboard</Link>
                 <Link to="/habits" className={getLinkClass('/habits', true)} onClick={closeMenu}><CalendarCheck className="w-6 h-6" /> Habits</Link>
                 <Link to="/goals" className={getLinkClass('/goals', true)} onClick={closeMenu}><Target className="w-6 h-6" /> Goals</Link>
@@ -158,11 +158,11 @@ const Navbar = () => {
                 <Link to="/notes" className={getLinkClass('/notes', true)} onClick={closeMenu}><StickyNote className="w-6 h-6" /> Notes</Link>
             </div>
 
-            {/* DIVIDER LINE (Made Darker & Visible) */}
-            <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-6"></div>
+            {/* --- FIXED DIVIDER (High Contrast) --- */}
+            <div className="w-full h-[1px] bg-gray-500 dark:bg-gray-700 my-6 shrink-0"></div>
 
             {/* Bottom Actions */}
-            <div className="space-y-4 pb-20">
+            <div className="space-y-4 pb-20 shrink-0">
                 <Link to="/settings" className="flex items-center gap-4 px-4 py-4 rounded-2xl font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition" onClick={closeMenu}>
                     <Settings className="w-6 h-6" /> Settings
                 </Link>
