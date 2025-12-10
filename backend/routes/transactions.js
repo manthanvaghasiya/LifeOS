@@ -13,15 +13,12 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// 2. ADD TRANSACTION (Updated)
+// ... existing imports
+
+// ADD TRANSACTION (Updated)
 router.post('/', protect, async (req, res) => {
   try {
-    // Extract 'reason' from request body
-    const { title, amount, type, category, date, paymentMode, reason } = req.body;
-
-    if (!['Cash', 'Bank', 'Investment'].includes(paymentMode)) {
-      return res.status(400).json({ message: 'Invalid Payment Mode' });
-    }
+    const { title, amount, type, category, paymentMode, date, investmentType } = req.body; // <--- Extract investmentType
 
     const transaction = await Transaction.create({
       user: req.user.id,
@@ -29,35 +26,36 @@ router.post('/', protect, async (req, res) => {
       amount,
       type,
       category,
-      date: date || Date.now(),
       paymentMode,
-      reason // Save the reason
+      investmentType: investmentType || null, // <--- Save it
+      date: date || Date.now()
     });
 
-    res.status(201).json(transaction);
+    return res.status(201).json(transaction);
   } catch (err) {
-    res.status(400).json({ message: 'Error adding transaction' });
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map(val => val.message);
+      return res.status(400).json({ message: messages });
+    } else {
+      return res.status(500).json({ message: 'Server Error' });
+    }
   }
 });
 
-// 3. UPDATE TRANSACTION (Updated)
+// UPDATE TRANSACTION (Updated)
 router.put('/:id', protect, async (req, res) => {
   try {
-    const existing = await Transaction.findById(req.params.id);
-    if (!existing) return res.status(404).json({ message: 'Not found' });
-    if (existing.user.toString() !== req.user.id) return res.status(401).json({ message: 'Not authorized' });
+    let transaction = await Transaction.findById(req.params.id);
+    if (!transaction) return res.status(404).json({ message: 'Transaction not found' });
+    if (transaction.user.toString() !== req.user.id) return res.status(401).json({ message: 'User not authorized' });
 
-    const updated = await Transaction.findByIdAndUpdate(
-      req.params.id,
-      req.body, // This automatically updates 'reason' if sent
-      { new: true }
-    );
-
-    res.json(updated);
+    transaction = await Transaction.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    return res.json(transaction);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: 'Server Error' });
   }
 });
+
 
 // 4. DELETE
 router.delete('/:id', protect, async (req, res) => {

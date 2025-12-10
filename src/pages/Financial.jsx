@@ -1,47 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
-import { formatCurrency, formatDate } from '../utils/helpers';
 import Papa from 'papaparse';
-import {
-  Plus, Search, Download, Filter, ChevronLeft, ChevronRight, Pencil, Trash2, Save, X,
-  TrendingUp, Wallet, ArrowUpRight, ArrowDownLeft, Landmark, Banknote, Calendar, ArrowRight,
-  CreditCard, PieChart, Sparkles, SlidersHorizontal, IndianRupee, MessageSquare // Added MessageSquare icon
-} from 'lucide-react';
-import ExpenseBreakdown from '../components/dashboard/ExpenseBreakdown';
+import { formatCurrency, formatDate } from '../utils/helpers';
+import FinancialHeader from '../components/financial/FinancialHeader';
+import FinancialSummary from '../components/financial/FinancialSummary';
+import TransactionTable from '../components/financial/TransactionTable';
+import TransactionForm from '../components/financial/TransactionForm';
 import FinancialAnalytics from '../components/dashboard/FinancialAnalytics';
+import ExpenseBreakdown from '../components/dashboard/ExpenseBreakdown';
+import { Briefcase, PieChart } from 'lucide-react';
 
-const DEFAULT_CATEGORIES = ['Food', 'Travel', 'Bills', 'Entertainment', 'Salary', 'Shopping', 'Health', 'Education', 'Investment'];
+const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
 
 const Financial = () => {
-  const [allTransactions, setAllTransactions] = useState([]); 
+  const [allTransactions, setAllTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // VIEW STATE
   const [viewDate, setViewDate] = useState(new Date());
-
-  // Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const [sortOrder, setSortOrder] = useState('newest');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  // Form State
-  const [showForm, setShowForm] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [txType, setTxType] = useState('expense');
   
-  // ADDED 'reason' TO STATE
-  const [formData, setFormData] = useState({ 
-    title: '', 
-    amount: '', 
-    paymentMode: 'Bank', 
-    transferTo: 'Cash', 
-    category: 'Food',
-    reason: '', // <--- NEW FIELD
-    date: new Date().toISOString().split('T')[0]
-  });
-  const [customCategory, setCustomCategory] = useState('');
+  // Modal State
+  const [showForm, setShowForm] = useState(false);
+  const [editData, setEditData] = useState(null);
 
   useEffect(() => { fetchTransactions(); }, []);
 
@@ -53,22 +31,30 @@ const Financial = () => {
     } catch (err) { console.error(err); setLoading(false); }
   };
 
-  // --- DATA LOGIC ---
+  // --- DATA FILTERING ---
   const currentMonthTransactions = allTransactions.filter(t => {
     const tDate = new Date(t.date);
     return tDate.getMonth() === viewDate.getMonth() && tDate.getFullYear() === viewDate.getFullYear();
   });
 
+  const formattedMonth = viewDate.toLocaleDateString('default', { month: 'long', year: 'numeric' });
+
+  // --- 1. TOTAL BALANCES (Lifetime) ---
   const calculateTotalBalance = (mode) => {
     return allTransactions.reduce((acc, t) => {
       const tMode = t.paymentMode || 'Bank'; 
-
+      
+      // Money In
       if (tMode === mode && t.type === 'income') return acc + t.amount;
-      if (t.type === 'transfer' && t.category === mode) return acc + t.amount; 
+      // Transfer In (e.g. Bank -> Cash, Cash is mode)
+      if (t.type === 'transfer' && (t.category === mode || t.transferTo === mode)) return acc + t.amount; 
+      // Specific Investment Case: If mode is Investment, check if category is an investment type
+      if (mode === 'Investment' && t.type === 'transfer' && (t.category === 'Investment' || INVESTMENT_TYPES.includes(t.category))) return acc + t.amount;
 
+      // Money Out
       if (tMode === mode && t.type === 'expense') return acc - t.amount;
       if (tMode === mode && t.type === 'transfer') return acc - t.amount; 
-
+      
       return acc;
     }, 0);
   };
@@ -77,83 +63,35 @@ const Financial = () => {
   const investmentBalance = calculateTotalBalance('Investment');
   const totalNetWorth = bankBalance + cashBalance + investmentBalance;
 
+  // --- 2. MONTHLY STATS ---
   const monthlyIncome = currentMonthTransactions.filter(t => t.type === 'income').reduce((acc, c) => acc + c.amount, 0);
-  const monthlyInvested = currentMonthTransactions.filter(t => t.type === 'expense' && t.category === 'Investment').reduce((acc, c) => acc + c.amount, 0);
-  const monthlyExpenses = currentMonthTransactions.filter(t => t.type === 'expense' && t.category !== 'Investment').reduce((acc, c) => acc + c.amount, 0);
+  const monthlyExpenses = currentMonthTransactions.filter(t => t.type === 'expense' && t.category !== 'Investment' && !INVESTMENT_TYPES.includes(t.category)).reduce((acc, c) => acc + c.amount, 0);
 
-  const handlePrevMonth = () => { setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1)); setCurrentPage(1); };
-  const handleNextMonth = () => { setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1)); setCurrentPage(1); };
-  const formattedMonth = viewDate.toLocaleDateString('default', { month: 'long', year: 'numeric' });
+  // --- 3. PORTFOLIO BREAKDOWN (FIXED LOGIC) ---
+  const investmentBreakdown = INVESTMENT_TYPES.map(type => {
+    const total = allTransactions.reduce((acc, t) => {
+      // Check if this transaction matches the specific investment type (e.g., "SIP")
+      const isMatchType = t.investmentType === type || t.category === type;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    let finalCategory = txType === 'transfer' ? formData.transferTo : (formData.category === 'Other' ? customCategory : formData.category);
-    let finalTitle = txType === 'transfer' ? `Transfer to ${formData.transferTo}` : formData.title;
-
-    const finalData = {
-      title: finalTitle,
-      amount: Number(formData.amount),
-      type: txType,
-      category: finalCategory,
-      paymentMode: formData.paymentMode,
-      reason: formData.reason, // <--- SEND REASON
-      date: formData.date || new Date()
-    };
-
-    try {
-      if (editId) {
-        const res = await API.put(`/transactions/${editId}`, finalData);
-        setAllTransactions(allTransactions.map(t => t._id === editId ? res.data : t));
-      } else {
-        const res = await API.post('/transactions', finalData);
-        setAllTransactions([res.data, ...allTransactions]);
+      if (isMatchType) {
+        // ADD: Money going INTO investment
+        if (t.type === 'expense' || (t.type === 'transfer' && t.paymentMode !== 'Investment')) {
+            return acc + t.amount;
+        }
+        // SUBTRACT: Money coming OUT of investment
+        if (t.type === 'transfer' && t.paymentMode === 'Investment') {
+            return acc - t.amount;
+        }
       }
-      closeForm();
-    } catch (err) { alert("Error saving"); }
-  };
+      return acc;
+    }, 0);
+    return { type, total };
+  }).filter(i => i.total > 0).sort((a, b) => b.total - a.total);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete transaction?")) return;
-    try { await API.delete(`/transactions/${id}`); setAllTransactions(allTransactions.filter(t => t._id !== id)); } catch (err) {}
-  };
-
-  const openEdit = (t) => {
-    setEditId(t._id);
-    setTxType(t.type);
-    const isTransfer = t.type === 'transfer';
-    const isStandard = DEFAULT_CATEGORIES.includes(t.category);
-
-    setFormData({
-      title: t.title,
-      amount: t.amount,
-      paymentMode: t.paymentMode || 'Bank',
-      transferTo: isTransfer ? t.category : 'Cash',
-      category: !isTransfer && isStandard ? t.category : 'Other',
-      reason: t.reason || '', // <--- LOAD REASON
-      date: t.date ? new Date(t.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-    });
-    if (!isTransfer && !isStandard) setCustomCategory(t.category);
-    setShowForm(true);
-  };
-
-  const closeForm = () => {
-    setShowForm(false); setEditId(null);
-    setFormData({ 
-        title: '', amount: '', category: 'Food', paymentMode: 'Bank', transferTo: 'Cash', reason: '',
-        date: new Date().toISOString().split('T')[0] 
-    });
-    setTxType('expense'); setCustomCategory('');
-  };
-
+  // --- HANDLERS ---
   const handleExport = () => {
     const csvData = currentMonthTransactions.map(t => ({
-      Date: formatDate(t.date),
-      Title: t.title,
-      Category: t.category,
-      Type: t.type.toUpperCase(),
-      Source: t.paymentMode || 'Bank',
-      Amount: t.amount,
-      Reason: t.reason || '' // <--- EXPORT REASON
+      Date: formatDate(t.date), Title: t.title, Category: t.category, Type: t.type.toUpperCase(), Source: t.paymentMode || 'Bank', Amount: t.amount
     }));
     const csv = Papa.unparse(csvData);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -161,198 +99,98 @@ const Financial = () => {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
-  const filteredData = currentMonthTransactions
-    .filter(t => {
-      const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase()) || t.category.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = filterType === 'all' || t.type === filterType;
-      return matchesSearch && matchesType;
-    })
-    .sort((a, b) => sortOrder === 'newest' ? new Date(b.date) - new Date(a.date) : b.amount - a.amount);
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete transaction?")) return;
+    try { await API.delete(`/transactions/${id}`); setAllTransactions(allTransactions.filter(t => t._id !== id)); } catch (err) {}
+  };
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const onTransactionSaved = (newData, isUpdate) => {
+    if (Array.isArray(newData)) {
+      setAllTransactions([...newData, ...allTransactions]); 
+    } else if (isUpdate) {
+      setAllTransactions(allTransactions.map(t => t._id === newData._id ? newData : t));
+    } else {
+      setAllTransactions([newData, ...allTransactions]);
+    }
+  };
 
   if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading your finances...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-6 pb-20">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-gray-950/20 p-6 pb-20">
       <div className="max-w-7xl mx-auto space-y-10 animate-fade-in">
         
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-end gap-6">
-            <div>
-                <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
-                    Financial Overview <Sparkles className="w-6 h-6 text-yellow-500 fill-yellow-200 animate-pulse" />
-                </h1>
-                <p className="text-gray-500 font-medium mt-2 text-lg">Your wealth command center.</p>
-            </div>
+        <FinancialHeader 
+          viewDate={viewDate} 
+          setViewDate={setViewDate} 
+          onExport={handleExport} 
+          onAdd={() => { setEditData(null); setShowForm(true); }} 
+        />
 
-            <div className="flex flex-wrap gap-3">
-                <div className="flex items-center gap-2 bg-white px-2 py-1.5 rounded-2xl shadow-sm border border-gray-200/60">
-                    <button onClick={handlePrevMonth} className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-500 transition"><ChevronLeft className="w-4 h-4"/></button>
-                    <div className="flex items-center gap-2 px-2 min-w-[130px] justify-center">
-                        <Calendar className="w-4 h-4 text-indigo-600" />
-                        <span className="font-bold text-gray-800 text-sm">{formattedMonth}</span>
-                    </div>
-                    <button onClick={handleNextMonth} className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-500 transition"><ChevronRight className="w-4 h-4"/></button>
-                </div>
+        <FinancialSummary 
+          totalNetWorth={totalNetWorth} 
+          bankBalance={bankBalance} 
+          cashBalance={cashBalance} 
+          monthlyIncome={monthlyIncome} 
+          monthlyExpenses={monthlyExpenses} 
+          investmentBalance={investmentBalance} 
+          monthLabel={formattedMonth} 
+        />
 
-                <button onClick={handleExport} className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-5 py-3 rounded-2xl font-bold hover:bg-gray-50 transition shadow-sm text-sm">
-                    <Download className="w-4 h-4" /> CSV
-                </button>
-                <button onClick={() => setShowForm(true)} className="group flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-black transition shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 text-sm">
-                    <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" /> Add New
-                </button>
-            </div>
-        </div>
-
-        {/* SUMMARY CARDS (Keeping your existing layout) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Net Worth */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-800 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-blue-200/50 transition-transform hover:scale-[1.02]">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full blur-3xl opacity-10 -mr-16 -mt-16"></div>
-                <div className="relative z-10 flex flex-col justify-between h-full">
-                    <div>
-                        <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-2">Total Net Worth</p>
-                        <h2 className="text-4xl font-bold flex items-center gap-1"><IndianRupee className="w-8 h-8 text-blue-300" /> {totalNetWorth.toLocaleString()}</h2>
-                    </div>
-                    <div className="mt-8 pt-6 border-t border-white/10 flex justify-between text-xs font-semibold text-blue-50">
-                        <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-400"></div> Bank: {formatCurrency(bankBalance)}</span>
-                        <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-400"></div> Cash: {formatCurrency(cashBalance)}</span>
-                    </div>
-                </div>
+        {/* Charts Section */}
+        <div className="space-y-8">
+          <div className="min-h-[400px]">
+            <FinancialAnalytics transactions={currentMonthTransactions} />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white dark:bg-gray-900/60 rounded-[2.5rem] p-8 border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full min-h-[300px]">
+              <ExpenseBreakdown transactions={currentMonthTransactions} />
             </div>
             
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/40 border border-gray-100 hover:shadow-2xl transition-all duration-300 group">
-                <div className="flex justify-between items-start mb-6">
-                    <div className="p-3.5 bg-green-50 rounded-2xl text-green-600 group-hover:bg-green-100 transition-colors"><TrendingUp className="w-7 h-7" /></div>
-                    <span className="text-[10px] font-bold bg-green-50 text-green-700 px-3 py-1 rounded-full uppercase tracking-wide">{formattedMonth}</span>
-                </div>
-                <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Income</p>
-                <h2 className="text-3xl font-bold text-gray-900 mt-2">+ {formatCurrency(monthlyIncome)}</h2>
-            </div>
-
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/40 border border-gray-100 hover:shadow-2xl transition-all duration-300 group">
-                <div className="flex justify-between items-start mb-6">
-                    <div className="p-3.5 bg-red-50 rounded-2xl text-red-600 group-hover:bg-red-100 transition-colors"><CreditCard className="w-7 h-7" /></div>
-                    <span className="text-[10px] font-bold bg-red-50 text-red-700 px-3 py-1 rounded-full uppercase tracking-wide">{formattedMonth}</span>
-                </div>
-                <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Net Expenses</p>
-                <h2 className="text-3xl font-bold text-gray-900 mt-2">- {formatCurrency(monthlyExpenses)}</h2>
-            </div>
-
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/40 border border-gray-100 hover:shadow-2xl transition-all duration-300 group">
-                <div className="flex justify-between items-start mb-6">
-                    <div className="p-3.5 bg-purple-50 rounded-2xl text-purple-600 group-hover:bg-purple-100 transition-colors"><PieChart className="w-7 h-7" /></div>
-                    <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-3 py-1 rounded-full uppercase tracking-wide">Assets</span>
-                </div>
-                <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Invested</p>
-                <h2 className="text-3xl font-bold text-gray-900 mt-2">{formatCurrency(investmentBalance)}</h2>
-            </div>
-        </div>
-
-        {/* CHARTS */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 min-h-[350px]"><FinancialAnalytics transactions={currentMonthTransactions} /></div>
-            <div className="lg:col-span-1 min-h-[350px]"><ExpenseBreakdown transactions={currentMonthTransactions} /></div>
-        </div>
-
-        {/* TABLE */}
-        <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
-            <div className="p-8 border-b border-gray-100 flex flex-col md:flex-row gap-6 items-center bg-white">
-                <div className="relative flex-1 w-full"><Search className="absolute left-5 top-4 w-5 h-5 text-gray-400" /><input type="text" placeholder={`Search ${formattedMonth}...`} className="w-full pl-14 pr-4 py-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-700 font-bold transition-all placeholder-gray-400" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} /></div>
-                <div className="flex gap-3 w-full md:w-auto">
-                    <div className="flex items-center gap-3 bg-gray-50 px-5 py-4 rounded-2xl cursor-pointer hover:bg-gray-100 transition group"><SlidersHorizontal className="w-4 h-4 text-gray-500 group-hover:text-gray-800" /><select className="bg-transparent outline-none text-sm font-bold text-gray-600 cursor-pointer w-full" value={filterType} onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}><option value="all">All Types</option><option value="income">Incomes</option><option value="expense">Expenses</option><option value="transfer">Transfers</option></select></div>
-                    <select className="px-5 py-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold text-gray-600 hover:bg-gray-100 transition cursor-pointer" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="highest">Highest Amount</option><option value="lowest">Lowest Amount</option></select>
-                </div>
-            </div>
-            <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-                <thead><tr className="border-b border-gray-50 text-gray-400 text-xs font-bold uppercase tracking-wider"><th className="p-6 pl-10">Date</th><th className="p-6">Title</th><th className="p-6">Details</th><th className="p-6">Amount</th><th className="p-6 text-center">Actions</th></tr></thead>
-                <tbody className="text-sm font-medium">
-                {paginatedData.map(t => {
-                    const displayMode = t.paymentMode || 'Bank'; 
-                    return (
-                        <tr key={t._id} className="group border-b border-gray-50 last:border-0 hover:bg-blue-50/30 transition-colors">
-                            <td className="p-6 pl-10 text-gray-500">
-                                <div>{formatDate(t.date)}</div>
-                                {t.reason && <div className="text-[10px] text-gray-400 mt-1 italic max-w-[120px] truncate">{t.reason}</div>} {/* Show Reason */}
-                            </td>
-                            <td className="p-6"><span className="font-bold text-gray-800 text-base">{t.title}</span></td>
-                            <td className="p-6">
-                                {t.type === 'transfer' ? (
-                                    <div className="flex items-center gap-2 text-xs font-bold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-xl w-fit border border-gray-200">{displayMode} <ArrowRight className="w-3 h-3"/> {t.category}</div>
-                                ) : (
-                                    <div className="flex items-center gap-3"><span className="text-xs font-bold bg-gray-100 text-gray-600 px-3 py-1 rounded-xl border border-gray-200">{t.category}</span><span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1">{displayMode === 'Cash' ? <Banknote className="w-3 h-3"/> : <Landmark className="w-3 h-3"/>} {displayMode}</span></div>
-                                )}
-                            </td>
-                            <td className="p-6"><span className={`flex items-center gap-1.5 font-bold text-base ${t.type === 'income' ? 'text-emerald-600' : (t.type === 'expense' ? 'text-red-600' : 'text-gray-900')}`}>{t.type === 'income' ? '+' : (t.type === 'expense' ? '-' : '')} {formatCurrency(t.amount)}</span></td>
-                            <td className="p-6 text-center"><div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"><button onClick={() => openEdit(t)} className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition"><Pencil className="w-4 h-4" /></button><button onClick={() => handleDelete(t._id)} className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition"><Trash2 className="w-4 h-4" /></button></div></td>
-                        </tr>
-                    );
-                })}
-                </tbody>
-            </table>
-            </div>
-        </div>
-
-        {/* FORM MODAL */}
-        {showForm && (
-            <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn">
-            <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl relative transform transition-all scale-100 border border-gray-100">
-                <button onClick={closeForm} className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 transition"><X className="w-5 h-5 text-gray-500" /></button>
-                <h2 className="text-2xl font-bold mb-6 text-gray-900">{editId ? 'Edit' : 'New'} Transaction</h2>
-                <div className="flex gap-2 mb-6 p-1.5 bg-gray-100 rounded-2xl">
-                    {['expense', 'income', 'transfer'].map(type => (
-                        <button key={type} onClick={() => setTxType(type)} className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-300 ${txType === type ? 'bg-white shadow-lg text-black' : 'text-gray-500 hover:text-gray-700'}`}>{type}</button>
-                    ))}
-                </div>
-                <form onSubmit={handleSubmit} className="space-y-5">
-                {txType !== 'transfer' && (<div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Title</label><input type="text" required className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 font-bold text-gray-800 transition-all placeholder-gray-400" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. Grocery" /></div>)}
-                
-                {/* DATE FIELD */}
-                <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Date</label>
-                    <input type="date" required className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 font-bold text-gray-800 cursor-pointer" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
-                </div>
-
-                <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Amount</label><input type="number" required className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 font-bold text-gray-800 transition-all placeholder-gray-400" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })} placeholder="0.00" /></div>
-                
-                {/* TRANSFER SECTION WITH REASON */}
-                {txType === 'transfer' ? (
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">From</label><select className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-700 appearance-none cursor-pointer" value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="Investment">Investment</option></select></div>
-                            <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">To</label><select className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-700 appearance-none cursor-pointer" value={formData.transferTo} onChange={(e) => setFormData({ ...formData, transferTo: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="Investment">Investment</option></select></div>
-                        </div>
-                        {/* REASON INPUT */}
-                        <div>
-                            <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Reason (Optional)</label>
-                            <input 
-                                type="text" 
-                                placeholder="Why this transfer?" 
-                                className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 font-bold text-gray-800 transition-all placeholder-gray-400" 
-                                value={formData.reason} 
-                                onChange={(e) => setFormData({ ...formData, reason: e.target.value })} 
-                            />
-                        </div>
+            {/* PORTFOLIO GRAPH */}
+            <div className="bg-white dark:bg-gray-900/60 rounded-[2.5rem] p-8 border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full min-h-[300px]">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400"><Briefcase className="w-5 h-5" /></div>
+                <h3 className="font-bold text-gray-900 dark:text-white">Portfolio Breakdown</h3>
+              </div>
+              <div className="flex-1 space-y-4 overflow-y-auto max-h-[300px] no-scrollbar">
+                {investmentBreakdown.length > 0 ? investmentBreakdown.map((item, index) => (
+                  <div key={index} className="flex justify-between items-center p-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-2xl transition border border-transparent hover:border-gray-100 dark:hover:border-gray-700">
+                    <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${index % 2 === 0 ? 'bg-purple-500' : 'bg-blue-500'}`}></div>
+                        <span className="font-bold text-gray-700 dark:text-gray-300 text-sm">{item.type}</span>
                     </div>
-                ) : (
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Category</label><select className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-700 appearance-none cursor-pointer" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>{DEFAULT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}<option value="Other">Other</option></select></div>
-                        <div><label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Source</label><select className="w-full p-4 bg-gray-50 border-none rounded-2xl outline-none font-bold text-gray-700 appearance-none cursor-pointer" value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option></select></div>
+                    <span className="font-extrabold text-gray-900 dark:text-white text-sm">{formatCurrency(item.total)}</span>
+                  </div>
+                )) : (
+                    <div className="text-center text-gray-400 py-10 text-sm flex flex-col items-center">
+                        <PieChart className="w-10 h-10 mb-3 opacity-20" />
+                        No active investments.
                     </div>
                 )}
-                
-                {txType !== 'transfer' && formData.category === 'Other' && <input type="text" placeholder="Type category..." required className="w-full p-4 bg-blue-50 text-blue-800 font-bold border-none rounded-2xl outline-none" value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} />}
-                
-                <button type="submit" className="w-full bg-gray-900 text-white p-4 rounded-2xl font-bold hover:bg-black shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 mt-2">{editId ? 'Update Transaction' : 'Save Transaction'}</button>
-                </form>
+              </div>
             </div>
-            </div>
+          </div>
+        </div>
+
+        <TransactionTable 
+          transactions={currentMonthTransactions} 
+          onEdit={(t) => { setEditData(t); setShowForm(true); }} 
+          onDelete={handleDelete} 
+          monthLabel={formattedMonth} 
+        />
+
+        {showForm && (
+          <TransactionForm 
+            onClose={() => setShowForm(false)} 
+            onSuccess={onTransactionSaved} 
+            initialData={editData} 
+          />
         )}
+
       </div>
     </div>
   );
 };
+
 export default Financial;

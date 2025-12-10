@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import API from '../../services/api'; // Need API to fetch fresh XP
+import API from '../../services/api';
 import { 
-  Wallet, LayoutDashboard, CalendarCheck, Target, 
-  StickyNote, Menu, X, LogOut, TrendingUp, Settings, Moon, Sun, Zap 
+  LayoutDashboard, CalendarCheck, Target, 
+  StickyNote, Menu, X, LogOut, TrendingUp, Settings, 
+  Moon, Sun, Zap, User
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -12,28 +13,21 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   
-  // User State with XP
+  // User State
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || { name: 'Achiever', level: 1, currentXP: 0, requiredXP: 100 });
   const initials = user.name ? user.name.charAt(0).toUpperCase() : 'U';
 
-  // Fetch latest stats on mount
-  // LIVE XP UPDATE LISTENER
+  // 1. Live XP Listener (Syncs Gamification)
   useEffect(() => {
     const syncUser = () => {
         const stored = JSON.parse(localStorage.getItem('user'));
         if (stored) setUser(stored);
     };
-
-    // Initial Load
     syncUser();
-
-    // Listen for our custom event
     window.addEventListener('xpUpdate', syncUser);
-    
-    // Cleanup
     return () => window.removeEventListener('xpUpdate', syncUser);
   }, []);
-  
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -42,31 +36,36 @@ const Navbar = () => {
 
   const closeMenu = () => setIsMobileMenuOpen(false);
 
-  const getLinkClass = (path) => {
+  // Helper for Link Styles
+  const getLinkClass = (path, isMobile = false) => {
     const isActive = location.pathname === path;
-    return `flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 ${
-      isActive 
-        ? "bg-blue-600 text-white shadow-lg shadow-blue-200 transform scale-105 dark:shadow-blue-900" 
-        : "text-gray-500 hover:bg-white hover:text-blue-600 hover:shadow-sm dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-blue-400"
-    }`;
+    const baseStyle = isMobile 
+      ? "flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all text-base" 
+      : "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all duration-300";
+      
+    const activeStyle = isActive 
+      ? "bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/50" 
+      : "text-gray-500 hover:bg-white hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-blue-400";
+
+    return `${baseStyle} ${activeStyle}`;
   };
 
-  // Calculate XP Percentage
+  // XP Calculation
   const xpPercent = Math.min((user.currentXP / user.requiredXP) * 100, 100);
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-gray-100 dark:bg-gray-900/80 dark:border-gray-800 transition-colors duration-300">
+    <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-gray-100 dark:bg-gray-950/80 dark:border-gray-800 transition-colors duration-300">
       
       <div className="px-6 py-4 flex justify-between items-center max-w-7xl mx-auto">
         
-        {/* LOGO */}
-        <Link to="/" className="flex items-center gap-3 group" onClick={closeMenu}>
-          <img src="/logo.png" alt="LifeOS" className="w-10 h-10 object-contain group-hover:scale-110 transition-transform duration-300 drop-shadow-sm" />
+        {/* --- LEFT: LOGO --- */}
+        <Link to="/" className="flex items-center gap-3 group z-50" onClick={closeMenu}>
+          <img src="/logo.png" alt="LifeOS" className="w-9 h-9 md:w-10 md:h-10 object-contain group-hover:scale-110 transition-transform duration-300" />
           <span className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">LifeOS</span>
         </Link>
 
-        {/* DESKTOP MENU */}
-        <div className="hidden md:flex items-center gap-1 bg-gray-50/80 p-1.5 rounded-full border border-gray-200/60 backdrop-blur-sm dark:bg-gray-800/50 dark:border-gray-700">
+        {/* --- CENTER: DESKTOP PILL MENU --- */}
+        <div className="hidden lg:flex items-center gap-1 bg-gray-50/80 p-1.5 rounded-full border border-gray-200/60 backdrop-blur-sm dark:bg-gray-900/50 dark:border-gray-700">
           <Link to="/" className={getLinkClass('/')}><LayoutDashboard className="w-4 h-4"/> Dashboard</Link>
           <Link to="/habits" className={getLinkClass('/habits')}><CalendarCheck className="w-4 h-4"/> Habits</Link>
           <Link to="/goals" className={getLinkClass('/goals')}><Target className="w-4 h-4"/> Goals</Link>
@@ -74,29 +73,26 @@ const Navbar = () => {
           <Link to="/notes" className={getLinkClass('/notes')}><StickyNote className="w-4 h-4"/> Notes</Link>
         </div>
 
-        {/* RIGHT SIDE */}
+        {/* --- RIGHT: USER & CONTROLS --- */}
         <div className="flex items-center gap-3">
             
-            {/* GAMIFICATION BAR (New Feature) */}
-            <div className="hidden lg:flex flex-col items-end mr-2">
+            {/* DESKTOP XP BAR */}
+            <div className="hidden xl:flex flex-col items-end mr-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 dark:text-white mb-1">
                     <Zap className="w-3 h-3 text-yellow-500 fill-yellow-500" />
                     <span>Lvl {user.level || 1}</span>
                 </div>
-                <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div 
-                        className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-500 ease-out"
-                        style={{ width: `${xpPercent}%` }}
-                    ></div>
+                <div className="w-24 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-500 ease-out" style={{ width: `${xpPercent}%` }}></div>
                 </div>
             </div>
 
-            {/* THEME TOGGLE */}
-            <button onClick={toggleTheme} className="p-2.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-yellow-400 dark:hover:bg-gray-700 transition-all">
+            {/* THEME TOGGLE (Visible on Mobile & Desktop) */}
+            <button onClick={toggleTheme} className="p-2.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-yellow-400 dark:hover:bg-gray-700 transition-all shadow-sm">
                 {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
             </button>
 
-            {/* PROFILE */}
+            {/* DESKTOP PROFILE */}
             <Link to="/settings" className="hidden sm:flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-700 group cursor-pointer">
                 <div className="text-right hidden lg:block">
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Account</p>
@@ -107,36 +103,54 @@ const Navbar = () => {
                 </div>
             </Link>
 
-            {/* LOGOUT */}
-            <div className="hidden md:flex items-center gap-1">
-               <button onClick={handleLogout} className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"><LogOut className="w-5 h-5" /></button>
-            </div>
-
             {/* MOBILE HAMBURGER */}
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2.5 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition">
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="lg:hidden p-2.5 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition shadow-sm z-50">
                 {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
         </div>
       </div>
 
-      {/* MOBILE MENU */}
+      {/* --- MOBILE FULLSCREEN MENU --- */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white/95 backdrop-blur-xl absolute w-full shadow-2xl animate-slideDown z-40 dark:bg-gray-900/95 dark:border-gray-800">
-            <div className="p-4 space-y-2">
-                <div className="flex items-center justify-between px-4 pb-2">
-                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Current Level</span>
-                    <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400">Lvl {user.level || 1}</span>
+        <div className="lg:hidden fixed inset-0 z-40 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl animate-fade-in flex flex-col pt-24 px-6 h-screen overflow-y-auto">
+            
+            {/* Mobile User Profile Header */}
+            <div className="flex items-center gap-4 mb-8 bg-gray-50 dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                    {initials}
                 </div>
-                <div className="px-4 mb-4">
-                    <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-yellow-400 to-orange-500" style={{ width: `${xpPercent}%` }}></div>
+                <div className="flex-1">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{user.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-0.5 rounded">Lvl {user.level || 1}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{Math.round(user.currentXP)} / {user.requiredXP} XP</span>
+                    </div>
+                    {/* XP Bar */}
+                    <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mt-2 overflow-hidden">
+                        <div className="h-full bg-yellow-500 rounded-full" style={{ width: `${xpPercent}%` }}></div>
                     </div>
                 </div>
-                <Link to="/" className="flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-gray-600 hover:bg-gray-50 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-gray-800 transition" onClick={closeMenu}><LayoutDashboard className="w-5 h-5" /> Dashboard</Link>
-                {/* ... other mobile links ... */}
-                <div className="border-t border-gray-100 dark:border-gray-800 my-2 pt-2 space-y-2">
-                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition"><LogOut className="w-5 h-5" /> Logout</button>
-                </div>
+            </div>
+
+            {/* Navigation Links */}
+            <div className="space-y-2">
+                <Link to="/" className={getLinkClass('/', true)} onClick={closeMenu}><LayoutDashboard className="w-5 h-5" /> Dashboard</Link>
+                <Link to="/habits" className={getLinkClass('/habits', true)} onClick={closeMenu}><CalendarCheck className="w-5 h-5" /> Habits</Link>
+                <Link to="/goals" className={getLinkClass('/goals', true)} onClick={closeMenu}><Target className="w-5 h-5" /> Goals & Tasks</Link>
+                <Link to="/transactions" className={getLinkClass('/transactions', true)} onClick={closeMenu}><TrendingUp className="w-5 h-5" /> Finance</Link>
+                <Link to="/notes" className={getLinkClass('/notes', true)} onClick={closeMenu}><StickyNote className="w-5 h-5" /> Notes</Link>
+            </div>
+
+            <div className="h-px bg-gray-100 dark:bg-gray-800 my-6"></div>
+
+            {/* Bottom Actions */}
+            <div className="space-y-3 pb-8">
+                <Link to="/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition" onClick={closeMenu}>
+                    <Settings className="w-5 h-5" /> Account Settings
+                </Link>
+                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-red-600 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 transition">
+                    <LogOut className="w-5 h-5" /> Sign Out
+                </button>
             </div>
         </div>
       )}

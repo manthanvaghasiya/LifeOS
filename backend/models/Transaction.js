@@ -8,34 +8,30 @@ const TransactionSchema = new mongoose.Schema({
   },
   title: {
     type: String,
-    required: [true, 'Please add a title'],
+    required: [true, 'Please add a text'],
     trim: true
   },
   amount: {
     type: Number,
-    required: [true, 'Please add a number']
+    required: [true, 'Please add a positive or negative number']
   },
   type: {
-    type: String,
-    enum: ['income', 'expense', 'transfer'],
-    required: true
-  },
-  paymentMode: {
-    type: String,
-    enum: ['Cash', 'Bank', 'Investment'],
+    type: String, // 'income', 'expense', 'transfer'
     required: true
   },
   category: {
     type: String,
-    required: true 
+    required: true
   },
-  // --- NEW FIELD ---
-  reason: {
-    type: String,
-    required: false, // Optional
-    trim: true
+  // --- NEW FIELD: INVESTMENT DETAILS ---
+  investmentType: {
+    type: String, // e.g., 'SIP', 'IPO', 'Gold', 'Stocks', 'FD', 'Liquid Fund'
+    default: null
   },
-  // ----------------
+  paymentMode: {
+    type: String, // 'Cash', 'Bank', 'Investment'
+    default: 'Bank'
+  },
   date: {
     type: Date,
     default: Date.now
