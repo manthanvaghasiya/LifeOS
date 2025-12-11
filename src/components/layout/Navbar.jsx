@@ -42,9 +42,14 @@ const Navbar = () => {
     return () => { document.body.style.overflow = 'unset'; };
   }, [isMobileMenuOpen]);
 
-  const handleLogout = () => {
+ const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    
+    // Dispatch event so App.jsx notices the change immediately
+    window.dispatchEvent(new Event('authChange'));
+    
+    // Optional: Force reload to clear any memory states (cleanest way)
     window.location.href = '/login';
   };
 

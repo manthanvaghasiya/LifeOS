@@ -16,7 +16,12 @@ const DashboardHeader = ({ user, onQuickSpend }) => {
           Let's make today productive.
         </p>
       </div>
-      <button onClick={onQuickSpend} className="group bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 flex items-center gap-3 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+      
+      {/* THE BUTTON */}
+      <button 
+        onClick={onQuickSpend} // <--- THIS MUST BE HERE
+        className="group bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 flex items-center gap-3 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+      >
         <div className="bg-white/20 p-1 rounded-lg"><Plus className="w-4 h-4" /></div> Quick Spend
       </button>
     </div>

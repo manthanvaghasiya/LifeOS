@@ -13,13 +13,18 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
     const finalCategory = formData.category === 'Other' ? customCategory : formData.category;
     try {
         const res = await API.post('/transactions', { ...formData, category: finalCategory, date: new Date() });
-        onSuccess(res.data);
-    } catch (err) { alert('Error adding'); }
+        if(onSuccess) onSuccess(res.data);
+        onClose(); // Close modal on success
+    } catch (err) { 
+        console.error("Quick Add Error:", err);
+        alert('Error adding transaction. Check console.'); 
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-        <div className="bg-white dark:bg-gray-900 p-8 rounded-[2rem] w-full max-w-sm shadow-2xl relative border dark:border-gray-800">
+    // Z-INDEX UPDATED TO 60
+    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-fadeIn">
+        <div className="bg-white dark:bg-gray-900 p-8 rounded-[2rem] w-full max-w-sm shadow-2xl relative border border-gray-100 dark:border-gray-800">
             <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><X className="w-5 h-5 text-gray-500" /></button>
             <h3 className="font-bold text-2xl mb-1 text-gray-900 dark:text-white">Quick Spend</h3>
             <p className="text-gray-500 text-sm mb-6">Track it before you forget it.</p>
@@ -42,5 +47,4 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
   );
 };
 
-// THIS EXPORT LINE IS CRITICAL
 export default QuickSpendModal;
