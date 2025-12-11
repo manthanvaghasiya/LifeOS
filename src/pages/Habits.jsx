@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { Sparkles, CalendarDays, Layers } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { useTheme } from '../context/ThemeContext'; // Import Theme Context
 
 // Components
 import HabitForm from '../components/habits/HabitForm';
@@ -14,6 +15,7 @@ import { addXP } from '../utils/gamification';
 const Habits = () => {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { theme } = useTheme(); // To adjust chart colors
   
   // State
   const [newHabit, setNewHabit] = useState('');
@@ -74,11 +76,9 @@ const Habits = () => {
   const cancelEdit = () => { setEditId(null); setNewHabit(''); setNewTarget(21); };
 
   const toggleHabitDate = async (id, date) => {
-    // 1. Check if we are completing it (not un-checking)
     const habit = habits.find(h => h._id === id);
     const isCompleting = !habit.completedDates.includes(date);
 
-    // 2. Optimistic UI Update
     setHabits(prev => prev.map(h => h._id === id ? {
       ...h, completedDates: isCompleting 
         ? [...h.completedDates, date] 
@@ -87,11 +87,7 @@ const Habits = () => {
 
     try { 
         await API.put(`/habits/${id}/toggle`, { date }); 
-        
-        // 3. AWARD XP IF COMPLETING
-        if (isCompleting) {
-            addXP(10); // +10 XP
-        }
+        if (isCompleting) addXP(10);
     } 
     catch (err) { fetchHabits(); } 
   };
@@ -108,9 +104,10 @@ const Habits = () => {
   const completedToday = habits.filter(h => h.completedDates.includes(today)).length;
   const completionRate = habits.length === 0 ? 0 : Math.round((completedToday / habits.length) * 100);
   
+  // Dynamic Chart Colors based on Theme
   const donutData = [ 
-    { name: 'Done', value: completedToday, color: '#4F46E5' }, 
-    { name: 'Left', value: habits.length - completedToday, color: '#F3F4F6' } 
+    { name: 'Done', value: completedToday, color: theme === 'dark' ? '#818cf8' : '#4F46E5' }, 
+    { name: 'Left', value: habits.length - completedToday, color: theme === 'dark' ? '#1f2937' : '#F3F4F6' } 
   ];
 
   const trendData = weekDays.map(date => ({ name: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }), completed: habits.filter(h => h.completedDates.includes(date)).length }));
@@ -131,7 +128,6 @@ const Habits = () => {
   });
   const avgDailyConsistency = monthlyStats.length === 0 ? 0 : Math.round(monthlyStats.reduce((acc, curr) => acc + curr.percent, 0) / monthlyStats.length);
 
-  // TOP 7 PERFORMERS (Highest Consistency First)
   const topHabitsMonthly = habits.map(habit => ({
       ...habit, monthlyCount: habit.completedDates.filter(d => d.startsWith(leaderboardMonth)).length
   })).sort((a, b) => b.monthlyCount - a.monthlyCount).slice(0, 7); 
@@ -142,32 +138,31 @@ const Habits = () => {
   const daysPassedInCurrentMonth = new Date().getDate(); 
   const totalDaysInPrevMonth = new Date(prevDateObj.getFullYear(), prevDateObj.getMonth() + 1, 0).getDate(); 
 
-  // ACTION REQUIRED: BOTTOM 7 PERFORMERS (Lowest Consistency First)
-  // Logic: Calculate consistency, then Sort ASCENDING (Low -> High), take bottom 7
   const auditData = habits.map(habit => {
       const prevC = Math.round((habit.completedDates.filter(d => d.startsWith(prevMonthStr)).length / totalDaysInPrevMonth) * 100);
       const currC = Math.round((habit.completedDates.filter(d => d.startsWith(currentMonthStr)).length / daysPassedInCurrentMonth) * 100);
       return { ...habit, prevConsistency: prevC, currConsistency: currC, diff: currC - prevC };
   })
-  .sort((a, b) => a.currConsistency - b.currConsistency) // Sort Lowest to Highest
-  .filter(h => h.currConsistency < 100) // Don't show perfect habits in "Action Required"
+  .sort((a, b) => a.currConsistency - b.currConsistency)
+  .filter(h => h.currConsistency < 100)
   .slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-6 pb-20">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-gray-950/20 p-6 pb-20 transition-colors duration-300">
         <div className="max-w-7xl mx-auto space-y-10 animate-fade-in">
             
             {/* HEADER */}
             <div className="flex flex-col md:flex-row justify-between items-end gap-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
                         Habit Mastery <Sparkles className="w-6 h-6 text-yellow-500 fill-yellow-200 animate-pulse" />
                     </h1>
-                    <p className="text-gray-500 font-medium mt-1 text-base">Consistency is the key to excellence.</p>
+                    <p className="text-gray-500 dark:text-gray-400 font-medium mt-1 text-base">Consistency is the key to excellence.</p>
                 </div>
                 <div className="hidden md:flex gap-2">
-                    <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2 text-sm font-bold text-gray-600">
-                        <CalendarDays className="w-4 h-4 text-indigo-500" /> {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                    <div className="bg-white dark:bg-gray-900/60 px-4 py-2 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-2 text-sm font-bold text-gray-600 dark:text-gray-300">
+                        <CalendarDays className="w-4 h-4 text-indigo-500 dark:text-indigo-400" /> 
+                        {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                     </div>
                 </div>
             </div>
@@ -184,10 +179,11 @@ const Habits = () => {
                 </div>
 
                 <div className="lg:col-span-1 space-y-8 sticky top-24">
-                    <div className="bg-white p-6 rounded-[2rem] shadow-xl shadow-indigo-100 border border-indigo-50 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 relative z-10">
-                            <Layers className="w-5 h-5 text-indigo-600" /> New Ritual
+                    {/* NEW RITUAL CARD */}
+                    <div className="bg-white dark:bg-gray-900/60 p-6 rounded-[2rem] shadow-xl shadow-indigo-100/50 dark:shadow-none border border-indigo-50 dark:border-indigo-900/30 relative overflow-hidden transition-all">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 dark:bg-indigo-900/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2 relative z-10">
+                            <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> New Ritual
                         </h3>
                         <HabitForm 
                             handleSubmit={handleSubmit} newHabit={newHabit} setNewHabit={setNewHabit}
@@ -195,8 +191,9 @@ const Habits = () => {
                         />
                     </div>
 
-                    <div className="bg-white p-6 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 flex flex-col items-center justify-center relative overflow-hidden h-64">
-                        <h3 className="font-bold text-gray-800 mb-2 z-10">Daily Progress</h3>
+                    {/* DAILY PROGRESS CARD */}
+                    <div className="bg-white dark:bg-gray-900/60 p-6 rounded-[2rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center relative overflow-hidden h-64 transition-all">
+                        <h3 className="font-bold text-gray-800 dark:text-white mb-2 z-10">Daily Progress</h3>
                         <div className="relative w-40 h-40 z-10">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
@@ -206,7 +203,7 @@ const Habits = () => {
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span className="text-3xl font-extrabold text-indigo-600">{completionRate}%</span>
+                                <span className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">{completionRate}%</span>
                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Today</span>
                             </div>
                         </div>
@@ -217,8 +214,8 @@ const Habits = () => {
             {/* ANALYTICS SECTION */}
             <div className="space-y-8">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-bold text-gray-800">Monthly Performance</h2>
-                    <div className="h-px bg-gray-200 flex-1"></div>
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Monthly Performance</h2>
+                    <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1"></div>
                 </div>
                 <HabitMonthlyOverview 
                     leaderboardMonth={leaderboardMonth} setLeaderboardMonth={setLeaderboardMonth} 

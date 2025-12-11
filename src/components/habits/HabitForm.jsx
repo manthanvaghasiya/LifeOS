@@ -11,7 +11,7 @@ const HabitForm = ({ handleSubmit, newHabit, setNewHabit, newTarget, setNewTarge
             <input 
                 type="text" 
                 placeholder="e.g., Read 10 pages..." 
-                className="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-medium rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all placeholder-gray-400"
+                className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 text-sm font-medium rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-gray-800 transition-all placeholder-gray-400"
                 value={newHabit} 
                 onChange={(e) => setNewHabit(e.target.value)} 
             />
@@ -19,12 +19,12 @@ const HabitForm = ({ handleSubmit, newHabit, setNewHabit, newTarget, setNewTarge
 
           {/* Target & Button Row */}
           <div className="flex gap-3">
-              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl flex-1">
+              <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-xl flex-1">
                   <Target className="w-4 h-4 text-gray-400" />
                   <input 
                     type="number" 
                     placeholder="21" 
-                    className="w-full bg-transparent text-sm font-bold text-gray-700 outline-none"
+                    className="w-full bg-transparent text-sm font-bold text-gray-700 dark:text-gray-200 outline-none"
                     value={newTarget} 
                     onChange={(e) => setNewTarget(e.target.value)} 
                   />
@@ -34,7 +34,7 @@ const HabitForm = ({ handleSubmit, newHabit, setNewHabit, newTarget, setNewTarge
               <button 
                 type="submit" 
                 className={`px-5 py-2 rounded-xl font-bold text-white shadow-lg transition-transform transform active:scale-95 flex items-center gap-2
-                    ${editId ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}
+                    ${editId ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200 dark:shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none'}
                 `}
               >
                   {editId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -42,7 +42,7 @@ const HabitForm = ({ handleSubmit, newHabit, setNewHabit, newTarget, setNewTarge
               </button>
               
               {editId && (
-                  <button type="button" onClick={cancelEdit} className="p-2.5 text-gray-400 hover:text-red-500 bg-gray-50 rounded-xl transition">
+                  <button type="button" onClick={cancelEdit} className="p-2.5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition">
                       <X className="w-5 h-5" />
                   </button>
               )}
