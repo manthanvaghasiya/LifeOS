@@ -29,7 +29,7 @@ const App = () => {
       setIsAuthenticated(!!localStorage.getItem('token'));
     };
     
-    // Listen for Level Up Event
+    // 1. Listen for Level Up Event
     const handleLevelUp = (e) => {
         setNewLevel(e.detail.level);
         setShowLevelUp(true);
@@ -47,11 +47,11 @@ const App = () => {
   return (
     <ThemeProvider>
       <Router>
-        {/* LAYOUT ADJUSTMENT:
-            - pb-28: Adds padding to bottom on mobile so content isn't hidden behind the floating nav.
-            - lg:pb-0: Removes that padding on desktop.
+        {/* UPDATED LINE BELOW:
+            1. pb-24: Adds padding at the bottom on Mobile so Navbar doesn't cover content.
+            2. lg:pb-0: Removes that padding on Desktop (since Nav is at top).
         */}
-        <div className={`flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white transition-colors duration-300 ${isAuthenticated ? 'pb-28 lg:pb-0' : ''}`}>
+        <div className={`flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white transition-colors duration-300 ${isAuthenticated ? 'pb-24 lg:pb-0' : ''}`}>
           
           {isAuthenticated && <Navbar />}
 
@@ -78,8 +78,7 @@ const App = () => {
             </Routes>
           </main>
 
-          {/* Hide Footer on Mobile if you want, or keep it. Often apps hide footer on mobile. */}
-          {isAuthenticated && <div className="hidden lg:block"><Footer /></div>}
+          {isAuthenticated && <Footer />}
           
         </div>
       </Router>

@@ -38,18 +38,17 @@ const Navbar = () => {
   return (
     <>
       {/* ==============================
-          TOP HEADER (Desktop Nav + Mobile Logo/Profile)
+          TOP HEADER (Logo + Profile)
+          No changes here from the previous version.
           ============================== */}
       <header className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-gray-100 dark:bg-gray-950/80 dark:border-gray-800 transition-colors duration-300">
         <div className="px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
           
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 md:gap-3 group">
             <img src="/logo.png" alt="LifeOS" className="w-8 h-8 object-contain group-hover:scale-110 transition-transform" />
             <span className="text-lg md:text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">LifeOS</span>
           </Link>
 
-          {/* Desktop Navigation (Hidden on Mobile) */}
           <div className="hidden lg:flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-full border border-gray-200/50 dark:bg-gray-900/50 dark:border-gray-700">
             {navItems.map((item) => (
               <Link 
@@ -67,7 +66,6 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Right Side: XP, Theme, Profile */}
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex flex-col items-end mr-2">
                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-900 dark:text-white mb-0.5">
@@ -93,11 +91,11 @@ const Navbar = () => {
       </header>
 
       {/* ==============================
-          MOBILE BOTTOM NAV (ELEVATED FLOATING DOCK)
-          This appears fixed at the bottom of the screen on mobile.
+          MOBILE BOTTOM NAV (ELEVATED STYLE)
+          This is the updated section.
           ============================== */}
-      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md">
-        <div className="flex items-end justify-around bg-white/90 backdrop-blur-xl border border-white/40 dark:bg-gray-900/90 dark:border-gray-800 shadow-2xl shadow-blue-900/5 rounded-3xl px-2 h-[4.5rem]">
+      <div className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md">
+        <div className="flex items-end justify-around bg-white/90 backdrop-blur-xl border border-white/20 dark:bg-gray-900/90 dark:border-gray-800 shadow-xl rounded-2xl px-2 h-16">
             
             {navItems.map((item) => {
                 const active = isActive(item.path);
@@ -105,19 +103,19 @@ const Navbar = () => {
                     <Link 
                         key={item.path}
                         to={item.path} 
-                        className="flex flex-col items-center w-full relative group h-full justify-end pb-2"
+                        className="flex flex-col items-center w-full relative group"
                     >
-                        {/* Icon Container with Pop-Up Animation */}
-                        <div className={`absolute bottom-3 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex items-center justify-center ${
+                        {/* Icon Container */}
+                        <div className={`flex items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
                             active 
-                            ? "w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/30 -translate-y-4 scale-100" 
-                            : "w-auto h-auto text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 translate-y-0 scale-90"
+                            ? "w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg -translate-y-6" // Active: Elevated, blue, larger
+                            : "w-full h-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 pb-3" // Inactive: Simple
                         }`}>
-                            <item.icon className={`${active ? "w-6 h-6" : "w-6 h-6"}`} />
+                            <item.icon className={`w-6 h-6 ${active ? "" : "mb-1"}`} />
                         </div>
 
-                        {/* Label (Visible only when NOT active) */}
-                        <span className={`text-[10px] font-bold transition-all duration-300 ${
+                        {/* Label (Hidden when active, visible when inactive) */}
+                        <span className={`text-[10px] font-medium transition-all duration-300 absolute bottom-1 ${
                             active ? "opacity-0 translate-y-2" : "text-gray-500 dark:text-gray-400 opacity-100"
                         }`}>
                             {item.label}
