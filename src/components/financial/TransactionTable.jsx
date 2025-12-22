@@ -75,6 +75,9 @@ const TransactionTable = ({ transactions, onEdit, onDelete, monthLabel }) => {
             {filteredData.map(t => {
               const source = t.paymentMode || 'Bank';
               
+              // FIX: Use real transferTo if available, otherwise fallback
+              const destination = t.transferTo || (t.category === 'Investment' ? 'Investment' : t.category);
+
               return (
                 <tr key={t._id} className="group border-b border-gray-50 dark:border-gray-800 last:border-0 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors">
                   {/* Date */}
@@ -94,10 +97,10 @@ const TransactionTable = ({ transactions, onEdit, onDelete, monthLabel }) => {
                         <ArrowRight className="w-3 h-3 text-gray-400" /> 
                         
                         {/* Destination */}
-                        <span>{t.category === 'Investment' ? 'Investment' : t.category}</span>
+                        <span>{destination}</span>
                         
-                        {/* Investment Type Badge (e.g. IPO) */}
-                        {t.investmentType && (
+                        {/* Investment Type Badge (Only show if destination is investment) */}
+                        {destination === 'Investment' && t.investmentType && (
                             <span className="ml-2 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wide border border-purple-200 dark:border-purple-800">
                                 {t.investmentType}
                             </span>
@@ -109,7 +112,7 @@ const TransactionTable = ({ transactions, onEdit, onDelete, monthLabel }) => {
                             <span className="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-xl border border-gray-200 dark:border-gray-700">
                             {t.category}
                             </span>
-                            {/* Show Investment Type badge if it's an Expense on Investment (e.g. Direct Stock Buy) */}
+                            {/* Show Investment Type badge if it's an Expense on Investment */}
                             {t.investmentType && t.category !== t.investmentType && (
                                 <span className="bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 px-2 py-1 rounded-lg text-[10px] font-bold border border-purple-200 dark:border-purple-800">
                                     {t.investmentType}

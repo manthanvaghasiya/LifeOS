@@ -32,6 +32,11 @@ const TransactionSchema = new mongoose.Schema({
     type: String, // 'Cash', 'Bank', 'Investment'
     default: 'Bank'
   },
+  // --- FIX: Add transferTo so we know the destination ---
+  transferTo: {
+    type: String, // 'Cash', 'Bank', 'Investment'
+    default: null
+  },
   date: {
     type: Date,
     default: Date.now

@@ -22,6 +22,7 @@ app.use('/api/habits', require('./routes/habits')); // <--- CHECK THIS LINE
 app.use('/api/goals', require('./routes/goals'));
 app.use('/api/notes', require('./routes/notes'));
 app.use('/api/tasks', taskRoutes);
+app.use('/api/users', require('./routes/users'));
 
 const connectDB = async () => {
   try {

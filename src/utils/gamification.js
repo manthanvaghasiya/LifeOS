@@ -1,5 +1,5 @@
 import API from '../services/api';
-import toast from 'react-hot-toast'; // Or use alert if you don't have toast
+// Remove toast if you want to rely solely on the Navbar updates or use it for small XP gains only.
 
 export const addXP = async (amount) => {
   try {
@@ -18,9 +18,11 @@ export const addXP = async (amount) => {
     // 2. Trigger Event so Navbar updates instantly
     window.dispatchEvent(new Event('xpUpdate'));
 
-    // 3. Visual Feedback
+    // 3. Visual Feedback (REPLACED ALERT WITH EVENT)
     if (res.data.leveledUp) {
-        alert(`🎉 LEVEL UP! You are now Level ${res.data.level}!`);
+        // Dispatch custom event with the new level
+        const event = new CustomEvent('levelUp', { detail: { level: res.data.level } });
+        window.dispatchEvent(event);
     }
   } catch (err) {
     console.error("XP Error", err);

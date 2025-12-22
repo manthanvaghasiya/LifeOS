@@ -1,35 +1,55 @@
-import React, { useState } from 'react';
-import API from '../services/api';
+import React, { useState, useEffect } from 'react';
+import API from '../services/api'; // Ensure this matches your API setup
 import { User, Mail, Lock, Save, Trash2, LogOut, Shield } from 'lucide-react';
 
 const Settings = () => {
-  // Get initial user from local storage
-  const initialUser = JSON.parse(localStorage.getItem('user')) || {};
-  
   const [formData, setFormData] = useState({
-    name: initialUser.name || '',
-    email: initialUser.email || '',
+    name: '',
+    email: '',
     password: ''
   });
+  const [loading, setLoading] = useState(false);
 
+  // 1. FETCH REAL USER DATA ON MOUNT
+  useEffect(() => {
+    const fetchProfile = async () => {
+        try {
+            const res = await API.get('/users/profile');
+            setFormData({
+                name: res.data.name,
+                email: res.data.email,
+                password: '' // Don't fill password for security
+            });
+        } catch (err) {
+            console.error("Failed to load profile", err);
+        }
+    };
+    fetchProfile();
+  }, []);
+
+  // 2. REAL UPDATE FUNCTION
   const handleUpdate = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      // If you have a real backend, uncomment this:
-      // const res = await API.put('/users/profile', formData);
+      // Send data to backend
+      const res = await API.put('/users/profile', formData);
       
-      // Mock Update for Frontend Demo
-      const updatedUser = { ...initialUser, ...formData };
-      if(!formData.password) delete updatedUser.password; // Don't save empty pass
-      
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      // Update LocalStorage with new Token/User info if the backend returns it
+      if (res.data) {
+          localStorage.setItem('user', JSON.stringify(res.data));
+          // If token is rotated, update it too: localStorage.setItem('token', res.data.token);
+      }
       
       // Dispatch event to update Navbar name immediately
-      window.dispatchEvent(new Event('xpUpdate'));
+      window.dispatchEvent(new Event('authChange')); 
+      // Note: We use 'authChange' or 'xpUpdate' depending on what Navbar listens to for name changes
       
       alert("Profile Updated Successfully!");
     } catch (err) {
-      alert("Update Failed.");
+      alert(err.response?.data?.message || "Update Failed.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -40,14 +60,17 @@ const Settings = () => {
     window.location.href = '/login';
   };
 
+  // 3. REAL DELETE FUNCTION
   const handleDeleteAccount = async (e) => {
-    e.preventDefault(); // Prevent default button behavior
+    e.preventDefault();
     const confirm = window.prompt("Type 'DELETE' to confirm account deletion. This cannot be undone.");
     if (confirm === 'DELETE') {
         try {
-            // await API.delete('/users/profile'); // Uncomment for real backend
+            await API.delete('/users/profile');
             handleLogout();
-        } catch (err) { alert("Error deleting account"); }
+        } catch (err) { 
+            alert(err.response?.data?.message || "Error deleting account"); 
+        }
     }
   };
 
@@ -93,8 +116,8 @@ const Settings = () => {
                 </div>
 
                 <div className="pt-4">
-                    <button type="submit" className="w-full bg-indigo-600 text-white p-4 rounded-2xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2">
-                        <Save className="w-5 h-5" /> Save Changes
+                    <button type="submit" disabled={loading} className="w-full bg-indigo-600 text-white p-4 rounded-2xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2 disabled:opacity-70">
+                        {loading ? 'Saving...' : <><Save className="w-5 h-5" /> Save Changes</>}
                     </button>
                 </div>
             </form>
