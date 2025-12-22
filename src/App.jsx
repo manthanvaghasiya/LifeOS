@@ -5,7 +5,7 @@ import { ThemeProvider } from './context/ThemeContext';
 // Components
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
-import LevelUpModal from './components/gamification/LevelUpModal'; // <--- IMPORT
+import LevelUpModal from './components/gamification/LevelUpModal';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -29,27 +29,29 @@ const App = () => {
       setIsAuthenticated(!!localStorage.getItem('token'));
     };
     
-    // 1. Listen for Level Up Event
+    // Listen for Level Up Event
     const handleLevelUp = (e) => {
         setNewLevel(e.detail.level);
         setShowLevelUp(true);
-        // Play sound effect here if you want!
-        // const audio = new Audio('/levelup.mp3'); audio.play();
     };
 
     window.addEventListener('authChange', handleAuthChange);
-    window.addEventListener('levelUp', handleLevelUp); // <--- Add Listener
+    window.addEventListener('levelUp', handleLevelUp);
 
     return () => {
         window.removeEventListener('authChange', handleAuthChange);
-        window.removeEventListener('levelUp', handleLevelUp); // <--- Cleanup
+        window.removeEventListener('levelUp', handleLevelUp);
     };
   }, []);
 
   return (
     <ThemeProvider>
       <Router>
-        <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white transition-colors duration-300">
+        {/* LAYOUT ADJUSTMENT:
+            - pb-28: Adds padding to bottom on mobile so content isn't hidden behind the floating nav.
+            - lg:pb-0: Removes that padding on desktop.
+        */}
+        <div className={`flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white transition-colors duration-300 ${isAuthenticated ? 'pb-28 lg:pb-0' : ''}`}>
           
           {isAuthenticated && <Navbar />}
 
@@ -76,7 +78,8 @@ const App = () => {
             </Routes>
           </main>
 
-          {isAuthenticated && <Footer />}
+          {/* Hide Footer on Mobile if you want, or keep it. Often apps hide footer on mobile. */}
+          {isAuthenticated && <div className="hidden lg:block"><Footer /></div>}
           
         </div>
       </Router>
