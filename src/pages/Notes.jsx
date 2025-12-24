@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { 
-  Plus, Trash2, Pin, Search, X, 
-  Sparkles, PenTool, StickyNote 
+  Plus, Search, X, Sparkles, PenTool, StickyNote, Hash, Pin 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import NoteCard from '../components/notes/NoteCard';
@@ -22,7 +21,10 @@ const Notes = () => {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editId, setEditId] = useState(null);
-  const [formData, setFormData] = useState({ title: '', content: '', color: COLORS[0].class, isPinned: false });
+  
+  // Tag support
+  const [formData, setFormData] = useState({ title: '', content: '', color: COLORS[0].class, isPinned: false, tags: [] });
+  const [tagInput, setTagInput] = useState('');
 
   useEffect(() => { fetchNotes(); }, []);
 
@@ -51,6 +53,20 @@ const Notes = () => {
     } catch (err) { toast.error('Error saving'); }
   };
 
+  const handleAddTag = (e) => {
+      if (e.key === 'Enter' && tagInput.trim()) {
+          e.preventDefault();
+          if (!formData.tags.includes(tagInput.trim())) {
+              setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] });
+          }
+          setTagInput('');
+      }
+  };
+
+  const removeTag = (tagToRemove) => {
+      setFormData({ ...formData, tags: formData.tags.filter(t => t !== tagToRemove) });
+  };
+
   const togglePin = async (e, note) => {
     try {
       const res = await API.put(`/notes/${note._id}`, { ...note, isPinned: !note.isPinned });
@@ -69,13 +85,18 @@ const Notes = () => {
 
   const closeForm = () => {
     setShowForm(false); setEditId(null);
-    setFormData({ title: '', content: '', color: COLORS[0].class, isPinned: false });
+    setFormData({ title: '', content: '', color: COLORS[0].class, isPinned: false, tags: [] });
+    setTagInput('');
   };
 
-  const filteredNotes = notes.filter(n => 
-    n.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    n.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredNotes = notes.filter(n => {
+    const search = searchTerm.toLowerCase();
+    return (
+      n.title?.toLowerCase().includes(search) || 
+      n.content?.toLowerCase().includes(search) ||
+      n.tags?.some(tag => tag.toLowerCase().includes(search))
+    );
+  });
 
   const pinnedNotes = filteredNotes.filter(n => n.isPinned);
   const otherNotes = filteredNotes.filter(n => !n.isPinned);
@@ -97,7 +118,7 @@ const Notes = () => {
             <div className="flex gap-3 w-full md:w-auto">
                 <div className="relative flex-1 md:w-80">
                     <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                    <input type="text" placeholder="Search..." className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <input type="text" placeholder="Search ideas or tags..." className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
                 <button onClick={() => setShowForm(true)} className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center gap-2 py-3.5 px-6 rounded-2xl font-black shadow-xl hover:scale-105 transition-all text-xs uppercase tracking-widest"><Plus className="w-4 h-4" /> New</button>
             </div>
@@ -119,9 +140,12 @@ const Notes = () => {
         <div className="space-y-6">
           {filteredNotes.length > 0 ? (
             <>
-              <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] ml-2">Fragments</h2>
+              {pinnedNotes.length > 0 && <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] ml-2">Fragments</h2>}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  <div onClick={() => setShowForm(true)} className="hidden sm:flex flex-col items-center justify-center h-72 border-4 border-dashed border-slate-100 dark:border-slate-800 rounded-[2.5rem] text-slate-300 hover:text-indigo-500 transition-all cursor-pointer group"><Plus className="w-8 h-8 group-hover:scale-110 transition-transform" /></div>
+                  {/* Plus button card if not searching */}
+                  {!searchTerm && !pinnedNotes.length && (
+                      <div onClick={() => setShowForm(true)} className="hidden sm:flex flex-col items-center justify-center h-72 border-4 border-dashed border-slate-100 dark:border-slate-800 rounded-[2.5rem] text-slate-300 hover:text-indigo-500 transition-all cursor-pointer group"><Plus className="w-8 h-8 group-hover:scale-110 transition-transform" /></div>
+                  )}
                   {otherNotes.map(note => (
                     <NoteCard key={note._id} note={note} onEdit={() => { setFormData({...note}); setEditId(note._id); setShowForm(true); }} onTogglePin={togglePin} onDelete={handleDelete} />
                   ))}
@@ -143,6 +167,8 @@ const Notes = () => {
         {showForm && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-0 md:p-6 animate-fade-in">
                 <div className={`flex flex-col w-full max-w-5xl h-full md:h-[90vh] md:rounded-[3rem] shadow-2xl border-none overflow-hidden transition-all duration-500 ${formData.color}`}>
+                    
+                    {/* Modal Header */}
                     <div className="flex items-center justify-between px-8 py-6 border-b border-black/5">
                         <div className="flex items-center gap-3"><PenTool className="w-5 h-5 text-slate-600" /><span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">{editId ? 'Refining' : 'Drafting'}</span></div>
                         <div className="flex items-center gap-3">
@@ -150,18 +176,44 @@ const Notes = () => {
                             <button onClick={closeForm} className="p-3 rounded-2xl bg-rose-50 text-rose-500"><X className="w-5 h-5" /></button>
                         </div>
                     </div>
+
                     <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
                         <div className="p-8 md:p-12 flex-1 overflow-y-auto custom-scrollbar space-y-6">
-                           <input type="text" placeholder="Title..." className="w-full text-4xl font-black bg-transparent outline-none text-slate-900 tracking-tighter" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} autoFocus />
-                           <textarea placeholder="Start typing..." className="w-full h-full text-lg font-bold bg-transparent outline-none resize-none text-slate-700 leading-relaxed min-h-[400px]" value={formData.content} onChange={(e) => setFormData({...formData, content: e.target.value})} />
+                           <input type="text" placeholder="Title..." className="w-full text-4xl font-black bg-transparent outline-none text-slate-900 tracking-tighter placeholder:text-slate-400/50" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} autoFocus />
+                           <textarea placeholder="Start typing..." className="w-full h-full text-lg font-bold bg-transparent outline-none resize-none text-slate-700 leading-relaxed min-h-[200px] placeholder:text-slate-400/50" value={formData.content} onChange={(e) => setFormData({...formData, content: e.target.value})} />
+                           
+                           {/* Tag Input Section */}
+                           <div className="space-y-3">
+                                <div className="flex flex-wrap gap-2">
+                                    {formData.tags.map((tag, index) => (
+                                        <span key={index} className="px-3 py-1.5 bg-black/5 rounded-lg text-xs font-bold text-slate-600 flex items-center gap-2 group">
+                                            # {tag}
+                                            <button type="button" onClick={() => removeTag(tag)} className="hover:text-rose-500"><X className="w-3 h-3" /></button>
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-500">
+                                    <Hash className="w-4 h-4" />
+                                    <input 
+                                        type="text" 
+                                        value={tagInput}
+                                        onChange={(e) => setTagInput(e.target.value)}
+                                        onKeyDown={handleAddTag}
+                                        placeholder="Add tags... (Press Enter)" 
+                                        className="bg-transparent text-sm font-bold outline-none placeholder:text-slate-400/50 w-full"
+                                    />
+                                </div>
+                           </div>
                         </div>
+
+                        {/* Modal Footer */}
                         <div className="px-8 py-6 bg-white/40 backdrop-blur-2xl border-t border-black/5 flex flex-col sm:flex-row justify-between items-center gap-6">
                             <div className="flex gap-3 p-2 bg-black/5 rounded-[2rem]">
                                 {COLORS.map(c => (
                                     <button key={c.name} type="button" onClick={() => setFormData({...formData, color: c.class})} className={`w-8 h-8 rounded-full border-2 transition-all ${c.class.split(' ')[0]} ${formData.color === c.class ? 'scale-125 border-slate-900 shadow-xl' : 'border-transparent'}`} title={c.name} />
                                 ))}
                             </div>
-                            <button type="submit" className="w-full sm:w-auto px-12 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px]">Lock In Thought</button>
+                            <button type="submit" className="w-full sm:w-auto px-12 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] hover:scale-105 transition-transform shadow-xl">Lock In Thought</button>
                         </div>
                     </form>
                 </div>

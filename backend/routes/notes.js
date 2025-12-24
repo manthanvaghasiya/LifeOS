@@ -14,13 +14,14 @@ router.get('/', protect, async (req, res) => {
 // 2. ADD NOTE
 router.post('/', protect, async (req, res) => {
   try {
-    const { title, content, color, isPinned } = req.body;
+    const { title, content, color, isPinned, tags } = req.body; // <--- Added tags
     const note = await Note.create({
       user: req.user.id,
       title,
       content,
       color: color || 'bg-white',
-      isPinned: isPinned || false
+      isPinned: isPinned || false,
+      tags: tags || [] // <--- Save tags
     });
     res.status(201).json(note);
   } catch (err) { res.status(400).json({ message: err.message }); }

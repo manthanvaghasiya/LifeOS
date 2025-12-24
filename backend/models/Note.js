@@ -16,11 +16,15 @@ const NoteSchema = new mongoose.Schema({
   },
   color: {
     type: String,
-    default: 'bg-yellow-100' // Default Sticky Note Color
+    default: 'bg-white'
   },
   isPinned: {
     type: Boolean,
     default: false
+  },
+  tags: {
+    type: [String],
+    default: []
   }
 }, {
   timestamps: true
