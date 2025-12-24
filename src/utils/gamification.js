@@ -1,30 +1,33 @@
-import API from '../services/api';
-// Remove toast if you want to rely solely on the Navbar updates or use it for small XP gains only.
+import toast from 'react-hot-toast';
 
-export const addXP = async (amount) => {
-  try {
-    const res = await API.put('/users/xp', { xp: amount });
-    
-    // 1. Update Local Storage immediately
-    const currentUser = JSON.parse(localStorage.getItem('user')) || {};
-    const updatedUser = { 
-        ...currentUser, 
-        level: res.data.level, 
-        currentXP: res.data.currentXP, 
-        requiredXP: res.data.requiredXP 
-    };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+// Simple XP System
+export const addXP = (amount) => {
+  const currentXP = parseInt(localStorage.getItem('user_xp') || '0');
+  const newXP = currentXP + amount;
+  localStorage.setItem('user_xp', newXP.toString());
+  
+  // Level Up Logic (Every 100 XP)
+  const oldLevel = Math.floor(currentXP / 100);
+  const newLevel = Math.floor(newXP / 100);
 
-    // 2. Trigger Event so Navbar updates instantly
-    window.dispatchEvent(new Event('xpUpdate'));
-
-    // 3. Visual Feedback (REPLACED ALERT WITH EVENT)
-    if (res.data.leveledUp) {
-        // Dispatch custom event with the new level
-        const event = new CustomEvent('levelUp', { detail: { level: res.data.level } });
-        window.dispatchEvent(event);
-    }
-  } catch (err) {
-    console.error("XP Error", err);
+  if (newLevel > oldLevel) {
+    toast.success(`🎉 Level Up! You are now Level ${newLevel}`, {
+        icon: '⭐',
+        style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+        },
+    });
   }
+};
+
+export const getLevel = () => {
+    const xp = parseInt(localStorage.getItem('user_xp') || '0');
+    return Math.floor(xp / 100);
+};
+
+export const getXPProgress = () => {
+    const xp = parseInt(localStorage.getItem('user_xp') || '0');
+    return xp % 100; // Returns 0-99 for progress bar
 };

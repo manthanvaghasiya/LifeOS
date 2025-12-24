@@ -10,13 +10,18 @@ const Navbar = () => {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || { name: 'Achiever', level: 1, currentXP: 0, requiredXP: 100 });
+  // XP & USER STATE
+  const [user, setUser] = useState({ name: 'Achiever', level: 1, currentXP: 0, requiredXP: 100 });
   const initials = user.name ? user.name.charAt(0).toUpperCase() : 'U';
 
   useEffect(() => {
     const syncUser = () => {
-        const stored = JSON.parse(localStorage.getItem('user'));
-        if (stored) setUser(stored);
+        try {
+            const stored = JSON.parse(localStorage.getItem('user'));
+            if (stored) setUser(stored);
+        } catch (e) {
+            console.error("Error syncing user progress", e);
+        }
     };
     syncUser();
     window.addEventListener('xpUpdate', syncUser);
@@ -37,52 +42,54 @@ const Navbar = () => {
 
   return (
     <>
-      {/* ==============================
-          TOP HEADER (Logo + Profile)
-          No changes here from the previous version.
-          ============================== */}
-      <header className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-gray-100 dark:bg-gray-950/80 dark:border-gray-800 transition-colors duration-300">
-        <div className="px-4 md:px-6 py-3 flex justify-between items-center max-w-7xl mx-auto">
+      {/* DESKTOP HEADER (Floating & Centered) */}
+      <header className="sticky top-4 z-50 w-full px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto bg-white/80 backdrop-blur-2xl border border-blue-100 dark:bg-slate-950/80 dark:border-blue-900/30 rounded-[2rem] shadow-xl shadow-blue-500/5 px-6 py-3 flex justify-between items-center transition-all duration-300">
           
-          <Link to="/" className="flex items-center gap-2 md:gap-3 group">
-            <img src="/logo.png" alt="LifeOS" className="w-8 h-8 object-contain group-hover:scale-110 transition-transform" />
-            <span className="text-lg md:text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">LifeOS</span>
+          {/* Brand Logo */}
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:rotate-12 transition-all">
+                <LayoutDashboard className="w-5 h-5" />
+            </div>
+            <span className="hidden md:block text-xl font-black tracking-tighter text-blue-600 dark:text-blue-400 uppercase">LifeOS</span>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-full border border-gray-200/50 dark:bg-gray-900/50 dark:border-gray-700">
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center gap-1 bg-blue-50/50 p-1 rounded-full border border-blue-100 dark:bg-blue-900/10 dark:border-blue-800/30">
             {navItems.map((item) => (
               <Link 
                 key={item.path} 
                 to={item.path} 
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 ${
+                className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
                   isActive(item.path)
-                  ? "bg-white text-blue-600 shadow-md shadow-gray-200 dark:bg-gray-800 dark:text-blue-400 dark:shadow-none translate-y-[-1px]" 
-                  : "text-gray-500 hover:bg-gray-200/50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800"
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105" 
+                  : "text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300"
                 }`}
               >
-                <item.icon className="w-4 h-4"/> 
+                <item.icon className="w-3.5 h-3.5" /> 
                 {item.label}
               </Link>
             ))}
-          </div>
+          </nav>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex flex-col items-end mr-2">
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-900 dark:text-white mb-0.5">
-                    <Zap className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+          {/* User Utilities */}
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex flex-col items-end">
+                <div className="flex items-center gap-1.5 text-[10px] font-black text-blue-600 dark:text-blue-400 mb-1 uppercase tracking-tighter">
+                    <Zap className="w-3 h-3 text-blue-500 fill-blue-500" />
                     <span>Lvl {user.level}</span>
                 </div>
-                <div className="w-20 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-500" style={{ width: `${xpPercent}%` }}></div>
+                <div className="w-24 h-1 bg-blue-100 dark:bg-blue-900/30 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-600 transition-all duration-1000 ease-out" style={{ width: `${xpPercent}%` }}></div>
                 </div>
             </div>
 
-            <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors">
-                {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-all">
+                {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </button>
 
-            <Link to="/settings" className="relative group cursor-pointer">
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md ring-2 ring-transparent group-hover:ring-blue-400 transition-all">
+            <Link to="/settings" className="relative group cursor-pointer ml-1">
+                <div className="w-9 h-9 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-md shadow-blue-500/20 group-hover:scale-105 transition-all">
                     {initials}
                 </div>
             </Link>
@@ -90,12 +97,9 @@ const Navbar = () => {
         </div>
       </header>
 
-      {/* ==============================
-          MOBILE BOTTOM NAV (ELEVATED STYLE)
-          This is the updated section.
-          ============================== */}
-      <div className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md">
-        <div className="flex items-end justify-around bg-white/90 backdrop-blur-xl border border-white/20 dark:bg-gray-900/90 dark:border-gray-800 shadow-xl rounded-2xl px-2 h-16">
+      {/* MOBILE BOTTOM NAV (Straight Style, No Curves) */}
+      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md">
+        <div className="flex items-center justify-around bg-white/90 backdrop-blur-2xl border border-blue-100 dark:bg-slate-950/90 dark:border-blue-900/30 shadow-2xl rounded-2xl px-2 h-16">
             
             {navItems.map((item) => {
                 const active = isActive(item.path);
@@ -103,23 +107,26 @@ const Navbar = () => {
                     <Link 
                         key={item.path}
                         to={item.path} 
-                        className="flex flex-col items-center w-full relative group"
+                        className="flex flex-col items-center justify-center w-full h-full relative"
                     >
-                        {/* Icon Container */}
-                        <div className={`flex items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+                        {/* Straight Icon Style: Icon stays inside the bar */}
+                        <div className={`flex flex-col items-center justify-center transition-all duration-300 ${
                             active 
-                            ? "w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg -translate-y-6" // Active: Elevated, blue, larger
-                            : "w-full h-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 pb-3" // Inactive: Simple
+                            ? "text-blue-600 scale-110" 
+                            : "text-slate-400"
                         }`}>
-                            <item.icon className={`w-6 h-6 ${active ? "" : "mb-1"}`} />
+                            <item.icon className={`w-5 h-5 ${active ? "stroke-[2.5px]" : ""}`} />
+                            <span className={`text-[9px] font-black uppercase tracking-tighter mt-1 ${
+                                active ? "text-blue-600" : "text-slate-400"
+                            }`}>
+                                {item.label}
+                            </span>
                         </div>
-
-                        {/* Label (Hidden when active, visible when inactive) */}
-                        <span className={`text-[10px] font-medium transition-all duration-300 absolute bottom-1 ${
-                            active ? "opacity-0 translate-y-2" : "text-gray-500 dark:text-gray-400 opacity-100"
-                        }`}>
-                            {item.label}
-                        </span>
+                        
+                        {/* Active Indicator: Straight line at the bottom */}
+                        {active && (
+                            <div className="absolute bottom-0 w-8 h-1 bg-blue-600 rounded-t-full shadow-[0_-2px_8px_rgba(37,99,235,0.4)]"></div>
+                        )}
                     </Link>
                 )
             })}

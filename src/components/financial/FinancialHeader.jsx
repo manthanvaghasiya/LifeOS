@@ -8,35 +8,64 @@ const FinancialHeader = ({ viewDate, setViewDate, onExport, onAdd }) => {
   const handleNextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
 
   return (
-    <div className="flex flex-col md:flex-row justify-between items-end gap-6">
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 animate-fade-in">
+      
+      {/* Title Section */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
-          Financial Overview <Sparkles className="w-6 h-6 text-yellow-500 fill-yellow-200 animate-pulse" />
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+          Financial Overview <Sparkles className="w-6 h-6 text-amber-500 fill-amber-500 animate-pulse" />
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 font-medium mt-2 text-lg">Your wealth command center.</p>
+        <p className="text-slate-500 dark:text-slate-400 font-medium mt-1 text-base">
+          Track, analyze, and optimize your wealth.
+        </p>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-2 py-1.5 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700">
-          <button onClick={handlePrevMonth} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-500 transition">
+      {/* Controls Section */}
+      <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        
+        {/* Month Navigator */}
+        <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 shadow-sm">
+          <button 
+            onClick={handlePrevMonth} 
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors"
+            aria-label="Previous Month"
+          >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <div className="flex items-center gap-2 px-2 min-w-[130px] justify-center">
-            <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            <span className="font-bold text-gray-800 dark:text-gray-200 text-sm">{formattedMonth}</span>
+          
+          <div className="flex items-center gap-2 px-3 min-w-[140px] justify-center border-x border-slate-100 dark:border-slate-800 mx-1">
+            <Calendar className="w-4 h-4 text-indigo-500" />
+            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm select-none">
+              {formattedMonth}
+            </span>
           </div>
-          <button onClick={handleNextMonth} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-500 transition">
+          
+          <button 
+            onClick={handleNextMonth} 
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors"
+            aria-label="Next Month"
+          >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
-        <button onClick={onExport} className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-5 py-3 rounded-2xl font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-sm text-sm">
-          <Download className="w-4 h-4" /> CSV
+        {/* Action Buttons */}
+        <button 
+          onClick={onExport} 
+          className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition shadow-sm hover:shadow text-sm"
+        >
+          <Download className="w-4 h-4" /> 
+          <span className="hidden sm:inline">Export</span>
         </button>
-        <button onClick={onAdd} className="group flex items-center gap-2 bg-gray-900 dark:bg-white text-white dark:text-black px-6 py-3 rounded-2xl font-bold hover:bg-black dark:hover:bg-gray-200 transition shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 text-sm">
-          <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" /> Add New
+        
+        <button 
+          onClick={onAdd} 
+          className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold hover:bg-slate-800 dark:hover:bg-slate-200 transition shadow-lg shadow-slate-900/10 transform active:scale-95 text-sm"
+        >
+          <Plus className="w-4 h-4" /> Add Transaction
         </button>
       </div>
+
     </div>
   );
 };

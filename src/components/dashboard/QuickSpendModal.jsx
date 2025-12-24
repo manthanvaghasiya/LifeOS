@@ -1,48 +1,109 @@
 import React, { useState } from 'react';
 import API from '../../services/api';
-import { X } from 'lucide-react';
-
-const DEFAULT_CATEGORIES = ['Food', 'Travel', 'Bills', 'Entertainment', 'Salary', 'Shopping', 'Health', 'Education', 'Investment'];
+import { X, Zap } from 'lucide-react';
 
 const QuickSpendModal = ({ onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({ title: '', amount: '', category: 'Food', type: 'expense', paymentMode: 'Bank' });
-  const [customCategory, setCustomCategory] = useState('');
+  const [formData, setFormData] = useState({
+    title: '',
+    amount: '',
+    category: 'Food',
+    paymentMode: 'Bank',
+    date: new Date().toISOString().split('T')[0]
+  });
 
-  const handleQuickAdd = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const finalCategory = formData.category === 'Other' ? customCategory : formData.category;
+    if (!formData.amount || !formData.title) return;
+
     try {
-        const res = await API.post('/transactions', { ...formData, category: finalCategory, date: new Date() });
-        if(onSuccess) onSuccess(res.data);
-        onClose(); // Close modal on success
-    } catch (err) { 
-        console.error("Quick Add Error:", err);
-        alert('Error adding transaction. Check console.'); 
+      const res = await API.post('/transactions', {
+        ...formData,
+        amount: Number(formData.amount),
+        type: 'expense', // Default to expense for quick spend
+        transferTo: null
+      });
+      onSuccess(res.data);
+      onClose();
+    } catch (err) {
+      alert("Failed to add transaction");
     }
   };
 
   return (
-    // Z-INDEX UPDATED TO 60
-    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-fadeIn">
-        <div className="bg-white dark:bg-gray-900 p-8 rounded-[2rem] w-full max-w-sm shadow-2xl relative border border-gray-100 dark:border-gray-800">
-            <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><X className="w-5 h-5 text-gray-500" /></button>
-            <h3 className="font-bold text-2xl mb-1 text-gray-900 dark:text-white">Quick Spend</h3>
-            <p className="text-gray-500 text-sm mb-6">Track it before you forget it.</p>
-            <form onSubmit={handleQuickAdd} className="space-y-4">
-                <input type="text" placeholder="What is it?" required className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-black bg-gray-50 dark:bg-gray-800 dark:text-white font-medium" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
-                <div className="grid grid-cols-2 gap-4">
-                    <input type="number" placeholder="0.00" required className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-black bg-gray-50 dark:bg-gray-800 dark:text-white font-medium" value={formData.amount} onChange={e => setFormData({...formData, amount: Number(e.target.value)})} />
-                    <select className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-black bg-gray-50 dark:bg-gray-800 dark:text-white font-medium appearance-none" value={formData.paymentMode} onChange={e => setFormData({...formData, paymentMode: e.target.value})}><option value="Bank">Bank</option><option value="Cash">Cash</option></select>
-                </div>
-                <select className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-black bg-gray-50 dark:bg-gray-800 dark:text-white font-medium appearance-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>{DEFAULT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}<option value="Other">Other</option></select>
-                {formData.category === 'Other' && <input type="text" placeholder="Type Category Name" required className="w-full p-4 border border-blue-200 bg-blue-50 dark:bg-blue-900/20 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-blue-800 dark:text-blue-300 font-bold" value={customCategory} onChange={e => setCustomCategory(e.target.value)} />}
-                <div className="flex gap-3 pt-2">
-                    <button type="button" onClick={() => setFormData({...formData, type: 'expense'})} className={`flex-1 p-4 rounded-2xl font-bold text-sm transition-all ${formData.type === 'expense' ? 'bg-red-500 text-white shadow-lg shadow-red-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200'}`}>Expense</button>
-                    <button type="button" onClick={() => setFormData({...formData, type: 'income'})} className={`flex-1 p-4 rounded-2xl font-bold text-sm transition-all ${formData.type === 'income' ? 'bg-green-500 text-white shadow-lg shadow-green-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200'}`}>Income</button>
-                </div>
-                <button type="submit" className="w-full bg-gray-900 dark:bg-white dark:text-black text-white p-4 rounded-2xl font-bold hover:bg-black shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 mt-4">Save Transaction</button>
-            </form>
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 relative scale-100 animate-slide-up">
+        
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <X className="w-5 h-5 text-slate-500" />
+        </button>
+
+        <div className="flex items-center gap-2 mb-6">
+            <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-xl text-rose-600">
+                <Zap className="w-5 h-5" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Quick Spend</h2>
         </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label className="label">Amount</label>
+                <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">₹</span>
+                    <input 
+                        type="number" 
+                        required 
+                        autoFocus
+                        className="input-field pl-9 text-lg font-bold" 
+                        placeholder="0.00"
+                        value={formData.amount}
+                        onChange={e => setFormData({...formData, amount: e.target.value})}
+                    />
+                </div>
+            </div>
+
+            <div>
+                <label className="label">What was it?</label>
+                <input 
+                    type="text" 
+                    required 
+                    className="input-field font-semibold" 
+                    placeholder="e.g. Coffee"
+                    value={formData.title}
+                    onChange={e => setFormData({...formData, title: e.target.value})}
+                />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <label className="label">Category</label>
+                    <select 
+                        className="input-field appearance-none"
+                        value={formData.category}
+                        onChange={e => setFormData({...formData, category: e.target.value})}
+                    >
+                        {['Food', 'Travel', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Other'].map(c => (
+                            <option key={c} value={c}>{c}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label className="label">Paid Via</label>
+                    <select 
+                        className="input-field appearance-none"
+                        value={formData.paymentMode}
+                        onChange={e => setFormData({...formData, paymentMode: e.target.value})}
+                    >
+                        <option value="Bank">Bank (UPI)</option>
+                        <option value="Cash">Cash</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" className="w-full btn-primary py-3 mt-2 shadow-lg shadow-rose-500/20 bg-rose-600 hover:bg-rose-700">
+                Log Expense
+            </button>
+        </form>
+      </div>
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import API from '../services/api'; // Ensure this matches your API setup
-import { User, Mail, Lock, Save, Trash2, LogOut, Shield } from 'lucide-react';
+import API from '../services/api'; 
+import { User, Mail, Lock, Save, Trash2, LogOut, Shield, AlertTriangle, Camera } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const Settings = () => {
   const [formData, setFormData] = useState({
@@ -9,8 +10,9 @@ const Settings = () => {
     password: ''
   });
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
-  // 1. FETCH REAL USER DATA ON MOUNT
+  // FETCH USER DATA
   useEffect(() => {
     const fetchProfile = async () => {
         try {
@@ -18,36 +20,32 @@ const Settings = () => {
             setFormData({
                 name: res.data.name,
                 email: res.data.email,
-                password: '' // Don't fill password for security
+                password: '' 
             });
+            setInitialLoading(false);
         } catch (err) {
             console.error("Failed to load profile", err);
+            setInitialLoading(false);
         }
     };
     fetchProfile();
   }, []);
 
-  // 2. REAL UPDATE FUNCTION
+  // UPDATE FUNCTION
   const handleUpdate = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Send data to backend
       const res = await API.put('/users/profile', formData);
       
-      // Update LocalStorage with new Token/User info if the backend returns it
       if (res.data) {
           localStorage.setItem('user', JSON.stringify(res.data));
-          // If token is rotated, update it too: localStorage.setItem('token', res.data.token);
       }
       
-      // Dispatch event to update Navbar name immediately
       window.dispatchEvent(new Event('authChange')); 
-      // Note: We use 'authChange' or 'xpUpdate' depending on what Navbar listens to for name changes
-      
-      alert("Profile Updated Successfully!");
+      toast.success("Profile Updated Successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || "Update Failed.");
+      toast.error(err.response?.data?.message || "Update Failed.");
     } finally {
       setLoading(false);
     }
@@ -60,7 +58,6 @@ const Settings = () => {
     window.location.href = '/login';
   };
 
-  // 3. REAL DELETE FUNCTION
   const handleDeleteAccount = async (e) => {
     e.preventDefault();
     const confirm = window.prompt("Type 'DELETE' to confirm account deletion. This cannot be undone.");
@@ -69,76 +66,150 @@ const Settings = () => {
             await API.delete('/users/profile');
             handleLogout();
         } catch (err) { 
-            alert(err.response?.data?.message || "Error deleting account"); 
+            toast.error(err.response?.data?.message || "Error deleting account"); 
         }
     }
   };
 
+  if (initialLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-gray-950/20 p-6 pb-20 transition-colors duration-300">
-      <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
+    <div className="animate-fade-in space-y-8 max-w-2xl mx-auto">
         
         {/* Header */}
-        <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
-                Settings <Shield className="w-6 h-6 text-indigo-500" />
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 font-medium mt-1">Manage your account and security.</p>
+        <div className="flex items-center gap-4">
+            <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400">
+                <Shield className="w-6 h-6" />
+            </div>
+            <div>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                    Settings
+                </h1>
+                <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">
+                    Manage your account details and security.
+                </p>
+            </div>
         </div>
 
         {/* PROFILE CARD */}
-        <div className="bg-white dark:bg-gray-900/60 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 p-8 overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 dark:bg-indigo-900/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
+        <div className="glass-panel p-8 relative overflow-hidden">
+            {/* Decorative bg blob */}
+            <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
             
             <form onSubmit={handleUpdate} className="space-y-6 relative z-10">
-                <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Full Name</label>
-                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700">
-                        <User className="w-5 h-5 text-gray-400" />
-                        <input type="text" className="bg-transparent outline-none w-full font-bold text-gray-800 dark:text-white" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+                
+                {/* Avatar Placeholder (Visual Only) */}
+                <div className="flex justify-center mb-6">
+                    <div className="relative group cursor-pointer">
+                        <div className="w-24 h-24 rounded-full bg-slate-100 dark:bg-slate-800 border-4 border-white dark:border-slate-900 shadow-xl flex items-center justify-center text-3xl font-bold text-slate-400 group-hover:bg-slate-200 transition-colors">
+                            {formData.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="absolute bottom-0 right-0 p-2 bg-indigo-600 rounded-full text-white shadow-md border-2 border-white dark:border-slate-900 group-hover:scale-110 transition-transform">
+                            <Camera className="w-3.5 h-3.5" />
+                        </div>
                     </div>
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Email Address</label>
-                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700">
-                        <Mail className="w-5 h-5 text-gray-400" />
-                        <input type="email" className="bg-transparent outline-none w-full font-bold text-gray-800 dark:text-white" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                <div className="space-y-5">
+                    <div>
+                        <label className="label">Full Name</label>
+                        <div className="relative">
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input 
+                                type="text" 
+                                className="input-field pl-11 font-semibold" 
+                                value={formData.name} 
+                                onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                            />
+                        </div>
                     </div>
-                </div>
 
-                <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">New Password</label>
-                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700">
-                        <Lock className="w-5 h-5 text-gray-400" />
-                        <input type="password" placeholder="Leave blank to keep current" className="bg-transparent outline-none w-full font-bold text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+                    <div>
+                        <label className="label">Email Address</label>
+                        <div className="relative">
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input 
+                                type="email" 
+                                className="input-field pl-11 font-semibold" 
+                                value={formData.email} 
+                                onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="label">New Password</label>
+                        <div className="relative">
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input 
+                                type="password" 
+                                placeholder="Leave blank to keep current" 
+                                className="input-field pl-11 font-semibold placeholder:font-normal" 
+                                value={formData.password} 
+                                onChange={(e) => setFormData({...formData, password: e.target.value})} 
+                            />
+                        </div>
                     </div>
                 </div>
 
                 <div className="pt-4">
-                    <button type="submit" disabled={loading} className="w-full bg-indigo-600 text-white p-4 rounded-2xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2 disabled:opacity-70">
-                        {loading ? 'Saving...' : <><Save className="w-5 h-5" /> Save Changes</>}
+                    <button 
+                        type="submit" 
+                        disabled={loading} 
+                        className="w-full btn-primary py-3.5 text-base flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
+                    >
+                        {loading ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <span>Saving...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Save className="w-4 h-4" /> 
+                                <span>Save Changes</span>
+                            </>
+                        )}
                     </button>
                 </div>
             </form>
         </div>
 
         {/* DANGER ZONE */}
-        <div className="bg-red-50 dark:bg-red-900/10 rounded-[2.5rem] p-8 border border-red-100 dark:border-red-900/30">
-            <h3 className="text-red-800 dark:text-red-400 font-bold text-lg mb-2">Danger Zone</h3>
-            <p className="text-red-600/70 dark:text-red-400/60 text-sm mb-6 font-medium">Once you delete your account, there is no going back. Please be certain.</p>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-                <button type="button" onClick={handleLogout} className="flex-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 p-3 rounded-xl font-bold hover:bg-gray-100 dark:hover:bg-gray-700 transition shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-center gap-2">
-                    <LogOut className="w-4 h-4" /> Logout
-                </button>
-                <button type="button" onClick={handleDeleteAccount} className="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg shadow-red-200 dark:shadow-none flex items-center justify-center gap-2">
-                    <Trash2 className="w-4 h-4" /> Delete Account
-                </button>
+        <div className="rounded-3xl p-6 border border-rose-200 dark:border-rose-900/30 bg-rose-50/50 dark:bg-rose-900/10">
+            <div className="flex items-start gap-4">
+                <div className="p-3 bg-rose-100 dark:bg-rose-900/30 rounded-xl text-rose-600 dark:text-rose-400 shrink-0">
+                    <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 className="text-lg font-bold text-rose-700 dark:text-rose-400">Danger Zone</h3>
+                    <p className="text-sm text-rose-600/80 dark:text-rose-400/70 font-medium mt-1 mb-6">
+                        Irreversible actions. Please proceed with caution.
+                    </p>
+                    
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <button 
+                            type="button" 
+                            onClick={handleLogout} 
+                            className="flex-1 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition shadow-sm flex items-center justify-center gap-2"
+                        >
+                            <LogOut className="w-4 h-4" /> Logout
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={handleDeleteAccount} 
+                            className="flex-1 px-4 py-2.5 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2"
+                        >
+                            <Trash2 className="w-4 h-4" /> Delete Account
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
-      </div>
     </div>
   );
 };

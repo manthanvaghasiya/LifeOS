@@ -7,8 +7,7 @@ const HabitStats = ({ trendData }) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // Dynamic Chart Colors
-  const chartColor = isDark ? '#818cf8' : '#4F46E5'; // Indigo-400 (Dark) vs Indigo-600 (Light)
+  const chartColor = isDark ? '#818cf8' : '#4F46E5'; 
   const textColor = isDark ? '#9ca3af' : '#9CA3AF';
   const tooltipBg = isDark ? 'rgba(17, 24, 39, 0.9)' : '#ffffff';
   const tooltipBorder = isDark ? '#374151' : 'none';
@@ -17,7 +16,6 @@ const HabitStats = ({ trendData }) => {
   return (
     <div className="bg-white dark:bg-gray-900/60 rounded-[2rem] shadow-xl shadow-gray-200/60 dark:shadow-none border border-gray-100 dark:border-gray-800 flex flex-col h-64 relative overflow-hidden transition-all duration-300">
         
-        {/* Background Icon */}
         <div className="absolute top-0 right-0 p-6 opacity-5 dark:opacity-10">
             <Activity className="w-24 h-24 text-indigo-600 dark:text-indigo-400" />
         </div>

@@ -5,7 +5,6 @@ const HabitAnalysis = ({ topHabitsMonthly, auditData, daysInLeaderboardMonth }) 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* LEADERBOARD CARD */}
         <div className="bg-white dark:bg-gray-900/60 p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 h-full flex flex-col">
             <h3 className="font-bold text-xl text-gray-900 dark:text-white mb-8 flex items-center gap-3">
                 <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl text-yellow-600 dark:text-yellow-400"><Trophy className="w-5 h-5" /></div>
@@ -41,11 +40,10 @@ const HabitAnalysis = ({ topHabitsMonthly, auditData, daysInLeaderboardMonth }) 
             </div>
         </div>
 
-        {/* ACTION REQUIRED CARD */}
         <div className="bg-white dark:bg-gray-900/60 p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 h-full flex flex-col">
             <h3 className="font-bold text-xl text-gray-900 dark:text-white mb-8 flex items-center gap-3">
                 <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-xl text-red-600 dark:text-red-400"><AlertTriangle className="w-5 h-5" /></div>
-                Action Required (Bottom 7)
+                Action Required 
             </h3>
             
             <div className="flex-1">
@@ -84,4 +82,4 @@ const HabitAnalysis = ({ topHabitsMonthly, auditData, daysInLeaderboardMonth }) 
   );
 };
 
-export default HabitAnalysis;
+export default HabitAnalysis;   

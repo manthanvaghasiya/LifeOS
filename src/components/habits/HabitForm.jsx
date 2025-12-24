@@ -1,54 +1,62 @@
 import React from 'react';
-import { Plus, Save, X, Target } from 'lucide-react';
+import { Plus, X, Save, Target } from 'lucide-react';
 
 const HabitForm = ({ handleSubmit, newHabit, setNewHabit, newTarget, setNewTarget, editId, cancelEdit }) => {
   return (
-    <form onSubmit={handleSubmit} className="relative z-10">
-      <div className="space-y-4">
-          
-          {/* Input Field */}
-          <div className="group relative">
+    <form onSubmit={handleSubmit} className="space-y-4">
+        
+        {/* Habit Title Input - Glass Style */}
+        <div>
+            <label className="block text-xs font-bold text-indigo-200 uppercase tracking-wider mb-1.5 ml-1">Habit Title</label>
             <input 
                 type="text" 
-                placeholder="e.g., Read 10 pages..." 
-                className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 text-sm font-medium rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-gray-800 transition-all placeholder-gray-400"
+                className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-indigo-200/50 outline-none focus:ring-2 focus:ring-white/20 transition-all font-semibold" 
+                placeholder="e.g. Read 10 pages" 
                 value={newHabit} 
                 onChange={(e) => setNewHabit(e.target.value)} 
             />
-          </div>
+        </div>
+        
+        {/* Target Input - Glass Style */}
+        <div>
+            <label className="block text-xs font-bold text-indigo-200 uppercase tracking-wider mb-1.5 ml-1">Daily Target</label>
+            <div className="flex gap-2">
+                <div className="flex items-center gap-2 bg-white/10 border border-white/10 rounded-xl px-3 py-2 flex-1">
+                    <Target className="w-4 h-4 text-indigo-300" />
+                    <input 
+                        type="number" 
+                        className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder-indigo-300/50"
+                        placeholder="21"
+                        value={newTarget} 
+                        onChange={(e) => setNewTarget(e.target.value)} 
+                    />
+                    <span className="text-xs text-indigo-200 font-medium whitespace-nowrap">days</span>
+                </div>
+            </div>
+        </div>
 
-          {/* Target & Button Row */}
-          <div className="flex gap-3">
-              <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-xl flex-1">
-                  <Target className="w-4 h-4 text-gray-400" />
-                  <input 
-                    type="number" 
-                    placeholder="21" 
-                    className="w-full bg-transparent text-sm font-bold text-gray-700 dark:text-gray-200 outline-none"
-                    value={newTarget} 
-                    onChange={(e) => setNewTarget(e.target.value)} 
-                  />
-                  <span className="text-xs text-gray-400 font-medium">days</span>
-              </div>
-
-              <button 
+        {/* Buttons - IMPROVED: Stronger visual weight */}
+        <div className="flex gap-2 pt-2">
+            <button 
                 type="submit" 
-                className={`px-5 py-2 rounded-xl font-bold text-white shadow-lg transition-transform transform active:scale-95 flex items-center gap-2
-                    ${editId ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200 dark:shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none'}
-                `}
-              >
-                  {editId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                  {editId ? 'Update' : 'Add'}
-              </button>
-              
-              {editId && (
-                  <button type="button" onClick={cancelEdit} className="p-2.5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition">
-                      <X className="w-5 h-5" />
-                  </button>
-              )}
-          </div>
-      </div>
+                className="flex-1 bg-white text-indigo-950 rounded-xl py-3.5 font-bold hover:bg-indigo-50 transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-2"
+            >
+                {editId ? <Save className="w-4 h-4 text-indigo-600"/> : <Plus className="w-4 h-4 text-indigo-600"/>}
+                <span>{editId ? 'Update Habit' : 'Start New Habit'}</span>
+            </button>
+            
+            {editId && (
+                <button 
+                    type="button" 
+                    onClick={cancelEdit} 
+                    className="px-4 bg-white/10 text-white rounded-xl hover:bg-white/20 transition flex items-center justify-center border border-white/10"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+            )}
+        </div>
     </form>
   );
 };
+
 export default HabitForm;

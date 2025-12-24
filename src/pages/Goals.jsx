@@ -2,23 +2,21 @@ import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { 
   Plus, X, Target, Clock, Sparkles, Mountain, 
-  Calendar, CheckCircle2, MoreVertical, Pencil, Trash2, CheckSquare, Link as LinkIcon 
+  Calendar, CheckSquare, Link as LinkIcon, Trash2 
 } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
 import { addXP } from '../utils/gamification';
+import GoalCard from '../components/goals/GoalCard';
 
 const Goals = () => {
   const [goals, setGoals] = useState([]);
   const [tasks, setTasks] = useState([]); 
   const [loading, setLoading] = useState(true);
   
-  // Goals Form State
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [goalEditId, setGoalEditId] = useState(null);
   const [goalFormData, setGoalFormData] = useState({ title: '', type: 'Long Term', deadline: '' });
-  const [menuOpenId, setMenuOpenId] = useState(null);
 
-  // Tasks Form State
   const [newTask, setNewTask] = useState('');
   const [priority, setPriority] = useState('Medium');
   const [dueDate, setDueDate] = useState('');
@@ -38,7 +36,6 @@ const Goals = () => {
     } catch (err) { console.error(err); setLoading(false); }
   };
 
-  // --- GOAL HANDLERS ---
   const handleGoalSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -56,12 +53,10 @@ const Goals = () => {
   const toggleGoal = async (id) => {
     const goal = goals.find(g => g._id === id);
     const isCompleting = !goal.isCompleted;
-
     setGoals(goals.map(g => g._id === id ? { ...g, isCompleted: isCompleting, updatedAt: new Date().toISOString() } : g));
-    
     try { 
         await API.put(`/goals/${id}/toggle`); 
-        if (isCompleting) addXP(50); // BIG REWARD
+        if (isCompleting) addXP(50); 
     } catch (err) { fetchAll(); }
   };
 
@@ -72,12 +67,11 @@ const Goals = () => {
 
   const openGoalEdit = (goal) => {
     setGoalFormData({ title: goal.title, type: goal.type || 'Long Term', deadline: goal.deadline ? goal.deadline.split('T')[0] : '' });
-    setGoalEditId(goal._id); setShowGoalForm(true); setMenuOpenId(null);
+    setGoalEditId(goal._id); setShowGoalForm(true);
   };
 
   const closeGoalForm = () => { setShowGoalForm(false); setGoalEditId(null); setGoalFormData({ title: '', type: 'Long Term', deadline: '' }); };
 
-  // --- TASK HANDLERS ---
   const addTask = async (e) => {
     e.preventDefault();
     if (!newTask.trim()) return;
@@ -96,235 +90,222 @@ const Goals = () => {
   const toggleTask = async (id) => {
     const task = tasks.find(t => t._id === id);
     const isCompleting = !task.isCompleted;
-
     setTasks(tasks.map(t => t._id === id ? { ...t, isCompleted: isCompleting } : t));
-    
     try { 
         await API.put(`/tasks/${id}/toggle`); 
-        if (isCompleting) addXP(20); // MEDIUM REWARD
+        if (isCompleting) addXP(20);
     } catch (err) { fetchAll(); }
   };
+  
   const deleteTask = async (id) => {
     if(!window.confirm("Delete task?")) return;
     try { await API.delete(`/tasks/${id}`); setTasks(tasks.filter(t => t._id !== id)); } catch (err) {}
   };
 
-  // --- DATA FILTERING ---
-  const visibleGoals = goals.filter(g => !g.isCompleted || new Date(g.updatedAt).toLocaleDateString() === new Date().toLocaleDateString());
-  const longTermGoals = visibleGoals.filter(g => g.type === 'Long Term');
-  const shortTermGoals = visibleGoals.filter(g => g.type === 'Short Term');
-
-  const sortedTasks = tasks.sort((a, b) => {
-    if (a.isCompleted !== b.isCompleted) return a.isCompleted - b.isCompleted;
-    const pOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
-    if (pOrder[a.priority] !== pOrder[b.priority]) return pOrder[a.priority] - pOrder[b.priority];
-    return new Date(a.dueDate) - new Date(b.dueDate);
+  // --- DATA FILTERING LOGIC ---
+  const longTermGoals = goals.filter(g => g.type === 'Long Term');
+  
+  const shortTermGoals = goals.filter(g => {
+      if (g.type !== 'Short Term') return false;
+      if (!g.isCompleted) return true;
+      const lastUpdate = new Date(g.updatedAt).toLocaleDateString();
+      const today = new Date().toLocaleDateString();
+      return lastUpdate === today; // Auto-remove after 1 day
   });
-  const activeTasks = sortedTasks.filter(t => !t.isCompleted);
-  const completedTasks = sortedTasks.filter(t => t.isCompleted);
 
-  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400 font-medium dark:bg-gray-950 dark:text-gray-500">Loading your command center...</div>;
+  const activeTasks = tasks.filter(t => !t.isCompleted);
+  const completedTasks = tasks.filter(t => t.isCompleted);
+  const pendingGoalsCount = goals.filter(g => !g.isCompleted).length;
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-gray-950/20 p-6 pb-20 transition-colors duration-300">
-      <div className="max-w-[1600px] mx-auto space-y-10 animate-fade-in">
-        
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-end gap-6">
-            <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
-                    Execution Center <Sparkles className="w-6 h-6 text-yellow-500 fill-yellow-200 animate-pulse" />
-                </h1>
-                <p className="text-gray-500 dark:text-gray-400 font-medium mt-1 text-base">Align your daily actions with your life vision.</p>
-            </div>
-            <button onClick={() => setShowGoalForm(true)} className="group flex items-center gap-2 bg-gray-900 dark:bg-white text-white dark:text-black px-6 py-3 rounded-2xl font-bold hover:bg-black dark:hover:bg-gray-200 transition shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 text-sm">
-                <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" /> New Goal
-            </button>
-        </div>
-
-        {/* 3-COLUMN LAYOUT */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            
-            {/* COLUMN 1: DAILY TASKS */}
-            <div className="bg-white dark:bg-gray-900/60 rounded-[2.5rem] shadow-xl shadow-blue-100/50 dark:shadow-none border border-blue-50 dark:border-gray-800 flex flex-col relative overflow-hidden min-h-[600px]">
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
-                
-                <div className="p-6 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400"><CheckSquare className="w-5 h-5" /></div>
-                        Daily Tasks
-                    </h3>
-                    <span className="text-xs font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-lg border border-blue-100 dark:border-blue-900/30">{activeTasks.length}</span>
-                </div>
-
-                {/* Task Input */}
-                <div className="p-4 border-b border-gray-50 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
-                    <form onSubmit={addTask} className="space-y-3">
-                        <input type="text" placeholder="Add a new task..." className="w-full p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-sm font-medium focus:ring-2 focus:ring-blue-500/20 dark:text-white" value={newTask} onChange={(e) => setNewTask(e.target.value)} />
-                        
-                        <div className="grid grid-cols-2 gap-2">
-                            <select className="p-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 outline-none cursor-pointer" value={priority} onChange={(e) => setPriority(e.target.value)}>
-                                <option value="High">High Priority</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Low">Low</option>
-                            </select>
-                            <input type="date" className="p-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 outline-none cursor-pointer" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-                        </div>
-
-                        {/* Link to Goal Dropdown */}
-                        <div className="flex gap-2">
-                            <div className="relative flex-1">
-                                <select 
-                                    className="w-full p-2 pl-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 outline-none appearance-none cursor-pointer hover:border-blue-300 dark:hover:border-blue-700 transition"
-                                    value={linkedGoalId} 
-                                    onChange={(e) => setLinkedGoalId(e.target.value)}
-                                >
-                                    <option value="">Link to Goal (Optional)</option>
-                                    {shortTermGoals.map(g => (
-                                        <option key={g._id} value={g._id}>{g.title}</option>
-                                    ))}
-                                </select>
-                                <LinkIcon className="w-3 h-3 absolute left-3 top-2.5 text-gray-400" />
-                            </div>
-                            <button type="submit" className="bg-blue-600 text-white px-4 rounded-lg hover:bg-blue-700 transition shadow-md"><Plus className="w-4 h-4" /></button>
-                        </div>
-                    </form>
-                </div>
-
-                {/* Task List */}
-                <div className="p-4 space-y-3 overflow-y-auto max-h-[500px] no-scrollbar">
-                    {activeTasks.map(task => <TaskItem key={task._id} task={task} toggleTask={toggleTask} deleteTask={deleteTask} />)}
-                    {completedTasks.length > 0 && (
-                        <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-800 opacity-60">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 text-center">Completed</p>
-                            <div className="space-y-2">
-                                {completedTasks.map(task => <TaskItem key={task._id} task={task} toggleTask={toggleTask} deleteTask={deleteTask} />)}
-                            </div>
-                        </div>
-                    )}
-                    {tasks.length === 0 && <EmptyState message="No tasks yet." icon={<CheckSquare className="w-8 h-8 text-blue-300 dark:text-blue-700"/>} />}
-                </div>
-            </div>
-
-            {/* COLUMN 2: SHORT TERM */}
-            <div className="bg-white dark:bg-gray-900/60 rounded-[2.5rem] shadow-xl shadow-orange-100/50 dark:shadow-none border border-orange-50 dark:border-gray-800 flex flex-col relative overflow-hidden min-h-[600px]">
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-orange-400 to-red-500"></div>
-                <div className="p-6 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-xl text-orange-600 dark:text-orange-400"><Clock className="w-5 h-5" /></div> Short Term
-                    </h3>
-                    <span className="text-xs font-bold bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-lg border border-orange-100 dark:border-orange-900/30">{shortTermGoals.length}</span>
-                </div>
-                <div className="p-4 space-y-4 overflow-y-auto max-h-[530px] no-scrollbar">
-                    {shortTermGoals.length > 0 ? shortTermGoals.map(goal => (
-                        <GoalItem key={goal._id} goal={goal} handleToggle={toggleGoal} handleEdit={openGoalEdit} handleDelete={deleteGoal} menuOpenId={menuOpenId} setMenuOpenId={setMenuOpenId} />
-                    )) : <EmptyState message="No short term goals." icon={<Clock className="w-8 h-8 text-orange-300 dark:text-orange-700"/>} />}
-                </div>
-            </div>
-
-            {/* COLUMN 3: LONG TERM */}
-            <div className="bg-white dark:bg-gray-900/60 rounded-[2.5rem] shadow-xl shadow-indigo-100/50 dark:shadow-none border border-indigo-50 dark:border-gray-800 flex flex-col relative overflow-hidden min-h-[600px]">
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-400 to-purple-500"></div>
-                <div className="p-6 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400"><Mountain className="w-5 h-5" /></div> Long Term
-                    </h3>
-                    <span className="text-xs font-bold bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-lg border border-indigo-100 dark:border-indigo-900/30">{longTermGoals.length}</span>
-                </div>
-                <div className="p-4 space-y-4 overflow-y-auto max-h-[530px] no-scrollbar">
-                    {longTermGoals.length > 0 ? longTermGoals.map(goal => (
-                        <GoalItem key={goal._id} goal={goal} handleToggle={toggleGoal} handleEdit={openGoalEdit} handleDelete={deleteGoal} menuOpenId={menuOpenId} setMenuOpenId={setMenuOpenId} />
-                    )) : <EmptyState message="No long term vision." icon={<Mountain className="w-8 h-8 text-indigo-300 dark:text-indigo-700"/>} />}
-                </div>
-            </div>
-
-        </div>
-
-        {/* GOAL MODAL */}
-        {showGoalForm && (
-            <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn">
-                <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl relative transform transition-all scale-100 border border-gray-100 dark:border-gray-800">
-                    <button onClick={closeGoalForm} className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><X className="w-5 h-5 text-gray-500" /></button>
-                    <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">{goalEditId ? 'Refine Goal' : 'New Goal'}</h2>
-                    <form onSubmit={handleGoalSubmit} className="space-y-5">
-                        <div><label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-1 block">Title</label><input type="text" required className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 font-medium text-gray-800 dark:text-white" value={goalFormData.title} onChange={(e) => setGoalFormData({...goalFormData, title: e.target.value})} placeholder="e.g. Save ₹1 Lakh" /></div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div><label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-1 block">Horizon</label><select className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none font-medium text-gray-700 dark:text-gray-300 cursor-pointer" value={goalFormData.type} onChange={(e) => setGoalFormData({...goalFormData, type: e.target.value})}><option value="Short Term">Short Term</option><option value="Long Term">Long Term</option></select></div>
-                            <div><label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-1 block">Deadline</label><input type="date" required className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none font-medium text-gray-700 dark:text-gray-300 cursor-pointer" value={goalFormData.deadline} onChange={(e) => setGoalFormData({...goalFormData, deadline: e.target.value})} /></div>
-                        </div>
-                        <button type="submit" className="w-full bg-gray-900 dark:bg-white text-white dark:text-black p-4 rounded-2xl font-bold hover:bg-black dark:hover:bg-gray-200 shadow-xl mt-4">Save Vision</button>
-                    </form>
-                </div>
-            </div>
-        )}
+    <div className="p-6 max-w-[1600px] mx-auto space-y-10 animate-fade-in min-h-screen">
+      
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider rounded-full border border-amber-200 dark:border-amber-800">
+                  {pendingGoalsCount} Pending Goals
+                </span>
+              </div>
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                  Execution Center <Sparkles className="w-6 h-6 text-yellow-500 fill-yellow-200 animate-pulse" />
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
+                  Align your daily actions with your life vision.
+              </p>
+          </div>
+          <button 
+            onClick={() => setShowGoalForm(true)} 
+            className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 px-6 rounded-2xl font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
+          >
+            <Plus className="w-4 h-4" /> New Goal
+          </button>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          
+          {/* COLUMN 1: DAILY TASKS */}
+          <div className="flex flex-col h-full min-h-[600px] bg-white dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <div className="flex flex-col">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <CheckSquare className="w-5 h-5 text-blue-500" /> Daily Tasks
+                    </h3>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800">
+                    {activeTasks.length} Pending
+                  </span>
+              </div>
+
+              <div className="p-4 bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
+                  <form onSubmit={addTask} className="flex flex-col gap-3">
+                      <input 
+                        type="text" 
+                        placeholder="What needs to be done?" 
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 transition-all" 
+                        value={newTask} 
+                        onChange={(e) => setNewTask(e.target.value)} 
+                      />
+                      
+                      <div className="flex gap-2">
+                          <select className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg px-2 py-2 outline-none" value={priority} onChange={(e) => setPriority(e.target.value)}>
+                              <option value="High">High</option>
+                              <option value="Medium">Medium</option>
+                              <option value="Low">Low</option>
+                          </select>
+                          
+                          <div className="relative flex-1">
+                            <select 
+                                className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg pl-8 pr-3 py-2 outline-none"
+                                value={linkedGoalId} 
+                                onChange={(e) => setLinkedGoalId(e.target.value)}
+                            >
+                                <option value="">Link Goal</option>
+                                {shortTermGoals.map(g => ( <option key={g._id} value={g._id}>{g.title}</option> ))}
+                            </select>
+                            <LinkIcon className="w-3 h-3 absolute left-3 top-2.5 text-slate-400" />
+                          </div>
+
+                          <button type="submit" className="bg-blue-600 text-white rounded-lg px-4 hover:bg-blue-700 transition shadow-md">
+                            <Plus className="w-4 h-4" />
+                          </button>
+                      </div>
+                  </form>
+              </div>
+
+              <div className="p-4 space-y-2 overflow-y-auto flex-1 custom-scrollbar max-h-[500px]">
+                  {activeTasks.map(task => <TaskItem key={task._id} task={task} toggleTask={toggleTask} deleteTask={deleteTask} />)}
+                  {completedTasks.length > 0 && (
+                      <div className="pt-4 mt-2">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2 text-center">Completed Today</p>
+                          <div className="space-y-1 opacity-60">
+                              {completedTasks.map(task => <TaskItem key={task._id} task={task} toggleTask={toggleTask} deleteTask={deleteTask} />)}
+                          </div>
+                      </div>
+                  )}
+              </div>
+          </div>
+
+          {/* COLUMN 2: SHORT TERM */}
+          <div className="flex flex-col h-full min-h-[600px] bg-white dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-amber-500" /> Short Term
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold border border-amber-200 dark:border-amber-800">
+                    {shortTermGoals.filter(g => !g.isCompleted).length} Pending
+                  </span>
+              </div>
+              <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar max-h-[650px]">
+                  {shortTermGoals.map(goal => (
+                      <GoalCard key={goal._id} goal={goal} handleToggle={toggleGoal} handleEdit={openGoalEdit} handleDelete={deleteGoal} />
+                  ))}
+              </div>
+          </div>
+
+          {/* COLUMN 3: LONG TERM */}
+          <div className="flex flex-col h-full min-h-[600px] bg-white dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Mountain className="w-5 h-5 text-indigo-500" /> Long Term
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-800">
+                    {longTermGoals.filter(g => !g.isCompleted).length} Pending
+                  </span>
+              </div>
+              <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar max-h-[650px]">
+                  {longTermGoals.map(goal => (
+                      <GoalCard key={goal._id} goal={goal} handleToggle={toggleGoal} handleEdit={openGoalEdit} handleDelete={deleteGoal} />
+                  ))}
+              </div>
+          </div>
+      </div>
+
+      {showGoalForm && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+              <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl relative border border-slate-200 dark:border-slate-800">
+                  <button onClick={closeGoalForm} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"><X className="w-5 h-5 text-slate-500" /></button>
+                  <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">{goalEditId ? 'Refine Goal' : 'New Goal'}</h2>
+                  <form onSubmit={handleGoalSubmit} className="space-y-5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 block ml-1">Title</label>
+                        <input type="text" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold dark:text-white" value={goalFormData.title} onChange={(e) => setGoalFormData({...goalFormData, title: e.target.value})} placeholder="e.g. Save ₹1 Lakh" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 block ml-1">Horizon</label>
+                            <select className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-slate-700 dark:text-gray-200" value={goalFormData.type} onChange={(e) => setGoalFormData({...goalFormData, type: e.target.value})}>
+                                <option value="Short Term">Short Term</option>
+                                <option value="Long Term">Long Term</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 block ml-1">Deadline</label>
+                            <input type="date" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-slate-700 dark:text-gray-200" value={goalFormData.deadline} onChange={(e) => setGoalFormData({...goalFormData, deadline: e.target.value})} />
+                          </div>
+                      </div>
+                      <button type="submit" className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-4 rounded-2xl font-black hover:scale-[1.02] transition-all shadow-xl mt-4 uppercase tracking-widest text-sm">Save Vision</button>
+                  </form>
+              </div>
+          </div>
+      )}
     </div>
   );
 };
 
 const TaskItem = ({ task, toggleTask, deleteTask }) => {
     const isCompleted = task.isCompleted;
+    const priorityConfig = {
+        'High': 'text-rose-600 bg-rose-50 border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30 dark:text-rose-400',
+        'Medium': 'text-amber-600 bg-amber-50 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30 dark:text-amber-400',
+        'Low': 'text-emerald-600 bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-900/30 dark:text-emerald-400'
+    };
+
     return (
-        <div className={`group flex items-center justify-between p-3 rounded-xl border transition-all duration-300 hover:shadow-sm ${isCompleted ? 'bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-800' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-blue-100 dark:hover:border-blue-900'}`}>
+        <div className={`group flex items-center justify-between p-3 rounded-xl border transition-all duration-200 ${isCompleted ? 'bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 opacity-75' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:shadow-md'}`}>
             <div className="flex items-center gap-3 flex-1 overflow-hidden">
-                <button onClick={() => toggleTask(task._id)} className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${isCompleted ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 dark:border-gray-600 text-transparent hover:border-blue-400'}`}><CheckSquare className="w-3.5 h-3.5" /></button>
+                <button onClick={() => toggleTask(task._id)} className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${isCompleted ? 'bg-blue-500 border-blue-500 text-white' : 'border-slate-300 dark:border-slate-600 hover:border-blue-400'}`}><CheckSquare className="w-3 h-3" /></button>
                 <div className="flex flex-col min-w-0">
-                    <span className={`text-sm font-medium truncate ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-800 dark:text-gray-200'}`}>{task.title}</span>
+                    <span className={`text-sm font-semibold truncate ${isCompleted ? 'text-slate-400 line-through' : 'text-slate-800 dark:text-gray-200'}`}>{task.title}</span>
                     {!isCompleted && (
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${task.priority === 'High' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : task.priority === 'Medium' ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400'}`}>{task.priority}</span>
-                            
-                            {task.linkedGoal && (
-                                <span className="text-[9px] font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded flex items-center gap-1">
-                                    <LinkIcon className="w-2.5 h-2.5" /> {task.linkedGoal.title}
-                                </span>
-                            )}
-                            
-                            <span className="text-[9px] text-gray-400 flex items-center gap-1"><Calendar className="w-2.5 h-2.5" /> {formatDate(task.dueDate)}</span>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${priorityConfig[task.priority]}`}>{task.priority}</span>
+                            {task.linkedGoal && <span className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded flex items-center gap-1 truncate"><LinkIcon className="w-2.5 h-2.5" /> {task.linkedGoal.title}</span>}
+                            <span className="text-[9px] text-slate-400 flex items-center gap-1 font-bold"><Calendar className="w-2.5 h-2.5" /> {formatDate(task.dueDate)}</span>
                         </div>
                     )}
                 </div>
             </div>
-            <button onClick={() => deleteTask(task._id)} className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
+            <button onClick={() => deleteTask(task._id)} className="p-1.5 text-slate-300 hover:text-rose-500 transition opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
         </div>
     );
 };
-
-const GoalItem = ({ goal, handleToggle, handleEdit, handleDelete, menuOpenId, setMenuOpenId }) => {
-    const isOverdue = new Date(goal.deadline) < new Date().setHours(0,0,0,0) && !goal.isCompleted;
-    const isCompleted = goal.isCompleted;
-    const daysLeft = Math.ceil((new Date(goal.deadline) - new Date()) / (1000 * 60 * 60 * 24));
-
-    return (
-        <div className={`relative group p-4 rounded-2xl border transition-all duration-300 hover:shadow-lg flex justify-between items-center ${isCompleted ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-900 opacity-90' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'}`}>
-            <div className="flex items-center gap-4 overflow-hidden">
-                <button onClick={() => handleToggle(goal._id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${isCompleted ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 dark:border-gray-600 text-transparent hover:border-gray-400'}`}><CheckCircle2 className="w-4 h-4" /></button>
-                <div className="min-w-0">
-                    <h4 className={`font-semibold text-sm truncate transition-all ${isCompleted ? 'text-green-800 dark:text-green-400 line-through' : 'text-gray-800 dark:text-gray-200'}`}>{goal.title}</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${isCompleted ? 'bg-green-200 dark:bg-green-900/40 text-green-800 dark:text-green-300' : (isOverdue ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400')}`}><Calendar className="w-3 h-3" />{isCompleted ? 'Done' : (isOverdue ? 'Overdue' : formatDate(goal.deadline))}</span>
-                        {!isCompleted && !isOverdue && <span className="text-[10px] font-medium text-gray-400">{daysLeft} days left</span>}
-                    </div>
-                </div>
-            </div>
-            <div className="relative shrink-0">
-                <button onClick={() => setMenuOpenId(menuOpenId === goal._id ? null : goal._id)} className="p-2 text-gray-300 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl transition"><MoreVertical className="w-5 h-5" /></button>
-                {menuOpenId === goal._id && (
-                    <div className="absolute right-0 top-8 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 shadow-xl rounded-xl p-1 z-20 w-32 animate-fade-in">
-                        <button onClick={() => handleEdit(goal)} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition text-left"><Pencil className="w-3 h-3" /> Edit</button>
-                        <button onClick={() => handleDelete(goal._id)} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition text-left"><Trash2 className="w-3 h-3" /> Delete</button>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-const EmptyState = ({ message, icon }) => (
-    <div className="py-20 text-center flex flex-col items-center justify-center opacity-50">
-        <div className="mb-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-full">{icon}</div>
-        <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">{message}</p>
-    </div>
-);
 
 export default Goals;

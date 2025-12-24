@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
-import { Sparkles, CalendarDays, Layers } from 'lucide-react';
+import { Sparkles, CalendarDays, Plus, Save } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { useTheme } from '../context/ThemeContext'; // Import Theme Context
+import { useTheme } from '../context/ThemeContext';
 
 // Components
 import HabitForm from '../components/habits/HabitForm';
@@ -10,21 +10,20 @@ import HabitStats from '../components/habits/HabitStats';
 import HabitGrid from '../components/habits/HabitGrid';
 import HabitMonthlyOverview from '../components/habits/HabitMonthlyOverview';
 import HabitAnalysis from '../components/habits/HabitAnalysis';
+import HabitsSkeleton from '../components/skeletons/HabitsSkeleton';
 import { addXP } from '../utils/gamification';
 
 const Habits = () => {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { theme } = useTheme(); // To adjust chart colors
+  const { theme } = useTheme();
   
-  // State
   const [newHabit, setNewHabit] = useState('');
   const [newTarget, setNewTarget] = useState(21);
   const [editId, setEditId] = useState(null); 
   const [viewDate, setViewDate] = useState(new Date()); 
   const [leaderboardMonth, setLeaderboardMonth] = useState(new Date().toISOString().slice(0, 7)); 
 
-  // --- HELPER: Dates ---
   const getCurrentWeekDays = (referenceDate) => {
     const d = new Date(referenceDate);
     const day = d.getDay(); 
@@ -100,11 +99,9 @@ const Habits = () => {
   const handlePrevWeek = () => { const newDate = new Date(viewDate); newDate.setDate(viewDate.getDate() - 7); setViewDate(newDate); };
   const handleNextWeek = () => { const newDate = new Date(viewDate); newDate.setDate(viewDate.getDate() + 7); setViewDate(newDate); };
 
-  // --- DATA CALCULATIONS ---
   const completedToday = habits.filter(h => h.completedDates.includes(today)).length;
   const completionRate = habits.length === 0 ? 0 : Math.round((completedToday / habits.length) * 100);
   
-  // Dynamic Chart Colors based on Theme
   const donutData = [ 
     { name: 'Done', value: completedToday, color: theme === 'dark' ? '#818cf8' : '#4F46E5' }, 
     { name: 'Left', value: habits.length - completedToday, color: theme === 'dark' ? '#1f2937' : '#F3F4F6' } 
@@ -147,11 +144,12 @@ const Habits = () => {
   .filter(h => h.currConsistency < 100)
   .slice(0, 5);
 
+  if (loading) return <HabitsSkeleton />;
+
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-gray-950/20 p-6 pb-20 transition-colors duration-300">
         <div className="max-w-7xl mx-auto space-y-10 animate-fade-in">
             
-            {/* HEADER */}
             <div className="flex flex-col md:flex-row justify-between items-end gap-6">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
@@ -167,9 +165,10 @@ const Habits = () => {
                 </div>
             </div>
 
-            {/* MAIN GRID */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                <div className="lg:col-span-2 space-y-8">
+                
+                {/* LEFT COLUMN (Grid & Stats) */}
+                <div className="lg:col-span-2 space-y-8 order-2 lg:order-1">
                     <HabitStats trendData={trendData} />
                     <HabitGrid 
                         habits={habits} weekDays={weekDays} today={today} 
@@ -178,17 +177,25 @@ const Habits = () => {
                     />
                 </div>
 
-                <div className="lg:col-span-1 space-y-8 sticky top-24">
-                    {/* NEW RITUAL CARD */}
-                    <div className="bg-white dark:bg-gray-900/60 p-6 rounded-[2rem] shadow-xl shadow-indigo-100/50 dark:shadow-none border border-indigo-50 dark:border-indigo-900/30 relative overflow-hidden transition-all">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 dark:bg-indigo-900/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2 relative z-10">
-                            <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> New Ritual
-                        </h3>
-                        <HabitForm 
-                            handleSubmit={handleSubmit} newHabit={newHabit} setNewHabit={setNewHabit}
-                            newTarget={newTarget} setNewTarget={setNewTarget} editId={editId} cancelEdit={cancelEdit}
-                        />
+                {/* RIGHT COLUMN (Sidebar) */}
+                {/* FIX: Removed 'sticky' on mobile. Only 'lg:sticky lg:top-24' applies on desktop. */}
+                <div className="lg:col-span-1 space-y-6 lg:space-y-8 order-1 lg:order-2 lg:sticky lg:top-24 h-fit">
+                    
+                    {/* NEW RITUAL CARD - Gradient Style */}
+                    <div className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white p-6 rounded-[2rem] shadow-xl shadow-indigo-900/20 relative overflow-hidden transition-all">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/30 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-500/20 rounded-full blur-3xl -ml-10 -mb-10"></div>
+                        
+                        <div className="relative z-10">
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                {editId ? <Save className="w-5 h-5 text-indigo-300" /> : <Plus className="w-5 h-5 text-indigo-300" />}
+                                {editId ? 'Update Ritual' : 'New Ritual'}
+                            </h3>
+                            <HabitForm 
+                                handleSubmit={handleSubmit} newHabit={newHabit} setNewHabit={setNewHabit}
+                                newTarget={newTarget} setNewTarget={setNewTarget} editId={editId} cancelEdit={cancelEdit}
+                            />
+                        </div>
                     </div>
 
                     {/* DAILY PROGRESS CARD */}
@@ -211,8 +218,7 @@ const Habits = () => {
                 </div>
             </div>
 
-            {/* ANALYTICS SECTION */}
-            <div className="space-y-8">
+            <div className="space-y-8 order-3">
                 <div className="flex items-center gap-4">
                     <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Monthly Performance</h2>
                     <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1"></div>
