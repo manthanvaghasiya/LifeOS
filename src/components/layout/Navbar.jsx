@@ -42,7 +42,6 @@ const Navbar = () => {
 
   return (
     <>
-      {/* DESKTOP HEADER (Floating & Centered) */}
       <header className="sticky top-4 z-50 w-full px-4 sm:px-6">
         <div className="max-w-5xl mx-auto bg-white/80 backdrop-blur-2xl border border-blue-100 dark:bg-slate-950/80 dark:border-blue-900/30 rounded-[2rem] shadow-xl shadow-blue-500/5 px-6 py-3 flex justify-between items-center transition-all duration-300">
           
@@ -54,7 +53,7 @@ const Navbar = () => {
             <span className="hidden md:block text-xl font-black tracking-tighter text-blue-600 dark:text-blue-400 uppercase">LifeOS</span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation (Floating Pill) */}
           <nav className="hidden lg:flex items-center gap-1 bg-blue-50/50 p-1 rounded-full border border-blue-100 dark:bg-blue-900/10 dark:border-blue-800/30">
             {navItems.map((item) => (
               <Link 
@@ -74,6 +73,7 @@ const Navbar = () => {
 
           {/* User Utilities */}
           <div className="flex items-center gap-4">
+            {/* XP Progress Badge */}
             <div className="hidden sm:flex flex-col items-end">
                 <div className="flex items-center gap-1.5 text-[10px] font-black text-blue-600 dark:text-blue-400 mb-1 uppercase tracking-tighter">
                     <Zap className="w-3 h-3 text-blue-500 fill-blue-500" />
@@ -84,10 +84,12 @@ const Navbar = () => {
                 </div>
             </div>
 
+            {/* Dark Mode Switcher */}
             <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-all">
                 {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </button>
 
+            {/* User Profile Avatar (Removed Green Dot) */}
             <Link to="/settings" className="relative group cursor-pointer ml-1">
                 <div className="w-9 h-9 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-md shadow-blue-500/20 group-hover:scale-105 transition-all">
                     {initials}
@@ -97,9 +99,11 @@ const Navbar = () => {
         </div>
       </header>
 
-      {/* MOBILE BOTTOM NAV (Straight Style, No Curves) */}
-      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md">
-        <div className="flex items-center justify-around bg-white/90 backdrop-blur-2xl border border-blue-100 dark:bg-slate-950/90 dark:border-blue-900/30 shadow-2xl rounded-2xl px-2 h-16">
+      {/* MOBILE BOTTOM DOCK
+          Updated to Blue theme
+      */}
+      <div className="lg:hidden fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md">
+        <div className="flex items-center justify-around bg-white/80 backdrop-blur-2xl border border-blue-100 dark:bg-slate-950/80 dark:border-blue-900/30 shadow-2xl rounded-[2rem] px-3 h-18 py-2">
             
             {navItems.map((item) => {
                 const active = isActive(item.path);
@@ -107,25 +111,24 @@ const Navbar = () => {
                     <Link 
                         key={item.path}
                         to={item.path} 
-                        className="flex flex-col items-center justify-center w-full h-full relative"
+                        className="flex flex-col items-center justify-center w-full relative h-full"
                     >
-                        {/* Straight Icon Style: Icon stays inside the bar */}
-                        <div className={`flex flex-col items-center justify-center transition-all duration-300 ${
+                        <div className={`flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
                             active 
-                            ? "text-blue-600 scale-110" 
-                            : "text-slate-400"
+                            ? "w-14 h-14 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/40 -translate-y-8 rotate-[360deg]" 
+                            : "w-10 h-10 text-slate-400 hover:text-blue-500 dark:hover:text-blue-300"
                         }`}>
-                            <item.icon className={`w-5 h-5 ${active ? "stroke-[2.5px]" : ""}`} />
-                            <span className={`text-[9px] font-black uppercase tracking-tighter mt-1 ${
-                                active ? "text-blue-600" : "text-slate-400"
-                            }`}>
-                                {item.label}
-                            </span>
+                            <item.icon className={`${active ? "w-6 h-6" : "w-5 h-5"}`} />
                         </div>
+
+                        {!active && (
+                          <span className="text-[9px] font-black uppercase tracking-tighter text-slate-400 mt-1">
+                              {item.label}
+                          </span>
+                        )}
                         
-                        {/* Active Indicator: Straight line at the bottom */}
                         {active && (
-                            <div className="absolute bottom-0 w-8 h-1 bg-blue-600 rounded-t-full shadow-[0_-2px_8px_rgba(37,99,235,0.4)]"></div>
+                            <div className="absolute bottom-1 w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></div>
                         )}
                     </Link>
                 )
