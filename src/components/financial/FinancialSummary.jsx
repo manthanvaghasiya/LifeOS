@@ -49,7 +49,9 @@ const FinancialSummary = ({
                     <span className="font-bold text-sm tracking-widest uppercase">Net Worth</span>
                 </div>
                 <div>
-                    <h2 className="text-3xl font-black mb-1">{formatCurrency(totalNetWorth)}</h2>
+                    {/* ✅ FIXED: Added 'text-white' to override global styles */}
+                    <h2 className="text-3xl font-black mb-1 text-white">{formatCurrency(totalNetWorth)}</h2>
+                    
                     <div className="flex items-center gap-3 text-xs font-medium text-indigo-100">
                         <span className="flex items-center gap-1"><Landmark className="w-3 h-3" /> Bank: {formatCurrency(bankBalance)}</span>
                         <span className="w-1 h-1 bg-white/40 rounded-full"></span>
