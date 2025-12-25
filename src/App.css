@@ -1,42 +1,62 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* Production-Level Component Utilities & Animations */
+
+/* 1. Smooth Page Transitions 
+   Apply the class "fade-in-up" to your main content wrapper.
+   This makes every page load feel expensive and smooth.
+*/
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
+@keyframes fadeInUp {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(10px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 2. Glassmorphism Effect 
+   Use this for sticky headers or floating modals.
+   It creates a frosted glass look using your "Anti-Flash White" base.
+*/
+.glass-effect {
+  background: rgba(255, 255, 255, 0.85); /* Highly transparent white */
+  backdrop-filter: blur(12px);           /* The blur magic */
+  -webkit-backdrop-filter: blur(12px);   /* Safari support */
+  border-bottom: 1px solid rgba(100, 145, 222, 0.15); /* Subtle UN Blue border */
+}
+
+/* 3. Branded Loading Spinner 
+   Use this while data is fetching. It matches your "United Nations Blue".
+*/
+.loader {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(100, 145, 222, 0.2); /* Light transparent blue */
+  border-radius: 50%;
+  border-top-color: #6491DE; /* Primary Brand Blue */
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* 4. Sidebar Utilities 
+   Hide scrollbars in the sidebar for a cleaner look
+*/
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
