@@ -13,7 +13,8 @@ const FinancialSummary = ({
 }) => {
   
   const Card = ({ title, amount, icon: Icon, colorClass, bgClass }) => (
-    <div className="glass-panel p-5 flex flex-col justify-between h-full relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+    // ✅ ADDED: 'border border-slate-200 dark:border-slate-800' to ensure visible borders
+    <div className="glass-panel p-5 flex flex-col justify-between h-full relative overflow-hidden group hover:shadow-lg transition-all duration-300 border border-slate-200 dark:border-slate-800">
       {/* Background Icon Blob */}
       <div className={`absolute -right-4 -bottom-4 p-4 rounded-full ${bgClass} opacity-20 group-hover:scale-125 transition-transform duration-500`}>
         <Icon className={`w-16 h-16 ${colorClass}`} />
@@ -40,7 +41,8 @@ const FinancialSummary = ({
       
       {/* 1. Net Worth (Big Highlight) */}
       <div className="sm:col-span-2 lg:col-span-1">
-        <div className="glass-panel p-6 h-full bg-gradient-to-br from-indigo-600 to-violet-700 text-white border-none shadow-xl shadow-indigo-500/20 relative overflow-hidden group">
+        {/* ✅ FIXED: Removed 'border-none' and added 'border border-white/20' for a premium glass edge */}
+        <div className="glass-panel p-6 h-full bg-gradient-to-br from-indigo-600 to-violet-700 text-white border border-white/20 shadow-xl shadow-indigo-500/20 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-white/20 transition-colors"></div>
             
             <div className="relative z-10 flex flex-col justify-between h-full">
@@ -49,7 +51,7 @@ const FinancialSummary = ({
                     <span className="font-bold text-sm tracking-widest uppercase">Net Worth</span>
                 </div>
                 <div>
-                    {/* ✅ FIXED: Added 'text-white' to override global styles */}
+                    {/* Kept the text-white fix from before */}
                     <h2 className="text-3xl font-black mb-1 text-white">{formatCurrency(totalNetWorth)}</h2>
                     
                     <div className="flex items-center gap-3 text-xs font-medium text-indigo-100">
