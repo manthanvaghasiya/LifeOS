@@ -1,22 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../services/api';
-import { X, ArrowRight, Wallet, Building2, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { X, ArrowRight, Wallet, Building2, TrendingUp, CheckCircle2, Plus } from 'lucide-react';
 
-const DEFAULT_CATEGORIES = ['Food', 'Travel', 'Bills', 'Entertainment', 'Salary', 'Shopping', 'Health', 'Education', 'Investment'];
+// 1. Define Distinct Category Lists
+const INITIAL_EXPENSE_CATS = ['Mobile', 'Bike', 'Food', 'Shopping', 'Bills', 'Pooja', 'Education', 'Guest', 'Grocery', 'Health', 'Travel'];
+const INITIAL_INCOME_CATS = ['Salary', 'Investment', 'Business', 'Freelancing', 'Gift', 'Rental', 'Refund'];
 const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
 
 const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   const [txType, setTxType] = useState('expense');
   
+  // 2. State for Dynamic Categories (allows adding new ones)
+  const [expenseCats, setExpenseCats] = useState(INITIAL_EXPENSE_CATS);
+  const [incomeCats, setIncomeCats] = useState(INITIAL_INCOME_CATS);
+
   // Default State
   const [formData, setFormData] = useState({ 
     title: '', amount: '', paymentMode: 'Bank', transferTo: 'Cash', 
-    category: 'Food', investmentType: 'SIP', profitAmount: '', 
+    category: '', investmentType: 'SIP', profitAmount: '', 
     date: new Date().toISOString().split('T')[0] 
   });
   
   const [customCategory, setCustomCategory] = useState('');
   const [isWithdrawalWithProfit, setIsWithdrawalWithProfit] = useState(false);
+
+  // Set default category based on type change
+  useEffect(() => {
+    if (!initialData) {
+        if (txType === 'expense') setFormData(prev => ({ ...prev, category: expenseCats[0] }));
+        else if (txType === 'income') setFormData(prev => ({ ...prev, category: incomeCats[0] }));
+    }
+  }, [txType]);
 
   // --- INITIALIZATION ---
   useEffect(() => {
@@ -24,59 +38,76 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
       setTxType(initialData.type);
       const formattedDate = initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
       
+      const currentList = initialData.type === 'income' ? INITIAL_INCOME_CATS : INITIAL_EXPENSE_CATS;
+      const isStandard = currentList.includes(initialData.category) || INVESTMENT_TYPES.includes(initialData.category);
+
+      let initCategory = initialData.category;
+      let initCustom = '';
+
+      // If category is not in our lists, treat as "Other" or add it dynamically?
+      // For this UI logic, we set it to "Other" and pre-fill custom, 
+      // OR we could push it to the list. Let's stick to the "Other" logic for editing.
+      if (!isStandard && initialData.category !== 'Transfer' && initialData.category !== 'Investment') {
+          initCategory = 'Other';
+          initCustom = initialData.category;
+      } else if (!initCategory) {
+          initCategory = currentList[0];
+      }
+
       setFormData({
         title: initialData.title || '',
         amount: initialData.amount || '',
         paymentMode: initialData.paymentMode || 'Bank',
         transferTo: initialData.type === 'transfer' ? (initialData.transferTo || 'Cash') : 'Cash',
-        category: initialData.category || 'Food',
+        category: initCategory,
         investmentType: initialData.investmentType || 'SIP',
         date: formattedDate,
         profitAmount: ''
       });
-
-      const isStandard = DEFAULT_CATEGORIES.includes(initialData.category) || INVESTMENT_TYPES.includes(initialData.category);
-      if (!isStandard && initialData.category !== 'Transfer' && initialData.category !== 'Investment') {
-          setCustomCategory(initialData.category);
-          setFormData(prev => ({ ...prev, category: 'Other' }));
-      }
+      setCustomCategory(initCustom);
     }
   }, [initialData]);
+
+  // 3. FEATURE: Add Custom Category to List
+  const handleAddCategory = () => {
+    if (!customCategory.trim()) return;
+    
+    const newCat = customCategory.trim();
+    
+    if (txType === 'expense') {
+        setExpenseCats([...expenseCats, newCat]);
+    } else if (txType === 'income') {
+        setIncomeCats([...incomeCats, newCat]);
+    }
+
+    setFormData({ ...formData, category: newCat });
+    setCustomCategory(''); // Clear input as it's now selected in dropdown
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const finalDate = formData.date;
 
     try {
-      // 1. WITHDRAWAL LOGIC
+      // WITHDRAWAL LOGIC
       if (txType === 'transfer' && formData.paymentMode === 'Investment' && isWithdrawalWithProfit) {
-        const total = Number(formData.amount);
-        const profit = Number(formData.profitAmount);
-        const principal = total - profit;
+         // ... (Keep existing withdrawal logic)
+         const total = Number(formData.amount);
+         const profit = Number(formData.profitAmount);
+         const principal = total - profit;
 
-        const transferRes = await API.post('/transactions', {
-          title: `Withdrawal: ${formData.title} (Principal)`, 
-          amount: principal, 
-          type: 'transfer', 
-          category: 'Investment', 
-          transferTo: formData.transferTo, 
-          paymentMode: 'Investment', 
-          investmentType: formData.investmentType, 
-          date: finalDate
-        });
-        
-        const profitRes = await API.post('/transactions', {
-          title: `Profit: ${formData.title}`, 
-          amount: profit, 
-          type: 'income', 
-          category: 'Investment Return', 
-          paymentMode: formData.transferTo, 
-          date: finalDate
-        });
-        
-        onSuccess([profitRes.data, transferRes.data]);
+         const transferRes = await API.post('/transactions', {
+           title: `Withdrawal: ${formData.title} (Principal)`, amount: principal, type: 'transfer', category: 'Investment', 
+           transferTo: formData.transferTo, paymentMode: 'Investment', investmentType: formData.investmentType, date: finalDate
+         });
+         
+         const profitRes = await API.post('/transactions', {
+           title: `Profit: ${formData.title}`, amount: profit, type: 'income', category: 'Investment Return', paymentMode: formData.transferTo, date: finalDate
+         });
+         
+         onSuccess([profitRes.data, transferRes.data]);
       } 
-      // 2. STANDARD LOGIC
+      // STANDARD LOGIC
       else {
         let finalCategory = formData.category;
         
@@ -84,7 +115,7 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
             if (formData.transferTo === 'Investment') finalCategory = 'Investment';
             else finalCategory = 'Transfer';
         } else if (formData.category === 'Other') {
-            finalCategory = customCategory;
+            finalCategory = customCategory; // Use the typed input if 'Other' is still selected
         }
 
         let finalInvType = null;
@@ -115,14 +146,17 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
     } catch (err) { alert("Error saving transaction"); }
   };
 
+  // Helper to get current list
+  const getCurrentCategories = () => txType === 'income' ? incomeCats : expenseCats;
+
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden animate-fade-in scale-100">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all duration-300">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden animate-fade-in scale-100">
         
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 sticky top-0 z-10">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            {initialData ? 'Edit Transaction' : 'New Transaction'}
+          <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+            {initialData ? 'Edit Transaction' : 'New Entry'}
           </h2>
           <button 
             onClick={onClose} 
@@ -136,15 +170,15 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
         <div className="p-6 overflow-y-auto custom-scrollbar">
           
           {/* Segmented Control for Type */}
-          <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-6">
+          <div className="grid grid-cols-3 gap-1 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-6">
             {['expense', 'income', 'transfer'].map(type => (
               <button 
                 key={type} 
                 type="button" 
                 onClick={() => setTxType(type)} 
-                className={`py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all duration-200 ${
+                className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
                   txType === type 
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm scale-100' 
                   : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
                 }`}
               >
@@ -225,8 +259,8 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
                   {/* Investment Type Selection */}
                   {(formData.transferTo === 'Investment' || formData.paymentMode === 'Investment') && (
                       <div className="animate-fade-in">
-                          <label className="label text-indigo-600 dark:text-indigo-400">Investment Type</label>
-                          <select className="input-field border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/10" value={formData.investmentType} onChange={(e) => setFormData({...formData, investmentType: e.target.value})}>
+                          <label className="label text-blue-600 dark:text-blue-400">Investment Type</label>
+                          <select className="input-field border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10" value={formData.investmentType} onChange={(e) => setFormData({...formData, investmentType: e.target.value})}>
                               {INVESTMENT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                           </select>
                       </div>
@@ -257,13 +291,13 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
               </div>
             )}
 
-            {/* STANDARD FIELDS */}
+            {/* STANDARD FIELDS (Expense/Income) */}
             {txType !== 'transfer' && (
               <div className="grid grid-cols-2 gap-4 animate-slide-up">
                 <div>
                     <label className="label">Category</label>
                     <select className="input-field appearance-none" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
-                      {DEFAULT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      {getCurrentCategories().map(cat => <option key={cat} value={cat}>{cat}</option>)}
                       <option value="Other">Other...</option>
                     </select>
                 </div>
@@ -277,24 +311,36 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
               </div>
             )}
             
+            {/* Custom Category Input with + Button */}
             {txType !== 'transfer' && formData.category === 'Other' && (
-              <div className="animate-fade-in">
-                 <input 
-                   type="text" 
-                   placeholder="Enter category name..." 
-                   required 
-                   className="input-field bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-200 text-indigo-700 placeholder-indigo-400" 
-                   value={customCategory} 
-                   onChange={(e) => setCustomCategory(e.target.value)} 
-                 />
+              <div className="animate-fade-in relative">
+                 <label className="label">Add New Category</label>
+                 <div className="flex gap-2">
+                     <input 
+                       type="text" 
+                       placeholder="e.g. Gym, Netflix..." 
+                       required 
+                       className="input-field bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 text-blue-700 placeholder-blue-400" 
+                       value={customCategory} 
+                       onChange={(e) => setCustomCategory(e.target.value)} 
+                     />
+                     <button 
+                        type="button" 
+                        onClick={handleAddCategory}
+                        disabled={!customCategory.trim()}
+                        className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/30"
+                     >
+                        <Plus className="w-5 h-5" />
+                     </button>
+                 </div>
               </div>
             )}
             
             <button 
               type="submit" 
-              className="w-full mt-4 btn-primary py-3.5 text-base shadow-lg shadow-indigo-500/20"
+              className="w-full mt-4 btn-primary py-4 text-sm uppercase tracking-widest font-black shadow-xl shadow-blue-500/20"
             >
-              {initialData ? 'Update Transaction' : 'Save Transaction'}
+              {initialData ? 'Update Entry' : 'Save Entry'}
             </button>
           </form>
         </div>
