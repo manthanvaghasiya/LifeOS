@@ -33,7 +33,9 @@ const DashboardStats = ({
                 </div>
                 <p className="text-blue-100 text-xs font-bold uppercase tracking-widest">Total Balance</p>
             </div>
-            <h2 className="text-3xl font-extrabold tracking-tight">
+            
+            {/* ✅ FIXED: Added 'text-white' class here to override global h2 styles */}
+            <h2 className="text-3xl font-extrabold tracking-tight text-white">
               {formatCurrency(totalNetWorth)}
             </h2>
           </div>
