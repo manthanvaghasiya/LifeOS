@@ -6,9 +6,6 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
-/**
- * NavItem Component - Reusable link with active state styles
- */
 const NavItem = ({ path, label, icon: Icon, isActive, isMobile }) => {
   if (isMobile) {
     return (
@@ -54,9 +51,6 @@ const NavItem = ({ path, label, icon: Icon, isActive, isMobile }) => {
   );
 };
 
-/**
- * Navbar Component
- */
 const Navbar = () => {
   const location = useLocation();
   const themeContext = useTheme();
@@ -64,17 +58,23 @@ const Navbar = () => {
   // Safety check for context
   const { theme, toggleTheme } = themeContext || { theme: 'light', toggleTheme: () => {} };
 
-  // User State
-  const [user, setUser] = useState({ name: 'Achiever', level: 1, currentXP: 0, requiredXP: 100 });
+  // 1. [FIXED] Initialize User State directly from 'user' key to prevent "U" flash
+  const [user, setUser] = useState(() => {
+    try {
+        const stored = localStorage.getItem('user'); // Changed from 'userInfo'
+        return stored ? JSON.parse(stored) : { name: 'User', level: 1, currentXP: 0, requiredXP: 100 };
+    } catch (e) {
+        return { name: 'User', level: 1, currentXP: 0, requiredXP: 100 };
+    }
+  });
 
-  // Sync User Data safely
+  // 2. [FIXED] Sync User Data safely (Listen for Login/Update events)
   useEffect(() => {
     const syncUser = () => {
         try {
-            const stored = localStorage.getItem('userInfo'); // Changed to 'userInfo' based on Signup/Login
+            const stored = localStorage.getItem('user'); // Changed from 'userInfo'
             if (stored) {
                 const parsed = JSON.parse(stored);
-                // Merge with default XP stats if they don't exist in basic userInfo
                 setUser(prev => ({ ...prev, ...parsed }));
             }
         } catch (e) {
@@ -82,16 +82,23 @@ const Navbar = () => {
         }
     };
     
-    syncUser();
-    window.addEventListener('userUpdate', syncUser); // Listen for updates
-    return () => window.removeEventListener('userUpdate', syncUser);
+    // Listen for both custom user updates AND auth changes (login/logout)
+    window.addEventListener('userUpdate', syncUser); 
+    window.addEventListener('authChange', syncUser);
+
+    return () => {
+        window.removeEventListener('userUpdate', syncUser);
+        window.removeEventListener('authChange', syncUser);
+    };
   }, []);
 
-  const initials = user.name ? user.name.charAt(0).toUpperCase() : 'U';
-  const xpPercent = Math.min((user.currentXP / user.requiredXP) * 100, 100);
+  // 3. [FIXED] Get First Letter of Name (Fallback to 'U' only if name is missing)
+  const initials = user.name && user.name !== 'User' ? user.name.charAt(0).toUpperCase() : 'U';
+  
+  const xpPercent = user.requiredXP ? Math.min((user.currentXP / user.requiredXP) * 100, 100) : 0;
 
   const navItems = [
-    { path: '/dashboard', label: 'Home', icon: LayoutDashboard },
+    { path: '/', label: 'Home', icon: LayoutDashboard }, // Fixed Home Link
     { path: '/habits', label: 'Habits', icon: CalendarCheck },
     { path: '/goals', label: 'Goals', icon: Target },
     { path: '/transactions', label: 'Finance', icon: TrendingUp },
@@ -102,15 +109,13 @@ const Navbar = () => {
 
   return (
     <>
-      {/* =======================================================
-          DESKTOP HEADER (Floating Glass)
-         ======================================================= */}
+      {/* DESKTOP HEADER */}
       <header className="fixed top-0 left-0 right-0 z-40 w-full pt-4 px-6 hidden lg:block pointer-events-none">
         <div className="max-w-7xl mx-auto pointer-events-auto">
           <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 shadow-lg shadow-slate-200/20 dark:shadow-black/20 rounded-2xl px-4 py-3 flex justify-between items-center transition-all duration-300">
             
             {/* Brand */}
-            <Link to="/dashboard" className="flex items-center gap-3 group">
+            <Link to="/" className="flex items-center gap-3 group">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-0.5 shadow-md group-hover:shadow-blue-500/30 transition-all duration-300">
                 <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[10px] flex items-center justify-center overflow-hidden">
                    <img src="/logo.png" alt="LifeOS" className="w-full h-full object-cover opacity-90 hover:scale-110 transition-transform" />
@@ -167,11 +172,11 @@ const Navbar = () => {
               {/* Profile */}
               <Link to="/settings" className="relative group">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 p-[2px] shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all">
-                   <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center">
+                    <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center">
                       <span className="font-bold text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-indigo-600">
                         {initials}
                       </span>
-                   </div>
+                    </div>
                 </div>
               </Link>
 
@@ -180,11 +185,9 @@ const Navbar = () => {
         </div>
       </header>
 
-      {/* =======================================================
-          MOBILE HEADER (Top Bar)
-         ======================================================= */}
+      {/* MOBILE HEADER (Top Bar) */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 lg:hidden px-4 h-16 flex items-center justify-between transition-colors duration-300">
-         <Link to="/dashboard" className="flex items-center gap-2">
+         <Link to="/" className="flex items-center gap-2">
             <img src="/logo.png" alt="LifeOS" className="w-8 h-8 rounded-lg" />
             <span className="font-bold text-lg text-slate-900 dark:text-white">LifeOS</span>
          </Link>
@@ -202,9 +205,7 @@ const Navbar = () => {
          </div>
       </header>
 
-      {/* =======================================================
-          MOBILE BOTTOM DOCK (Floating Island)
-         ======================================================= */}
+      {/* MOBILE BOTTOM DOCK */}
       <nav className="fixed bottom-6 left-4 right-4 z-50 lg:hidden">
         <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/20 dark:border-slate-700/50 shadow-2xl shadow-slate-900/20 rounded-[2rem] px-6 h-20 flex items-center justify-between">
            {navItems.map((item) => (
@@ -213,7 +214,7 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Spacers to prevent content overlap */}
+      {/* Spacers */}
       <div className="h-20 lg:h-24 w-full block"></div>
     </>
   );
