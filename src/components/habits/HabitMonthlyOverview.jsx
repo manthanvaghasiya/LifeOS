@@ -44,7 +44,8 @@ const HabitMonthlyOverview = ({ leaderboardMonth, setLeaderboardMonth, monthlySt
 
                 <div className="relative z-10">
                     <div className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-2">Selected Month</div>
-                    <h4 className="text-2xl md:text-3xl font-black mb-1">{new Date(leaderboardMonth).toLocaleString('default', { month: 'long' })}</h4>
+                    {/* ✅ FIXED: Added 'text-white' to force white color */}
+                    <h4 className="text-2xl md:text-3xl font-black mb-1 text-white">{new Date(leaderboardMonth).toLocaleString('default', { month: 'long' })}</h4>
                     <span className="text-indigo-200 text-lg font-medium">{new Date(leaderboardMonth).getFullYear()}</span>
                 </div>
 
