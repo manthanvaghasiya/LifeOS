@@ -5,111 +5,169 @@ import {
   ArrowRight, Check, Zap, Activity, Cpu, Globe
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import API from '../services/api';
 
+// --- SUB-COMPONENTS FOR CLEANER CODE ---
+
+const GoogleIcon = () => (
+  <svg className="h-5 w-5 drop-shadow-sm transition-transform group-hover:scale-110" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+    <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+    <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.223,0-9.654-3.343-11.303-8l-6.571,4.819C9.656,39.663,16.318,44,24,44z"/>
+    <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+  </svg>
+);
+
+const GithubIcon = () => (
+  <svg className="h-5 w-5 drop-shadow-sm text-[#181717] transition-transform group-hover:scale-110" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+    <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.419-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+  </svg>
+);
+
+/**
+ * Login Page Component
+ * Handles user authentication, responsive layout, and visual interactions.
+ */
 const Login = () => {
   const navigate = useNavigate();
+  
+  // UI State
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
   // Form State
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false
   });
-
   const [errors, setErrors] = useState({});
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-  // 1. 3D PARALLAX LOGIC (Right Side)
+  /**
+   * 3D Parallax Logic
+   * Calculates mouse offset for the "levitating" cards effect.
+   */
   const handleMouseMove = (e) => {
+    // Optimization: Calculate relative to the container dimensions
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - left - width / 2) / 45;
     const y = (e.clientY - top - height / 2) / 45;
     setMousePosition({ x, y });
   };
 
-  // 2. FORM HANDLERS
+  /**
+   * Form Field Handler
+   */
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
-    if (errors[name]) setErrors({ ...errors, [name]: '' });
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
+    // Clear specific error when user types
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
+  /**
+   * Validation Logic
+   */
   const validateForm = () => {
     const newErrors = {};
     if (!formData.email.trim()) newErrors.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Invalid email format";
+    
     if (!formData.password) newErrors.password = "Password is required";
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  /**
+   * Login Submission Handler
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+
     setIsLoading(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success("Authentication successful");
+      // API call to backend
+      const { data } = await API.post('/auth/login', {
+        email: formData.email,
+        password: formData.password
+      });
+
+      // Securely store session data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('userInfo', JSON.stringify({
+        _id: data._id,
+        name: data.name,
+        email: data.email
+      }));
+
+      // Optional: Handle "Remember Me" logic here if backend supports persistent tokens
+      if (formData.rememberMe) {
+        localStorage.setItem('rememberMe', 'true');
+      }
+
+      toast.success(`Welcome back, ${data.name}!`);
       navigate('/dashboard'); 
+
     } catch (error) {
-      toast.error("Invalid credentials.");
+      console.error("Login Error:", error);
+      const message = error.response?.data?.message || "Invalid credentials. Please try again.";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex w-full font-sans bg-white text-[#0f172a]">
+    <div className="min-h-screen flex w-full font-sans bg-white text-slate-900 overflow-hidden">
       
       {/* =======================================================================
           LEFT SIDE: THE LOGIN FORM
          ======================================================================= */}
-      <div className="w-full lg:w-[50%] flex flex-col justify-center items-center p-6 sm:p-12 min-h-screen bg-white relative z-0">
+      <div className="w-full lg:w-[50%] flex flex-col justify-center items-center p-6 sm:p-12 xl:p-24 min-h-screen bg-white relative z-20">
         
-        {/* --- MOBILE HEADER --- */}
+        {/* --- MOBILE BRANDING --- */}
         <div className="lg:hidden flex flex-col items-center mb-10 animate-fade-in-down">
           <img src="/logo.png" alt="LifeOS Logo" className="h-12 w-auto drop-shadow-lg mb-2" />
-          <span className="text-xl font-bold text-[#0f172a] tracking-tight">LifeOS</span>
+          <span className="text-xl font-bold text-slate-900 tracking-tight">LifeOS</span>
           <span className="text-lg text-slate-500 tracking-tight italic mt-1">"Design your life"</span>
         </div>
 
         <div className="w-full max-w-md space-y-8 animate-fade-in-up">
           
           <div className="text-center lg:text-left">
-            <h2 className="text-4xl font-extrabold text-[#0f172a] tracking-tight">Welcome Back</h2>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Welcome Back</h2>
             <p className="mt-3 text-slate-500 text-lg">Enter your credentials to access the terminal.</p>
           </div>
 
-          {/* --- 3D SOCIAL BUTTONS --- */}
+          {/* --- SOCIAL BUTTONS --- */}
           <div className="flex gap-4">
-            {/* Google 3D Style */}
-            <button className="w-full flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-sm font-bold text-slate-700 hover:shadow-md transform hover:-translate-y-0.5 duration-200 group">
-               <svg className="h-6 w-6 drop-shadow-sm transition-transform group-hover:scale-110" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                 <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
-                 <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
-                 <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.223,0-9.654-3.343-11.303-8l-6.571,4.819C9.656,39.663,16.318,44,24,44z"/>
-                 <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
-               </svg>
+            <button className="flex-1 flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-sm font-bold text-slate-700 hover:shadow-md transform hover:-translate-y-0.5 duration-200 group">
+               <GoogleIcon />
                Google
             </button>
-            {/* GitHub 3D Style */}
-            <button className="w-full flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-sm font-bold text-slate-700 hover:shadow-md transform hover:-translate-y-0.5 duration-200 group">
-               <svg className="h-6 w-6 drop-shadow-sm text-[#181717] transition-transform group-hover:scale-110" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-                 <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.419-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
-               </svg>
+            <button className="flex-1 flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-sm font-bold text-slate-700 hover:shadow-md transform hover:-translate-y-0.5 duration-200 group">
+               <GithubIcon />
                GitHub
             </button>
           </div>
 
+          {/* Divider */}
           <div className="relative flex items-center">
             <div className="flex-grow border-t border-gray-200"></div>
             <span className="flex-shrink-0 mx-4 text-gray-400 text-xs font-bold uppercase tracking-widest">Or sign in with</span>
             <div className="flex-grow border-t border-gray-200"></div>
           </div>
 
+          {/* --- LOGIN FORM --- */}
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* Email Field */}
@@ -150,6 +208,7 @@ const Login = () => {
                   type="button" 
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer focus:outline-none"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -157,7 +216,7 @@ const Login = () => {
               {errors.password && <p className="text-xs text-red-500 font-bold ml-1">{errors.password}</p>}
             </div>
 
-            {/* Extras */}
+            {/* Extras: Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="relative flex items-center">
@@ -180,7 +239,7 @@ const Login = () => {
               </Link>
             </div>
 
-            {/* Magnetic Button */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -211,7 +270,6 @@ const Login = () => {
           RIGHT SIDE: THE BRAND EXPERIENCE (Command Center)
          ======================================================================= */}
       <div 
-        // Added pt-32 to prevent overlap with the logo in the top right
         className="hidden lg:flex w-[50%] fixed right-0 top-0 h-full bg-[#0B1121] flex-col justify-center p-12 xl:p-20 pt-32 text-white overflow-hidden perspective-1000 z-10"
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setMousePosition({ x: 0, y: 0 })}
@@ -221,8 +279,7 @@ const Login = () => {
         <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[100px] animate-pulse duration-[8s]"></div>
         <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[100px] animate-pulse delay-1000 duration-[12s]"></div>
 
-        {/* === PERFECTED LOGO ALIGNMENT === */}
-        {/* UPDATED: Changed 'right-10' to 'left-12' to move the logo to the left side */}
+        {/* Logo Alignment */}
         <div className="absolute top-12 left-12 flex items-center gap-4 animate-fade-in-down z-30">
           <img src="/logo.png" alt="LifeOS" className="h-10 w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]" />
           <span className="text-2xl font-extrabold tracking-tight text-white drop-shadow-md">LifeOS</span>
@@ -235,7 +292,7 @@ const Login = () => {
              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-4 shadow-[0_0_10px_rgba(59,130,246,0.2)]">
                  <Zap size={10} className="fill-blue-300 animate-pulse" /> "Design your life"
              </div>
-             <h1 className="text-white xl:text-6xl font-extrabold leading-[1.1] tracking-tight mb-6">
+             <h1 className="text-white text-5xl xl:text-6xl font-extrabold leading-[1.1] tracking-tight mb-6">
                Welcome to your <br/>
                <span className="text-transparent bg-clip-text bg-gradient-to-l from-cyan-400 to-purple-400 animate-gradient-x">
                  command center.
@@ -327,6 +384,7 @@ const Login = () => {
           </div>
         </div>
 
+        {/* Footer */}
         <div className="absolute bottom-10 right-10 text-xs text-slate-500 flex gap-6 z-20 font-medium tracking-wide">
           <span className="hover:text-blue-400 cursor-pointer transition-colors">Privacy Policy</span>
           <span className="hover:text-blue-400 cursor-pointer transition-colors">Terms of Service</span>

@@ -2,15 +2,41 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Lock, ArrowRight, CheckCircle2, Shield, 
-  Github, Chrome, Eye, EyeOff, Zap, Layers, Wallet, Target, Calendar
+  Eye, EyeOff, Wallet, Target
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import API from '../services/api';
 
+// --- 3D LOGO COMPONENTS ---
+
+const GoogleLogo = () => (
+  <svg className="w-6 h-6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+  </svg>
+);
+
+const GithubLogo = () => (
+  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.527.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405 1.02 0 2.04.135 3 .405 2.28-1.545 3.285-1.23 3.285-1.23.66 1.653.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+  </svg>
+);
+
+/**
+ * Signup Page Component
+ * Handles user registration, form validation, and displays an interactive 3D visual section.
+ */
 const Signup = () => {
   const navigate = useNavigate();
+  
+  // UI State
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [passwordStrength, setPasswordStrength] = useState(0);
+
   // Form State
   const [formData, setFormData] = useState({
     fullName: '',
@@ -22,19 +48,20 @@ const Signup = () => {
 
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
-  const [passwordStrength, setPasswordStrength] = useState(0);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-  // 1. MOUSE PARALLAX EFFECT (Smoother)
+  /**
+   * Parallax Effect Handler
+   */
   const handleMouseMove = (e) => {
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    // Smaller divisor = More movement. 
     const x = (e.clientX - left - width / 2) / 40; 
     const y = (e.clientY - top - height / 2) / 40;
     setMousePosition({ x, y });
   };
 
-  // Form Logic
+  /**
+   * Password Strength Calculator
+   */
   useEffect(() => {
     const pwd = formData.password;
     let score = 0;
@@ -45,48 +72,85 @@ const Signup = () => {
     setPasswordStrength(score);
   }, [formData.password]);
 
+  // Input Change Handler
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
-    if (errors[name]) setErrors({ ...errors, [name]: '' });
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
+  // Blur Handler
   const handleBlur = (e) => {
-    setTouched({ ...touched, [e.target.name]: true });
+    setTouched(prev => ({ ...prev, [e.target.name]: true }));
   };
 
+  /**
+   * Field Validity Checker
+   */
   const isValid = (field) => {
     if (!touched[field]) return false;
-    if (field === 'email') return /\S+@\S+\.\S+/.test(formData.email);
-    if (field === 'fullName') return formData.fullName.length > 2;
-    if (field === 'password') return formData.password.length >= 6;
-    if (field === 'confirmPassword') return formData.password === formData.confirmPassword && formData.confirmPassword.length > 0;
-    return false;
+    switch (field) {
+      case 'email': return /\S+@\S+\.\S+/.test(formData.email);
+      case 'fullName': return formData.fullName.length > 2;
+      case 'password': return formData.password.length >= 6;
+      case 'confirmPassword': return formData.password === formData.confirmPassword && formData.confirmPassword.length > 0;
+      default: return false;
+    }
   };
 
+  /**
+   * Comprehensive Form Validation
+   */
   const validateForm = () => {
     const newErrors = {};
     if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
     if (!formData.email.trim()) newErrors.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Invalid email format";
+    
     if (!formData.password) newErrors.password = "Password is required";
     else if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    
     if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match";
     if (!formData.agreeTerms) newErrors.agreeTerms = "You must accept the terms";
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  /**
+   * Form Submission Handler
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success("Welcome to LifeOS!");
-      navigate('/login');
+      const payload = {
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password
+      };
+
+      const { data } = await API.post('/auth/register', payload);
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('userInfo', JSON.stringify({
+        _id: data._id,
+        name: data.name,
+        email: data.email
+      }));
+
+      toast.success(`Welcome to LifeOS, ${data.name}!`);
+      navigate('/dashboard'); 
+
     } catch (error) {
-      toast.error("Something went wrong.");
+      console.error("Registration Error:", error);
+      const message = error.response?.data?.message || "Something went wrong. Please try again.";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -96,41 +160,30 @@ const Signup = () => {
     <div className="min-h-screen flex w-full font-sans overflow-x-hidden selection:bg-cyan-500/30 selection:text-cyan-900 bg-surface lg:bg-white">
       
       {/* =======================================================================
-          LEFT SIDE: THE LEVITATING ECOSYSTEM (Redesigned)
+          LEFT SIDE: THE LEVITATING ECOSYSTEM
          ======================================================================= */}
       <div 
         className="hidden lg:flex w-[48%] bg-[#0B1121] fixed left-0 top-0 h-full flex-col justify-between p-16 text-white overflow-hidden perspective-1000 z-10"
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setMousePosition({ x: 0, y: 0 })}
       >
-        {/* --- ATMOSPHERE LAYERS --- */}
-        
-        {/* 1. Deep Space Gradient */}
+        {/* Atmosphere & Orbs */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] z-0"></div>
-
-        {/* 2. Grid Floor (The "Tron" Look) */}
         <div className="absolute bottom-0 left-[-50%] w-[200%] h-[50%] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] transform perspective-500 rotate-x-60 opacity-20 pointer-events-none"></div>
-
-        {/* 3. Glowing Orbs */}
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-[120px] mix-blend-screen animate-pulse duration-[10s]"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] mix-blend-screen animate-pulse delay-1000 duration-[12s]"></div>
 
-
-        {/* --- LOGO --- */}
+        {/* Logo */}
         <div className="relative z-10 flex items-center gap-3 animate-fade-in-down">
           <img src="/logo.png" alt="LifeOS Logo" className="h-10 w-auto drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
-          <span className="text-2xl font-bold tracking-tight text-white">LifeOS</span>
+          <span className="text-2xl  tracking-tight text-white">LifeOS</span>
         </div>
 
-
-        {/* --- MAIN 3D COMPOSITION --- */}
+        {/* 3D Composition */}
         <div className="relative z-10 flex flex-col justify-center h-full">
-          
-          {/* IMPROVED TEXT: Bolder, Better Colors */}
           <div className="mb-16 relative z-20">
              <h2 className="text-6xl font-bold tracking-tight text-white">
                Architect your <br/>
-               {/* Holographic Text Effect */}
                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-200 to-purple-300 animate-gradient-x">
                  digital destiny.
                </span>
@@ -140,10 +193,8 @@ const Signup = () => {
              </p>
           </div>
 
-          {/* THE LEVITATING STACK (3 Cards hovering) */}
           <div className="relative w-full h-[300px]" style={{ transformStyle: 'preserve-3d' }}>
-             
-             {/* Card 1: Finance (Back Left) */}
+             {/* Card 1: Finance */}
              <div 
                className="absolute top-10 left-0 w-64 p-5 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-md shadow-2xl transition-transform duration-200 ease-out"
                style={{ transform: `translateX(${mousePosition.x * -0.5}px) translateY(${mousePosition.y * -0.5}px) scale(0.9)` }}
@@ -158,7 +209,7 @@ const Signup = () => {
                 <span className="text-xs text-green-300">+24% this month</span>
              </div>
 
-             {/* Card 2: Habits (Back Right) */}
+             {/* Card 2: Habits */}
              <div 
                className="absolute top-0 right-10 w-64 p-5 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-md shadow-2xl transition-transform duration-200 ease-out z-10"
                style={{ transform: `translateX(${mousePosition.x * 0.8}px) translateY(${mousePosition.y * 0.8}px) scale(0.95)` }}
@@ -174,14 +225,12 @@ const Signup = () => {
                 </div>
              </div>
 
-             {/* Card 3: Main Focus (Front Center - The Hero) */}
+             {/* Card 3: Main Focus */}
              <div 
                className="absolute top-[80px] left-[15%] w-[320px] p-6 rounded-2xl bg-[#0f172a]/80 border border-white/10 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-transform duration-100 ease-out z-20 group"
                style={{ transform: `translateX(${mousePosition.x * 1.5}px) translateY(${mousePosition.y * 1.5}px)` }}
              >
-                {/* Glow Effect */}
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl opacity-20 blur group-hover:opacity-40 transition duration-1000"></div>
-                
                 <div className="relative bg-[#0f172a]/90 rounded-xl p-5 border border-white/5 h-full">
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-xs font-bold uppercase tracking-widest text-cyan-400">Current Focus</span>
@@ -189,7 +238,6 @@ const Signup = () => {
                   </div>
                   <h3 className="text-xl font-bold text-white mb-1">Q4 Product Launch</h3>
                   <p className="text-sm text-slate-400 mb-4">Launch marketing campaign</p>
-                  
                   <div className="flex items-center gap-3">
                     <div className="flex -space-x-2">
                       <div className="w-8 h-8 rounded-full bg-blue-500 border-2 border-[#0f172a]"></div>
@@ -199,9 +247,7 @@ const Signup = () => {
                   </div>
                 </div>
              </div>
-
           </div>
-
         </div>
 
         {/* Footer */}
@@ -212,15 +258,15 @@ const Signup = () => {
       </div>
 
       {/* =======================================================
-          RIGHT SIDE: THE FORM (Production Ready)
+          RIGHT SIDE: THE FORM
          ======================================================= */}
       <div className="w-full lg:w-[52%] lg:ml-auto flex flex-col justify-center items-center p-4 sm:p-12 xl:p-24 relative min-h-screen">
         
-        {/* Mobile Header Logo */}
+        {/* Mobile Header */}
         <div className="lg:hidden flex flex-col items-center mb-6 animate-fade-in-down">
           <img src="/logo.png" alt="LifeOS Logo" className="h-12 w-auto drop-shadow-lg mb-2" />
           <span className="text-xl font-bold text-secondary tracking-tight">LifeOS</span>
-          <span className="text-xl  text-secondary tracking-tight">"Design your life"</span>
+          <span className="text-xl text-secondary tracking-tight">"Design your life"</span>
         </div>
 
         {/* Card Container */}
@@ -231,15 +277,21 @@ const Signup = () => {
             <p className="text-text-muted text-base sm:text-lg">Start your 14-day free trial today.</p>
           </div>
 
-          {/* Social Auth */}
-          <div className="grid grid-cols-2 gap-3 mb-8">
-            <button className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all font-medium text-text-body text-sm group">
-               <Chrome size={20} className="text-text-body group-hover:text-primary transition-colors" /> 
+          {/* --- 3D SOCIAL BUTTONS --- */}
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <button 
+              type="button" 
+              className="flex items-center justify-center gap-3 py-3.5 px-4 bg-white border-2 border-gray-100 border-b-[4px] border-b-gray-200 rounded-2xl hover:bg-gray-50 hover:border-b-gray-300 active:border-b-2 active:translate-y-[2px] transition-all duration-200 text-sm font-bold text-text-body group"
+            >
+               <GoogleLogo />
                <span className="group-hover:text-text-main transition-colors">Google</span>
             </button>
-            <button className="flex items-center justify-center gap-2 py-3 px-4 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all font-medium text-text-body text-sm group">
-               <Github size={20} className="text-text-body group-hover:text-black transition-colors" /> 
-               <span className="group-hover:text-text-main transition-colors">GitHub</span>
+            <button 
+              type="button"
+              className="flex items-center justify-center gap-3 py-3.5 px-4 bg-[#24292e] text-white border-2 border-[#24292e] border-b-[4px] border-b-black rounded-2xl hover:bg-[#2f363d] hover:border-b-black active:border-b-2 active:translate-y-[2px] transition-all duration-200 text-sm font-bold shadow-lg shadow-gray-200"
+            >
+               <GithubLogo />
+               <span>GitHub</span>
             </button>
           </div>
 
@@ -249,17 +301,30 @@ const Signup = () => {
             <div className="flex-grow border-t border-gray-100"></div>
           </div>
 
-          {/* Form */}
+          {/* Signup Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
+            
             {/* Full Name */}
             <div className="group space-y-1.5">
-              <label className="text-sm font-bold text-text-body ml-1 group-focus-within:text-primary transition-colors">Full Name</label>
+              <label className="text-sm font-bold text-text-body ml-1 group-focus-within:text-primary transition-colors">
+                Full Name
+              </label>
               <div className="relative transition-all duration-300 transform group-focus-within:-translate-y-1">
                 <User className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
                 <input
-                  name="fullName" type="text" placeholder="John Doe"
-                  value={formData.fullName} onChange={handleChange} onBlur={handleBlur}
-                  className={`w-full pl-12 pr-10 py-3.5 bg-surface border-2 ${errors.fullName ? 'border-error/50 bg-error/5' : isValid('fullName') ? 'border-success/50 bg-success/5' : 'border-transparent'} rounded-2xl focus:border-primary focus:bg-white focus:shadow-lg focus:shadow-primary/10 transition-all outline-none font-medium text-text-main placeholder:text-gray-300`}
+                  name="fullName" 
+                  type="text" 
+                  placeholder="John Doe"
+                  value={formData.fullName} 
+                  onChange={handleChange} 
+                  onBlur={handleBlur}
+                  className={`w-full pl-12 pr-10 py-3.5 bg-surface border-2 ${
+                    errors.fullName 
+                      ? 'border-error/50 bg-error/5' 
+                      : isValid('fullName') 
+                        ? 'border-success/50 bg-success/5' 
+                        : 'border-transparent'
+                  } rounded-2xl focus:border-primary focus:bg-white focus:shadow-lg focus:shadow-primary/10 transition-all outline-none font-medium text-text-main placeholder:text-gray-300`}
                 />
                 {isValid('fullName') && <CheckCircle2 className="absolute right-4 top-4 text-success animate-bounce-short" size={20} />}
               </div>
@@ -268,13 +333,25 @@ const Signup = () => {
 
             {/* Email */}
             <div className="group space-y-1.5">
-              <label className="text-sm font-bold text-text-body ml-1 group-focus-within:text-primary transition-colors">Email Address</label>
+              <label className="text-sm font-bold text-text-body ml-1 group-focus-within:text-primary transition-colors">
+                Email Address
+              </label>
               <div className="relative transition-all duration-300 transform group-focus-within:-translate-y-1">
                 <Mail className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
                 <input
-                  name="email" type="email" placeholder="john@example.com"
-                  value={formData.email} onChange={handleChange} onBlur={handleBlur}
-                  className={`w-full pl-12 pr-10 py-3.5 bg-surface border-2 ${errors.email ? 'border-error/50 bg-error/5' : isValid('email') ? 'border-success/50 bg-success/5' : 'border-transparent'} rounded-2xl focus:border-primary focus:bg-white focus:shadow-lg focus:shadow-primary/10 transition-all outline-none font-medium text-text-main placeholder:text-gray-300`}
+                  name="email" 
+                  type="email" 
+                  placeholder="john@example.com"
+                  value={formData.email} 
+                  onChange={handleChange} 
+                  onBlur={handleBlur}
+                  className={`w-full pl-12 pr-10 py-3.5 bg-surface border-2 ${
+                    errors.email 
+                      ? 'border-error/50 bg-error/5' 
+                      : isValid('email') 
+                        ? 'border-success/50 bg-success/5' 
+                        : 'border-transparent'
+                  } rounded-2xl focus:border-primary focus:bg-white focus:shadow-lg focus:shadow-primary/10 transition-all outline-none font-medium text-text-main placeholder:text-gray-300`}
                 />
                  {isValid('email') && <CheckCircle2 className="absolute right-4 top-4 text-success animate-bounce-short" size={20} />}
               </div>
@@ -283,22 +360,46 @@ const Signup = () => {
 
             {/* Password */}
             <div className="group space-y-1.5">
-              <label className="text-sm font-bold text-text-body ml-1 group-focus-within:text-primary transition-colors">Password</label>
+              <label className="text-sm font-bold text-text-body ml-1 group-focus-within:text-primary transition-colors">
+                Password
+              </label>
               <div className="relative transition-all duration-300 transform group-focus-within:-translate-y-1">
                 <Lock className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
                 <input
-                  name="password" type={showPassword ? "text" : "password"} placeholder="••••••••"
-                  value={formData.password} onChange={handleChange} onBlur={handleBlur}
-                  className={`w-full pl-12 pr-12 py-3.5 bg-surface border-2 ${errors.password ? 'border-error/50 bg-error/5' : 'border-transparent'} rounded-2xl focus:border-primary focus:bg-white focus:shadow-lg focus:shadow-primary/10 transition-all outline-none font-medium text-text-main placeholder:text-gray-300`}
+                  name="password" 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••"
+                  value={formData.password} 
+                  onChange={handleChange} 
+                  onBlur={handleBlur}
+                  className={`w-full pl-12 pr-12 py-3.5 bg-surface border-2 ${
+                    errors.password ? 'border-error/50 bg-error/5' : 'border-transparent'
+                  } rounded-2xl focus:border-primary focus:bg-white focus:shadow-lg focus:shadow-primary/10 transition-all outline-none font-medium text-text-main placeholder:text-gray-300`}
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-4 text-gray-400 hover:text-text-body transition-colors focus:outline-none">
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)} 
+                  className="absolute right-4 top-4 text-gray-400 hover:text-text-body transition-colors focus:outline-none"
+                >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              <div className="overflow-hidden transition-all duration-500 ease-in-out" style={{ maxHeight: formData.password ? '24px' : '0px', opacity: formData.password ? 1 : 0 }}>
+              
+              {/* Password Strength Indicator */}
+              <div 
+                className="overflow-hidden transition-all duration-500 ease-in-out" 
+                style={{ maxHeight: formData.password ? '24px' : '0px', opacity: formData.password ? 1 : 0 }}
+              >
                 <div className="flex gap-2 mt-2 px-1">
                   {[1, 2, 3, 4].map((level) => (
-                    <div key={level} className={`h-1.5 rounded-full flex-1 transition-all duration-500 ${passwordStrength >= level ? (passwordStrength < 2 ? 'bg-red-400' : passwordStrength < 4 ? 'bg-yellow-400' : 'bg-emerald-500') : 'bg-gray-100'}`} />
+                    <div 
+                      key={level} 
+                      className={`h-1.5 rounded-full flex-1 transition-all duration-500 ${
+                        passwordStrength >= level 
+                          ? (passwordStrength < 2 ? 'bg-red-400' : passwordStrength < 4 ? 'bg-yellow-400' : 'bg-emerald-500') 
+                          : 'bg-gray-100'
+                      }`} 
+                    />
                   ))}
                 </div>
               </div>
@@ -307,25 +408,40 @@ const Signup = () => {
 
             {/* Confirm Password */}
             <div className="group space-y-1.5">
-              <label className="text-sm font-bold text-text-body ml-1 group-focus-within:text-primary transition-colors">Confirm Password</label>
+              <label className="text-sm font-bold text-text-body ml-1 group-focus-within:text-primary transition-colors">
+                Confirm Password
+              </label>
               <div className="relative transition-all duration-300 transform group-focus-within:-translate-y-1">
                 <Shield className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
                 <input
-                  name="confirmPassword" type="password" placeholder="••••••••"
-                  value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur}
-                  className={`w-full pl-12 pr-10 py-3.5 bg-surface border-2 ${errors.confirmPassword ? 'border-error/50 bg-error/5' : isValid('confirmPassword') ? 'border-success/50 bg-success/5' : 'border-transparent'} rounded-2xl focus:border-primary focus:bg-white focus:shadow-lg focus:shadow-primary/10 transition-all outline-none font-medium text-text-main placeholder:text-gray-300`}
+                  name="confirmPassword" 
+                  type="password" 
+                  placeholder="••••••••"
+                  value={formData.confirmPassword} 
+                  onChange={handleChange} 
+                  onBlur={handleBlur}
+                  className={`w-full pl-12 pr-10 py-3.5 bg-surface border-2 ${
+                    errors.confirmPassword 
+                      ? 'border-error/50 bg-error/5' 
+                      : isValid('confirmPassword') 
+                        ? 'border-success/50 bg-success/5' 
+                        : 'border-transparent'
+                  } rounded-2xl focus:border-primary focus:bg-white focus:shadow-lg focus:shadow-primary/10 transition-all outline-none font-medium text-text-main placeholder:text-gray-300`}
                 />
                  {isValid('confirmPassword') && <CheckCircle2 className="absolute right-4 top-4 text-success animate-bounce-short" size={20} />}
               </div>
               {errors.confirmPassword && <p className="text-xs text-error font-medium ml-1 animate-pulse">{errors.confirmPassword}</p>}
             </div>
 
-            {/* Terms */}
+            {/* Terms Checkbox */}
             <div className="flex items-start gap-3 pt-2">
               <div className="relative flex items-center pt-0.5">
                 <input
-                  id="agreeTerms" name="agreeTerms" type="checkbox"
-                  checked={formData.agreeTerms} onChange={handleChange}
+                  id="agreeTerms" 
+                  name="agreeTerms" 
+                  type="checkbox"
+                  checked={formData.agreeTerms} 
+                  onChange={handleChange}
                   className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-gray-300 transition-all checked:border-primary checked:bg-primary hover:border-primary"
                 />
                 <CheckCircle2 size={14} className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[40%] text-white opacity-0 transition-opacity peer-checked:opacity-100" />
@@ -336,9 +452,10 @@ const Signup = () => {
             </div>
             {errors.agreeTerms && <p className="text-xs text-error font-medium ml-1">{errors.agreeTerms}</p>}
 
-            {/* Shimmer Button */}
+            {/* Submit Button */}
             <button
-              type="submit" disabled={isLoading}
+              type="submit" 
+              disabled={isLoading}
               className="relative w-full py-4 px-6 rounded-2xl shadow-xl shadow-primary/20 text-white font-bold bg-primary hover:bg-primary-hover active:scale-[0.98] transition-all duration-200 overflow-hidden group disabled:opacity-70 disabled:cursor-not-allowed mt-4"
             >
               <div className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent transform group-hover:translate-x-[200%] transition-transform duration-1000"></div>
