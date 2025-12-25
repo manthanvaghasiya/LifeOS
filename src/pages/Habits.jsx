@@ -178,7 +178,6 @@ const Habits = () => {
                 </div>
 
                 {/* RIGHT COLUMN (Sidebar) */}
-                {/* FIX: Removed 'sticky' on mobile. Only 'lg:sticky lg:top-24' applies on desktop. */}
                 <div className="lg:col-span-1 space-y-6 lg:space-y-8 order-1 lg:order-2 lg:sticky lg:top-24 h-fit">
                     
                     {/* NEW RITUAL CARD - Gradient Style */}
@@ -187,7 +186,8 @@ const Habits = () => {
                         <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-500/20 rounded-full blur-3xl -ml-10 -mb-10"></div>
                         
                         <div className="relative z-10">
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                            {/* ✅ FIXED: Added 'text-white' to override global h3 styles */}
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
                                 {editId ? <Save className="w-5 h-5 text-indigo-300" /> : <Plus className="w-5 h-5 text-indigo-300" />}
                                 {editId ? 'Update Ritual' : 'New Ritual'}
                             </h3>
