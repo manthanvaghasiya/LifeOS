@@ -220,6 +220,7 @@ const Signup = () => {
         <div className="lg:hidden flex flex-col items-center mb-6 animate-fade-in-down">
           <img src="/logo.png" alt="LifeOS Logo" className="h-12 w-auto drop-shadow-lg mb-2" />
           <span className="text-xl font-bold text-secondary tracking-tight">LifeOS</span>
+          <span className="text-xl  text-secondary tracking-tight">"Design your life"</span>
         </div>
 
         {/* Card Container */}
