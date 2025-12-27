@@ -180,6 +180,24 @@ const Habits = () => {
                 {/* RIGHT COLUMN (Sidebar) */}
                 <div className="lg:col-span-1 space-y-6 lg:space-y-8 order-1 lg:order-2 lg:sticky lg:top-24 h-fit">
                     
+                    {/* DAILY PROGRESS CARD */}
+                    <div className="bg-white dark:bg-gray-900/60 p-6 rounded-[2rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center relative overflow-hidden h-64 transition-all">
+                        <h3 className="font-bold text-gray-800 dark:text-white mb-2 z-10">Daily Progress</h3>
+                        <div className="relative w-40 h-40 z-10">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie data={donutData} innerRadius={55} outerRadius={75} dataKey="value" startAngle={90} endAngle={-270} stroke="none">
+                                        {donutData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                    </Pie>
+                                </PieChart>
+                            </ResponsiveContainer>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">{completionRate}%</span>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Today</span>
+                            </div>
+                        </div>
+                    </div>
+                    
                     {/* NEW RITUAL CARD - Gradient Style */}
                     <div className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white p-6 rounded-[2rem] shadow-xl shadow-indigo-900/20 relative overflow-hidden transition-all">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/30 rounded-full blur-3xl -mr-10 -mt-10"></div>
@@ -198,23 +216,7 @@ const Habits = () => {
                         </div>
                     </div>
 
-                    {/* DAILY PROGRESS CARD */}
-                    <div className="bg-white dark:bg-gray-900/60 p-6 rounded-[2rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center relative overflow-hidden h-64 transition-all">
-                        <h3 className="font-bold text-gray-800 dark:text-white mb-2 z-10">Daily Progress</h3>
-                        <div className="relative w-40 h-40 z-10">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie data={donutData} innerRadius={55} outerRadius={75} dataKey="value" startAngle={90} endAngle={-270} stroke="none">
-                                        {donutData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                                    </Pie>
-                                </PieChart>
-                            </ResponsiveContainer>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">{completionRate}%</span>
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Today</span>
-                            </div>
-                        </div>
-                    </div>
+                    
                 </div>
             </div>
 
