@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
-
+import { AuthProvider } from './context/AuthContext';
 // Non-lazy Layout Components (Always needed)
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
@@ -53,6 +53,7 @@ const App = () => {
 
   return (
     <ThemeProvider>
+      <AuthProvider>
       <Router>
         {/* Main App Container
           - Uses 'slate-50' for a premium dashboard background.
@@ -92,6 +93,7 @@ const App = () => {
           
         </div>
       </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 };
