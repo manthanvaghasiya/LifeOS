@@ -262,9 +262,6 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  /**
-   * Login Submission Handler
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -273,31 +270,31 @@ const Login = () => {
     const loadingToast = toast.loading("Accessing terminal...");
     
     try {
-      // API call to backend
       const { data } = await API.post('/auth/login', {
         email: formData.email,
         password: formData.password
       });
 
-      // Securely store session data
+      // 1. Store Data
       localStorage.setItem('token', data.token);
-      localStorage.setItem('userInfo', JSON.stringify({
+      localStorage.setItem('user', JSON.stringify({
         _id: data._id,
-        name: data.name,
-        email: data.email
+        name: data.name, // "Manthan"
+        email: data.email,
+        level: data.level || 1,
+        currentXP: data.currentXP || 0
       }));
 
-      // Optional: Handle "Remember Me" logic here if backend supports persistent tokens
-      if (formData.rememberMe) {
-        localStorage.setItem('rememberMe', 'true');
-      }
+      // 2. Notify AuthContext (The Bridge)
+      window.dispatchEvent(new Event('authChange')); 
 
+      // 3. Single Navigation
       toast.success(`Welcome back, ${data.name}!`, { id: loadingToast });
       navigate('/dashboard'); 
 
     } catch (error) {
       console.error("Login Error:", error);
-      const message = error.response?.data?.message || "Invalid credentials. Please try again.";
+      const message = error.response?.data?.message || "Invalid credentials";
       toast.error(message, { id: loadingToast });
     } finally {
       setIsLoading(false);
