@@ -10,6 +10,7 @@ import HabitSection from '../components/dashboard/HabitSection';
 import TaskSection from '../components/dashboard/TaskSection';
 import SpendingSection from '../components/dashboard/SpendingSection';
 import QuickSpendModal from '../components/dashboard/QuickSpendModal';
+import { addXP } from '../utils/gamification';
 
 const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
 
@@ -20,7 +21,7 @@ const Dashboard = () => {
   const [tasks, setTasks] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || { name: 'Achiever' });
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || { name: 'User' });
 
   useEffect(() => { fetchAllData(); }, []);
 
@@ -110,16 +111,34 @@ const Dashboard = () => {
   const pendingShortTermGoals = goals.filter(g => !g.isCompleted && g.type === 'Short Term').sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
 
   const handleToggleHabit = async (id) => { 
+    // 1. Optimistic UI Update (Already there)
     setHabits(prev => prev.map(h => h._id === id ? { ...h, completedDates: [...h.completedDates, todayStr] } : h)); 
-    try { await API.put(`/habits/${id}/toggle`, { date: todayStr }); } catch (err) { fetchAllData(); } 
+    
+    try { 
+      // 2. API Call (Already there)
+      await API.put(`/habits/${id}/toggle`, { date: todayStr }); 
+      
+      // 3. ✨ MISSING PIECE: Award XP ✨
+      addXP(10); 
+      
+    } catch (err) { 
+      fetchAllData(); 
+    } 
   };
   const handleToggleGoal = async (id) => { 
     setGoals(prev => prev.map(g => g._id === id ? { ...g, isCompleted: true } : g)); 
-    try { await API.put(`/goals/${id}/toggle`); } catch (err) { fetchAllData(); } 
+    try { 
+      await API.put(`/goals/${id}/toggle`);
+      addXP(50); // ✅ Reward: 50 XP for Big Goals!
+    } catch (err) { fetchAllData(); } 
   };
+
   const handleToggleTask = async (id) => { 
     setTasks(prev => prev.map(t => t._id === id ? { ...t, isCompleted: true } : t)); 
-    try { await API.put(`/tasks/${id}/toggle`); } catch (err) { fetchAllData(); } 
+    try { 
+      await API.put(`/tasks/${id}/toggle`);
+      addXP(5); // ✅ Reward: 5 XP for small tasks
+    } catch (err) { fetchAllData(); } 
   };
   
   if (loading) return <DashboardSkeleton />;
