@@ -1,120 +1,190 @@
 import { formatCurrency } from './helpers';
 
+// Helper: Get Greeting based on time
+const getTimeContext = () => {
+  const hour = new Date().getHours();
+  if (hour < 11) return 'morning';
+  if (hour < 17) return 'afternoon';
+  return 'evening';
+};
+
+// Helper: Get Date ranges
+const getDateRanges = () => {
+  const today = new Date();
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  return { today, startOfMonth };
+};
+
 export const generateInsights = (transactions, habits, tasks) => {
   const insights = [];
-  const today = new Date();
+  const { today, startOfMonth } = getDateRanges();
+  const timeContext = getTimeContext();
   const todayStr = today.toISOString().split('T')[0];
-  const currentMonth = today.getMonth();
 
-  // ==========================================
-  // 1. FINANCIAL ANALYSIS
-  // ==========================================
-  const thisMonthTx = transactions.filter(t => new Date(t.date).getMonth() === currentMonth);
-  const todaysTx = transactions.filter(t => new Date(t.date).toLocaleDateString() === today.toLocaleDateString());
-
-  const income = thisMonthTx.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-  const expense = thisMonthTx.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-  const spentToday = todaysTx.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-
-  // A. Negative Cashflow (Critical)
-  if (expense > income && income > 0) {
-    insights.push({
-      type: 'danger',
-      weight: 10, // Highest Priority
-      title: 'Financial Warning',
-      message: `You have spent ${formatCurrency(Math.abs(income - expense))} more than you earned this month.`
-    });
-  }
-
-  // B. High Daily Spending (Warning)
-  // Threshold set to 2000, can be dynamic based on income/30 in future
-  if (spentToday > 2000) {
-    insights.push({
-      type: 'warning',
-      weight: 8,
-      title: 'High Spending Detected',
-      message: `You've spent ${formatCurrency(spentToday)} today. Consider slowing down if this wasn't planned.`
-    });
-  }
-
-  // C. Savings Rate (Success/Warning)
-  if (income > expense) {
-    const savingsRate = ((income - expense) / income) * 100;
-    if (savingsRate > 20) {
+  // 1. 🧠 CONTEXTUAL "HELLO" (Morning/Evening)
+ 
+  // Morning Briefing (High Priority if 5+ tasks)
+  if (timeContext === 'morning') {
+    const highPriTasks = tasks.filter(t => !t.isCompleted && t.priority === 'High');
+    if (highPriTasks.length > 0) {
       insights.push({
-        type: 'success',
-        weight: 2, // Low Priority (Good news is nice, but warnings come first)
-        title: 'Wealth Builder',
-        message: `Great job! You're saving ${Math.round(savingsRate)}% of your income this month.`
+        type: 'info',
+        weight: 6, // Good baseline priority for morning
+        title: 'Morning Briefing',
+        message: `Rise and grind! You have ${highPriTasks.length} high-priority items to tackle first today.`
+      });
+    } else if (habits.length > 0) {
+      insights.push({
+        type: 'info',
+        weight: 5,
+        title: 'Morning Ritual',
+        message: 'Start your day strong. Have you checked off your morning habits yet?'
       });
     }
   }
 
-  // ==========================================
-  // 2. TASK ANALYSIS
-  // ==========================================
-  const overdueTasks = tasks.filter(t => !t.isCompleted && new Date(t.dueDate) < new Date().setHours(0,0,0,0));
-  const highPriorityPending = tasks.filter(t => !t.isCompleted && t.priority === 'High');
-
-  // A. Overdue Tasks (Critical)
-  if (overdueTasks.length > 0) {
-    insights.push({
-      type: 'danger',
-      weight: 9,
-      title: 'Overdue Alert',
-      message: `You have ${overdueTasks.length} tasks past their deadline. Clear them out!`
-    });
-  }
-
-  // B. Task Overload (Warning)
-  if (highPriorityPending.length > 3) {
-    insights.push({
-      type: 'warning',
-      weight: 7,
-      title: 'Focus Required',
-      message: `You have ${highPriorityPending.length} High Priority tasks. Don't multitask—tackle one at a time.`
-    });
-  }
-
-  // ==========================================
-  // 3. HABIT ANALYSIS
-  // ==========================================
-  if (habits.length > 0) {
-    const doneToday = habits.filter(h => h.completedDates.includes(todayStr)).length;
-    // Habits that have a streak > 2 but are NOT done today
-    const streaksAtRisk = habits.filter(h => h.streak > 2 && !h.completedDates.includes(todayStr));
-
-    // A. Perfect Day (Success)
-    if (doneToday === habits.length) {
+  // Evening Review (Completion Summary)
+  if (timeContext === 'evening') {
+    const completedToday = tasks.filter(t => t.isCompleted && new Date(t.updatedAt || new Date()).toDateString() === today.toDateString()).length;
+    if (completedToday > 2) {
       insights.push({
         type: 'success',
         weight: 5,
-        title: 'Unstoppable',
-        message: 'You completed every single habit today. Enjoy your momentum!'
-      });
-    }
-    // B. Streak Protection (Warning)
-    else if (streaksAtRisk.length > 0) {
-      insights.push({
-        type: 'warning',
-        weight: 6,
-        title: 'Streaks at Risk',
-        message: `You have ${streaksAtRisk.length} active habits pending. Don't break the chain!`
+        title: 'Productive Day',
+        message: `You crushed ${completedToday} tasks today. Time to wind down and relax.`
       });
     }
   }
 
-  // ==========================================
-  // 4. FALLBACK
-  // ==========================================
+  // 2. 💰 DEEP FINANCIAL INTELLIGENCE
+
+  const thisMonthTx = transactions.filter(t => new Date(t.date) >= startOfMonth);
+  const income = thisMonthTx.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+  const expense = thisMonthTx.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+  
+  // A. Burn Rate Alert (Spending faster than days passed)
+  const daysPassed = today.getDate();
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const monthProgress = daysPassed / daysInMonth; // e.g., 0.5 (50%)
+  
+  if (income > 0) {
+    const spendRatio = expense / income;
+    
+    // Critical: Spent 80% of income but only halfway through month
+    if (spendRatio > 0.8 && monthProgress < 0.6) {
+      insights.push({
+        type: 'danger',
+        weight: 20, // EMERGENCY PRIORITY
+        title: 'Rapid Burn Rate',
+        message: `Careful! You've spent 80% of your income, but the month is only half over.`
+      });
+    }
+    // Warning: Spending > Income
+    else if (expense > income) {
+      insights.push({
+        type: 'danger',
+        weight: 15,
+        title: 'Negative Cashflow',
+        message: `Deficit Alert: You are ${formatCurrency(expense - income)} in the red this month.`
+      });
+    }
+  }
+
+  // B. Category Spike Detection (Where is money going?)
+  if (expense > 0) {
+    const categoryTotals = {};
+    thisMonthTx.filter(t => t.type === 'expense').forEach(t => {
+      categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
+    });
+
+    // Find highest spend category
+    const topCategory = Object.keys(categoryTotals).reduce((a, b) => categoryTotals[a] > categoryTotals[b] ? a : b);
+    const topCatAmount = categoryTotals[topCategory];
+    
+    // If one category is > 40% of total expenses
+    if (topCatAmount > (expense * 0.40)) {
+      insights.push({
+        type: 'warning',
+        weight: 8,
+        title: 'Spending Leak',
+        message: `High Usage: ${topCategory} accounts for 40% of your spending (${formatCurrency(topCatAmount)}) this month.`
+      });
+    }
+  }
+
+  // 3. 🚀 PRODUCTIVITY VELOCITY
+
+  const overdueTasks = tasks.filter(t => !t.isCompleted && new Date(t.dueDate) < new Date().setHours(0,0,0,0));
+  
+  if (overdueTasks.length > 5) {
+    insights.push({
+      type: 'danger',
+      weight: 12,
+      title: 'Task Overload',
+      message: `You have ${overdueTasks.length} overdue tasks. Stop planning and start executing!`
+    });
+  }
+
+  // Weekend Logic: If it's Sat/Sun and tasks are low
+  const isWeekend = today.getDay() === 0 || today.getDay() === 6;
+  if (isWeekend && overdueTasks.length === 0) {
+    insights.push({
+      type: 'success',
+      weight: 7,
+      title: 'Weekend Vibes',
+      message: 'No overdue tasks. You earned this break. Go recharge!'
+    });
+  }
+
+  // 4. 🔥 HABIT STREAK MOMENTUM
+
+  if (habits.length > 0) {
+    const habitsDoneToday = habits.filter(h => h.completedDates.includes(todayStr));
+    const pendingHabits = habits.filter(h => !h.completedDates.includes(todayStr));
+    
+    // Find the longest active streak
+    const bestStreak = Math.max(...habits.map(h => h.streak || 0));
+    const bestHabit = habits.find(h => h.streak === bestStreak);
+
+    // A. Big Milestone
+    if (bestStreak > 0 && bestStreak % 7 === 0 && habitsDoneToday.find(h => h._id === bestHabit._id)) {
+      insights.push({
+        type: 'success',
+        weight: 10,
+        title: 'Consistency King',
+        message: `🔥 ${bestStreak} Day Streak on "${bestHabit.title}"! You are building a lifestyle.`
+      });
+    }
+
+    // B. Danger Zone (Streak at risk late in the day)
+    if (timeContext === 'evening' && bestStreak > 3 && pendingHabits.find(h => h._id === bestHabit._id)) {
+      insights.push({
+        type: 'warning',
+        weight: 11,
+        title: 'Streak at Risk',
+        message: `Don't lose your ${bestStreak}-day streak on "${bestHabit.title}". Do it now!`
+      });
+    }
+  }
+
+  // 5. FALLBACK & SELECTION
+
   if (insights.length === 0) {
+    const genericMsg = [
+      "Small steps every day lead to big results.",
+      "Review your goals to stay aligned with your vision.",
+      "Track every expense to master your wealth.",
+      "Consistency is the key to mastery."
+    ];
+    const randomMsg = genericMsg[Math.floor(Math.random() * genericMsg.length)];
+    
     return {
       type: 'info',
-      title: 'All Systems Normal',
-      message: 'Your life is balanced. Check your Goals to see what to aim for next.'
+      title: 'LifeOS Insight',
+      message: randomMsg
     };
   }
 
-  // Sort by weight (Highest first) and return the top one
+  // Sort by weight descending
   return insights.sort((a, b) => b.weight - a.weight)[0];
 };
