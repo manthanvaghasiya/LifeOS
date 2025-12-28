@@ -27,14 +27,17 @@ const HabitSection = ({ habits, onToggle }) => {
       <div className="p-5 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
         {habits.length > 0 ? (
           habits.map(habit => (
-            <div 
+            <button 
               key={habit._id} 
               onClick={() => onToggle(habit._id)}
-              className="group flex items-center justify-between p-4 bg-white dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/50 hover:border-green-300 dark:hover:border-green-500/50 hover:shadow-md rounded-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5"
+              className="w-full text-left group flex items-center justify-between p-4 bg-white dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/50 hover:border-green-300 dark:hover:border-green-500/50 hover:shadow-md rounded-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-green-500/50"
             >
+              {/* Content remains exactly the same, just wrapped in button */}
               <div className="flex items-center gap-4">
+                {/* ... icons and title ... */}
                 <div className="relative w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 group-hover:border-green-500 transition-colors flex items-center justify-center">
-                  <div className="w-full h-full rounded-full bg-green-500 scale-0 group-hover:scale-100 transition-transform duration-200 flex items-center justify-center">
+                   {/* ... checkmark logic ... */}
+                   <div className="w-full h-full rounded-full bg-green-500 scale-0 group-hover:scale-100 transition-transform duration-200 flex items-center justify-center">
                     <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />
                   </div>
                 </div>
@@ -42,11 +45,12 @@ const HabitSection = ({ habits, onToggle }) => {
                   {habit.title}
                 </span>
               </div>
+              {/* ... streak badge ... */}
               <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 text-[10px] font-bold text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
                 <Flame className="w-3 h-3 text-orange-500 fill-orange-500" />
                 <span>{habit.streak || 0} Day Streak</span>
               </div>
-            </div>
+            </button>
           ))
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center py-10 opacity-80">
