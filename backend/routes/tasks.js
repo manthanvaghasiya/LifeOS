@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
 const { protect } = require('../middleware/authMiddleware');
+const User = require('../models/User'); // 👈 ADD THIS LINE
 
 // 1. GET ALL TASKS (With Goal Name)
 router.get('/', protect, async (req, res) => {
@@ -36,16 +37,36 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// ... (Toggle and Delete routes remain the same)
-// 3. TOGGLE COMPLETE
+//
+// 3. TOGGLE COMPLETE & AWARD XP
 router.put('/:id/toggle', protect, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Not found' });
     if (task.user.toString() !== req.user.id) return res.status(401).json({ message: 'Not authorized' });
 
+    // Toggle the status
     task.isCompleted = !task.isCompleted;
     await task.save();
+
+    // 👇 START NEW XP LOGIC 👇
+    // Only give XP if the task was marked DONE (not undone)
+    if (task.isCompleted) {
+        const user = await User.findById(req.user.id);
+        if (user) {
+            user.currentXP += 10; // Award 10 XP
+
+            // Level Up Logic
+            if (user.currentXP >= user.requiredXP) {
+                user.level += 1;
+                user.currentXP -= user.requiredXP;
+                user.requiredXP = user.level * 100; // Harder next level
+            }
+            await user.save();
+        }
+    }
+    // 👆 END NEW XP LOGIC 👆
+
     res.json(task);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

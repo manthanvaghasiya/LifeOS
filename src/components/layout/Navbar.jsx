@@ -63,9 +63,12 @@ const Navbar = () => {
   const { user } = useAuth();
 
   // 3. [FIXED] Get First Letter of Name (Fallback to 'U' only if name is missing)
-  const initials = user.name && user.name !== 'User' ? user.name.charAt(0).toUpperCase() : 'U';
-
-  const xpPercent = user.requiredXP ? Math.min((user.currentXP / user.requiredXP) * 100, 100) : 0;
+  //
+// Use ?. to safely access name while loading
+const initials = user?.name && user.name !== 'User' ? user.name.charAt(0).toUpperCase() : 'U';
+  //
+// Use ?. to prevent math on null values
+const xpPercent = user?.requiredXP ? Math.min((user.currentXP / user.requiredXP) * 100, 100) : 0;
 
   const navItems = [
     { path: '/', label: 'Home', icon: LayoutDashboard }, // Fixed Home Link
@@ -125,7 +128,7 @@ const Navbar = () => {
                 {/* 1. HOVER TOOLTIP: Shows "XP Remaining" */}
                 <div className="absolute -bottom-10 right-0 w-max opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 pointer-events-none z-50">
                   <div className="bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded shadow-xl border border-slate-700">
-                    {user.requiredXP - user.currentXP} XP to Level {user.level + 1}
+                    { (user?.requiredXP || 100) - (user?.currentXP || 0) } XP to Level { (user?.level || 1) + 1 }
                   </div>
                   {/* Little Arrow */}
                   <div className="absolute -top-1 right-6 w-2 h-2 bg-slate-800 rotate-45 border-t border-l border-slate-700"></div>
@@ -137,10 +140,10 @@ const Navbar = () => {
                     <Zap size={10} className="text-amber-500 fill-amber-500 animate-pulse" />
                   </div>
                   <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 tracking-tight">
-                    Lvl {user.level}
+                    Lvl {user?.level || 1}
                   </span>
                   <span className="text-[10px] text-slate-400 font-medium tabular-nums">
-                    {user.currentXP} <span className="text-slate-300 dark:text-slate-600">/</span> {user.requiredXP} XP
+                    {user?.currentXP || 0} <span className="text-slate-300 dark:text-slate-600">/</span> {user?.requiredXP || 100} XP
                   </span>
                 </div>
 

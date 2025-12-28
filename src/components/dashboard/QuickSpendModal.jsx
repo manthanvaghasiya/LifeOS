@@ -36,6 +36,7 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
   const [amount, setAmount] = useState('');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
+  const [paymentMode, setPaymentMode] = useState('Bank');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
   const [animating, setAnimating] = useState(false);
@@ -101,8 +102,8 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
         amount: parseFloat(amount),
         type,
         category,
-        date,
-        paymentMode: 'Bank',
+        date, // Sends today's date automatically
+        paymentMode, // 2. USE STATE VARIABLE HERE (was hardcoded 'Bank')
       };
 
       const { data } = await API.post('/transactions', payload);
@@ -162,8 +163,8 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
                 key={t}
                 onClick={() => setType(t)}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 ${type === t
-                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm ring-1 ring-gray-200 dark:ring-gray-700'
-                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                  ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm ring-1 ring-gray-200 dark:ring-gray-700'
+                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                   }`}
               >
                 {t === 'expense' ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
@@ -172,35 +173,65 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
             ))}
           </div>
 
+          {/* */}
           {/* B. MAIN INPUTS (Amount & Title) */}
           <div className="space-y-4">
-            {/* Amount Input (Unchanged) */}
-            <div className="relative group">
-              <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold transition-colors ${
-                type === 'expense' ? 'text-red-500' : 'text-green-500'
-              }`}>
-                ₹
-              </span>
-              <input 
-                type="number" 
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0"
-                autoFocus
-                className="w-full pl-10 pr-4 py-4 bg-gray-50 dark:bg-gray-800/50 border-2 border-transparent focus:border-gray-200 dark:focus:border-gray-700 focus:bg-white dark:focus:bg-gray-800 rounded-2xl text-3xl font-black text-gray-900 dark:text-white placeholder-gray-300 outline-none transition-all"
-              />
+            
+            {/* 1. AMOUNT + VERTICAL PAYMENT TOGGLE */}
+            <div className="flex bg-gray-50 dark:bg-gray-800/50 rounded-2xl overflow-hidden border-2 border-transparent focus-within:border-gray-200 dark:focus-within:border-gray-700 transition-colors">
+              
+              {/* Left: Amount Input */}
+              <div className="relative flex-1">
+                <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold transition-colors ${
+                  type === 'expense' ? 'text-red-500' : 'text-green-500'
+                }`}>
+                  ₹
+                </span>
+                <input 
+                  type="number" 
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0"
+                  autoFocus
+                  className="w-full pl-10 pr-4 py-4 bg-transparent text-3xl font-black text-gray-900 dark:text-white placeholder-gray-300 outline-none"
+                />
+              </div>
+
+              {/* Right: Vertical Payment Mode Buttons */}
+              <div className="w-20 flex flex-col border-l border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-900/30">
+                 <button
+                    onClick={() => setPaymentMode('Cash')}
+                    className={`flex-1 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider transition-all ${
+                       paymentMode === 'Cash' 
+                       ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
+                       : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                    }`}
+                 >
+                    Cash
+                 </button>
+                 <div className="h-px bg-gray-200 dark:bg-gray-700"></div>
+                 <button
+                    onClick={() => setPaymentMode('Bank')}
+                    className={`flex-1 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider transition-all ${
+                       paymentMode === 'Bank' 
+                       ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
+                       : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                    }`}
+                 >
+                    Bank
+                 </button>
+              </div>
             </div>
 
-            {/* --- FIX IS HERE: Stack Title and Date on mobile --- */}
+            {/* 2. TITLE INPUT (Full Width) */}
             <div className="flex flex-col sm:flex-row gap-3">
               <input 
                 type="text" 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="What is this for?"
-                className="flex-1 px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-gray-300 dark:focus:border-gray-600 rounded-xl text-sm font-semibold text-gray-900 dark:text-white outline-none transition-all"
+                className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-gray-300 dark:focus:border-gray-600 rounded-xl text-sm font-semibold text-gray-900 dark:text-white outline-none transition-all"
               />
-              
               <div className="relative">
                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Calendar className="h-4 w-4 text-gray-400" />
@@ -214,6 +245,7 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
                  />
               </div>
             </div>
+          
           </div>
 
           {/* CATEGORIES GRID */}
@@ -230,8 +262,8 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
                     key={cat.id}
                     onClick={() => setCategory(cat.id)}
                     className={`flex flex-col items-center gap-2 p-2 rounded-xl border transition-all duration-200 ${category === cat.id
-                        ? `border-${cat.color.split('-')[1]}-500 bg-${cat.color.split('-')[1]}-50 dark:bg-${cat.color.split('-')[1]}-900/20 shadow-sm scale-105`
-                        : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
+                      ? `border-${cat.color.split('-')[1]}-500 bg-${cat.color.split('-')[1]}-50 dark:bg-${cat.color.split('-')[1]}-900/20 shadow-sm scale-105`
+                      : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                   >
                     {/* Small Icon Size: w-4 h-4, Container: p-2 */}
@@ -287,8 +319,8 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
             onClick={handleSubmit}
             disabled={!amount || !title || loading}
             className={`w-full py-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-lg text-white shadow-xl transition-all duration-300 ${loading
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-gray-900 dark:bg-white dark:text-gray-900 hover:scale-[1.02] active:scale-95 shadow-gray-200 dark:shadow-none'
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-gray-900 dark:bg-white dark:text-gray-900 hover:scale-[1.02] active:scale-95 shadow-gray-200 dark:shadow-none'
               }`}
           >
             {loading ? (

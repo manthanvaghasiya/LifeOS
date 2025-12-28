@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../services/api';
-import { X, ArrowRight, Wallet, Building2, TrendingUp, CheckCircle2, Plus } from 'lucide-react';
+import { 
+  X, ArrowRight, Wallet, CreditCard, Calendar, 
+  Tag, Plus, Check, Banknote, Building2, TrendingUp 
+} from 'lucide-react';
 
-// 1. Define Distinct Category Lists
-const INITIAL_EXPENSE_CATS = ['Mobile', 'Bike', 'Food', 'Shopping', 'Bills', 'Pooja', 'Education', 'Guest', 'Grocery', 'Health', 'Travel'];
-const INITIAL_INCOME_CATS = ['Salary', 'Investment', 'Business', 'Freelancing', 'Gift', 'Rental', 'Refund'];
-const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
+// Default Lists
+const INITIAL_EXPENSE_CATS = ['Food', 'Shopping', 'Travel', 'Bills', 'Health', 'Education', 'Grocery', 'Entertainment', 'Fuel'];
+const INITIAL_INCOME_CATS = ['Salary', 'Freelance', 'Business', 'Investment', 'Gift', 'Rental'];
+const INVESTMENT_TYPES = ['SIP', 'Mutual Fund', 'Stocks', 'Gold', 'FD', 'Crypto', 'IPO'];
 
 const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   const [txType, setTxType] = useState('expense');
   
-  // 2. State for Dynamic Categories (allows adding new ones)
+  // Dynamic Categories
   const [expenseCats, setExpenseCats] = useState(INITIAL_EXPENSE_CATS);
   const [incomeCats, setIncomeCats] = useState(INITIAL_INCOME_CATS);
 
-  // Default State
+  // Form State
   const [formData, setFormData] = useState({ 
     title: '', amount: '', paymentMode: 'Bank', transferTo: 'Cash', 
     category: '', investmentType: 'SIP', profitAmount: '', 
@@ -22,17 +25,31 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   });
   
   const [customCategory, setCustomCategory] = useState('');
+  const [isAddingCat, setIsAddingCat] = useState(false); // Toggle for "Add Category" input
   const [isWithdrawalWithProfit, setIsWithdrawalWithProfit] = useState(false);
 
-  // Set default category based on type change
+  // --- 1. SMART COLOR THEME ---
+  const getThemeColor = () => {
+    if (txType === 'income') return 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 ring-emerald-200 dark:ring-emerald-800';
+    if (txType === 'transfer') return 'text-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-blue-200 dark:ring-blue-800';
+    return 'text-rose-500 bg-rose-50 dark:bg-rose-900/20 ring-rose-200 dark:ring-rose-800';
+  };
+
+  const getButtonColor = () => {
+    if (txType === 'income') return 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20';
+    if (txType === 'transfer') return 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20';
+    return 'bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 shadow-slate-500/20 text-white dark:text-slate-900';
+  };
+
+  // --- 2. INITIALIZATION & LOGIC ---
   useEffect(() => {
+    // Set default category when type switches
     if (!initialData) {
-        if (txType === 'expense') setFormData(prev => ({ ...prev, category: expenseCats[0] }));
-        else if (txType === 'income') setFormData(prev => ({ ...prev, category: incomeCats[0] }));
+        if (txType === 'expense' && !formData.category) setFormData(prev => ({ ...prev, category: expenseCats[0] }));
+        else if (txType === 'income' && !formData.category) setFormData(prev => ({ ...prev, category: incomeCats[0] }));
     }
   }, [txType]);
 
-  // --- INITIALIZATION ---
   useEffect(() => {
     if (initialData) {
       setTxType(initialData.type);
@@ -42,16 +59,12 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
       const isStandard = currentList.includes(initialData.category) || INVESTMENT_TYPES.includes(initialData.category);
 
       let initCategory = initialData.category;
-      let initCustom = '';
-
-      // If category is not in our lists, treat as "Other" or add it dynamically?
-      // For this UI logic, we set it to "Other" and pre-fill custom, 
-      // OR we could push it to the list. Let's stick to the "Other" logic for editing.
+      
+      // Handle custom categories
       if (!isStandard && initialData.category !== 'Transfer' && initialData.category !== 'Investment') {
-          initCategory = 'Other';
-          initCustom = initialData.category;
-      } else if (!initCategory) {
-          initCategory = currentList[0];
+         // If it's custom, ensure it's in our list logic (simplified for UI)
+         if (initialData.type === 'expense' && !expenseCats.includes(initCategory)) setExpenseCats([...expenseCats, initCategory]);
+         if (initialData.type === 'income' && !incomeCats.includes(initCategory)) setIncomeCats([...incomeCats, initCategory]);
       }
 
       setFormData({
@@ -59,291 +72,324 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
         amount: initialData.amount || '',
         paymentMode: initialData.paymentMode || 'Bank',
         transferTo: initialData.type === 'transfer' ? (initialData.transferTo || 'Cash') : 'Cash',
-        category: initCategory,
+        category: initCategory || 'Other',
         investmentType: initialData.investmentType || 'SIP',
         date: formattedDate,
         profitAmount: ''
       });
-      setCustomCategory(initCustom);
     }
   }, [initialData]);
 
-  // 3. FEATURE: Add Custom Category to List
   const handleAddCategory = () => {
     if (!customCategory.trim()) return;
-    
     const newCat = customCategory.trim();
-    
-    if (txType === 'expense') {
-        setExpenseCats([...expenseCats, newCat]);
-    } else if (txType === 'income') {
-        setIncomeCats([...incomeCats, newCat]);
-    }
-
+    if (txType === 'expense') setExpenseCats([...expenseCats, newCat]);
+    else setIncomeCats([...incomeCats, newCat]);
     setFormData({ ...formData, category: newCat });
-    setCustomCategory(''); // Clear input as it's now selected in dropdown
+    setCustomCategory('');
+    setIsAddingCat(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const finalDate = formData.date;
+    if(!formData.amount) return;
 
     try {
-      // WITHDRAWAL LOGIC
+      // (Keep existing complex Transfer/Investment logic)
+      let finalCategory = formData.category;
+      
+      // ... logic for withdrawals ...
       if (txType === 'transfer' && formData.paymentMode === 'Investment' && isWithdrawalWithProfit) {
-         // ... (Keep existing withdrawal logic)
          const total = Number(formData.amount);
          const profit = Number(formData.profitAmount);
          const principal = total - profit;
-
+         
          const transferRes = await API.post('/transactions', {
            title: `Withdrawal: ${formData.title} (Principal)`, amount: principal, type: 'transfer', category: 'Investment', 
-           transferTo: formData.transferTo, paymentMode: 'Investment', investmentType: formData.investmentType, date: finalDate
+           transferTo: formData.transferTo, paymentMode: 'Investment', investmentType: formData.investmentType, date: formData.date
          });
-         
          const profitRes = await API.post('/transactions', {
-           title: `Profit: ${formData.title}`, amount: profit, type: 'income', category: 'Investment Return', paymentMode: formData.transferTo, date: finalDate
+           title: `Profit: ${formData.title}`, amount: profit, type: 'income', category: 'Investment Return', paymentMode: formData.transferTo, date: formData.date
          });
-         
          onSuccess([profitRes.data, transferRes.data]);
-      } 
-      // STANDARD LOGIC
-      else {
-        let finalCategory = formData.category;
-        
-        if (txType === 'transfer') {
-            if (formData.transferTo === 'Investment') finalCategory = 'Investment';
-            else finalCategory = 'Transfer';
-        } else if (formData.category === 'Other') {
-            finalCategory = customCategory; // Use the typed input if 'Other' is still selected
-        }
+         onClose();
+         return;
+      }
 
-        let finalInvType = null;
-        if (finalCategory === 'Investment' || formData.paymentMode === 'Investment' || INVESTMENT_TYPES.includes(finalCategory)) {
-            finalInvType = formData.investmentType;
-        }
+      // Standard Logic
+      if (txType === 'transfer') {
+          if (formData.transferTo === 'Investment') finalCategory = 'Investment';
+          else finalCategory = 'Transfer';
+      }
 
-        const payload = {
-          title: formData.title,
-          amount: Number(formData.amount),
-          type: txType,
-          category: finalCategory,
-          paymentMode: formData.paymentMode,
-          transferTo: txType === 'transfer' ? formData.transferTo : null,
-          investmentType: finalInvType,
-          date: finalDate
-        };
+      const payload = {
+        title: formData.title,
+        amount: Number(formData.amount),
+        type: txType,
+        category: finalCategory,
+        paymentMode: formData.paymentMode,
+        transferTo: txType === 'transfer' ? formData.transferTo : null,
+        investmentType: (finalCategory === 'Investment' || formData.paymentMode === 'Investment') ? formData.investmentType : null,
+        date: formData.date
+      };
 
-        if (initialData && initialData._id) {
-          const res = await API.put(`/transactions/${initialData._id}`, payload);
-          onSuccess(res.data, true);
-        } else {
-          const res = await API.post('/transactions', payload);
-          onSuccess(res.data, false);
-        }
+      if (initialData && initialData._id) {
+        const res = await API.put(`/transactions/${initialData._id}`, payload);
+        onSuccess(res.data, true);
+      } else {
+        const res = await API.post('/transactions', payload);
+        onSuccess(res.data, false);
       }
       onClose();
     } catch (err) { alert("Error saving transaction"); }
   };
 
-  // Helper to get current list
-  const getCurrentCategories = () => txType === 'income' ? incomeCats : expenseCats;
+  const currentCategories = txType === 'income' ? incomeCats : expenseCats;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all duration-300">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden animate-fade-in scale-100">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
+      
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+
+      {/* Main Card */}
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl flex flex-col max-h-[95vh] animate-slide-up sm:animate-zoom-in overflow-hidden border border-slate-200 dark:border-slate-800">
         
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 sticky top-0 z-10">
-          <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
-            {initialData ? 'Edit Transaction' : 'New Entry'}
-          </h2>
-          <button 
-            onClick={onClose} 
-            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5 text-slate-500" />
-          </button>
+        {/* HEADER: Type Switcher */}
+        <div className="pt-6 px-6 pb-2 shrink-0 bg-white dark:bg-slate-900 z-10">
+           <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                 {initialData ? 'Edit Entry' : 'New Transaction'}
+              </h2>
+              <button onClick={onClose} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                 <X className="w-5 h-5" />
+              </button>
+           </div>
+
+           {/* Type Tabs */}
+           <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl">
+              {['expense', 'income', 'transfer'].map(type => (
+                <button 
+                  key={type}
+                  onClick={() => setTxType(type)}
+                  className={`py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+                    txType === type 
+                    ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' 
+                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+           </div>
         </div>
 
-        {/* Scrollable Form Content */}
-        <div className="p-6 overflow-y-auto custom-scrollbar">
-          
-          {/* Segmented Control for Type */}
-          <div className="grid grid-cols-3 gap-1 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-6">
-            {['expense', 'income', 'transfer'].map(type => (
-              <button 
-                key={type} 
-                type="button" 
-                onClick={() => setTxType(type)} 
-                className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
-                  txType === type 
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm scale-100' 
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                }`}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
+        {/* SCROLLABLE FORM */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            
-            {/* Title Input */}
-            <div>
-              <label className="label">Title</label>
-              <input 
-                type="text" 
-                required 
-                placeholder="e.g. Grocery Shopping"
-                className="input-field font-semibold" 
-                value={formData.title} 
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
-              />
-            </div>
-            
-            {/* Amount Input */}
-            <div>
-              <label className="label">
-                Amount {isWithdrawalWithProfit && <span className="text-emerald-500 text-[10px] ml-1">(Total Received)</span>}
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
-                <input 
-                  type="number" 
-                  required 
-                  className="input-field pl-8 font-mono font-bold text-lg" 
-                  value={formData.amount} 
-                  onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })} 
-                />
-              </div>
+            {/* 1. AMOUNT INPUT (Massive) */}
+            <div className="text-center space-y-2">
+               <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Amount</label>
+               <div className={`relative inline-flex items-center justify-center`}>
+                  <span className={`text-4xl font-bold mr-2 ${txType === 'expense' ? 'text-slate-300' : (txType === 'income' ? 'text-emerald-300' : 'text-blue-300')}`}>₹</span>
+                  <input 
+                    type="number" 
+                    placeholder="0"
+                    autoFocus
+                    className={`w-48 bg-transparent text-5xl font-black text-center outline-none placeholder-slate-200 dark:placeholder-slate-800 ${
+                       txType === 'expense' ? 'text-slate-900 dark:text-white' : 
+                       (txType === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400')
+                    }`}
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  />
+               </div>
             </div>
 
-            {/* Date (Conditional) */}
-            {initialData && (
-              <div className="animate-fade-in">
-                <label className="label">Date</label>
-                <input 
-                  type="date" 
-                  required 
-                  className="input-field" 
-                  value={formData.date} 
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })} 
-                />
-              </div>
-            )}
-
-            {/* TRANSFER FIELDS */}
-            {txType === 'transfer' && (
-              <div className="space-y-5 animate-slide-up">
-                  <div className="grid grid-cols-[1fr,auto,1fr] gap-2 items-end">
-                      <div>
-                        <label className="label">From</label>
-                        <select className="input-field appearance-none" value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}>
-                          <option value="Bank">Bank</option>
-                          <option value="Cash">Cash</option>
-                          <option value="Investment">Invest</option>
-                        </select>
-                      </div>
-                      <div className="pb-3 text-slate-300 dark:text-slate-600"><ArrowRight className="w-5 h-5" /></div>
-                      <div>
-                        <label className="label">To</label>
-                        <select className="input-field appearance-none" value={formData.transferTo} onChange={(e) => setFormData({ ...formData, transferTo: e.target.value })}>
-                          <option value="Bank">Bank</option>
-                          <option value="Cash">Cash</option>
-                          <option value="Investment">Invest</option>
-                        </select>
-                      </div>
+            {/* 2. TITLE & DATE */}
+            <div className="grid grid-cols-[1fr,auto] gap-3">
+               <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                     <Tag className="w-4 h-4" />
                   </div>
+                  <input 
+                    type="text" 
+                    placeholder="What is this for?" 
+                    className="w-full pl-10 pr-4 py-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 transition-all"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  />
+               </div>
+               <div className="relative">
+                  <input 
+                    type="date" 
+                    className="h-full pl-4 pr-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl font-bold text-xs text-slate-600 dark:text-slate-400 outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  />
+               </div>
+            </div>
 
-                  {/* Investment Type Selection */}
-                  {(formData.transferTo === 'Investment' || formData.paymentMode === 'Investment') && (
-                      <div className="animate-fade-in">
-                          <label className="label text-blue-600 dark:text-blue-400">Investment Type</label>
-                          <select className="input-field border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10" value={formData.investmentType} onChange={(e) => setFormData({...formData, investmentType: e.target.value})}>
-                              {INVESTMENT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
-                          </select>
-                      </div>
+            {/* 3. CATEGORY SELECTION (Only for Income/Expense) */}
+            {txType !== 'transfer' && (
+               <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Category</label>
+                     <button onClick={() => setIsAddingCat(!isAddingCat)} className="text-xs font-bold text-blue-500 hover:text-blue-600 transition">+ Custom</button>
+                  </div>
+                  
+                  {isAddingCat && (
+                     <div className="flex gap-2 animate-fade-in mb-2">
+                        <input 
+                          autoFocus
+                          type="text" 
+                          placeholder="New Category Name" 
+                          className="flex-1 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm font-bold text-blue-700 dark:text-blue-300 outline-none"
+                          value={customCategory}
+                          onChange={(e) => setCustomCategory(e.target.value)}
+                        />
+                        <button onClick={handleAddCategory} className="p-2 bg-blue-600 text-white rounded-xl">
+                           <Check className="w-4 h-4" />
+                        </button>
+                     </div>
                   )}
 
-                  {/* Profit Checkbox */}
+                  <div className="flex flex-wrap gap-2">
+                     {currentCategories.map(cat => (
+                        <button 
+                           key={cat}
+                           type="button"
+                           onClick={() => setFormData({ ...formData, category: cat })}
+                           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 border ${
+                              formData.category === cat 
+                                ? getThemeColor() + ' border-transparent shadow-sm scale-105' 
+                                : 'bg-slate-50 dark:bg-slate-800/50 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                           }`}
+                        >
+                           {cat}
+                        </button>
+                     ))}
+                  </div>
+               </div>
+            )}
+
+            {/* 4. PAYMENT MODE (Toggle Switch) */}
+            {txType !== 'transfer' && (
+               <div className="space-y-3">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Payment Mode</label>
+                  <div className="flex bg-slate-100 dark:bg-slate-800 rounded-2xl p-1">
+                     {['Bank', 'Cash'].map(mode => (
+                        <button
+                           key={mode}
+                           type="button"
+                           onClick={() => setFormData({ ...formData, paymentMode: mode })}
+                           className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all ${
+                              formData.paymentMode === mode 
+                              ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' 
+                              : 'text-slate-400 hover:text-slate-600'
+                           }`}
+                        >
+                           {mode === 'Bank' ? <CreditCard className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}
+                           {mode}
+                        </button>
+                     ))}
+                  </div>
+               </div>
+            )}
+
+            {/* 5. TRANSFER SPECIFIC UI */}
+            {txType === 'transfer' && (
+               <div className="space-y-6 animate-fade-in">
+                  
+                  {/* From -> To Visual Flow */}
+                  <div className="flex items-center gap-4">
+                     <div className="flex-1 space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">From</label>
+                        <select 
+                           className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl font-bold text-slate-700 dark:text-slate-200 outline-none"
+                           value={formData.paymentMode}
+                           onChange={(e) => setFormData({...formData, paymentMode: e.target.value})}
+                        >
+                           <option value="Bank">Bank</option>
+                           <option value="Cash">Cash</option>
+                           <option value="Investment">Investment</option>
+                        </select>
+                     </div>
+                     <div className="pt-5 text-slate-300"><ArrowRight className="w-5 h-5" /></div>
+                     <div className="flex-1 space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">To</label>
+                        <select 
+                           className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl font-bold text-slate-700 dark:text-slate-200 outline-none"
+                           value={formData.transferTo}
+                           onChange={(e) => setFormData({...formData, transferTo: e.target.value})}
+                        >
+                           <option value="Bank">Bank</option>
+                           <option value="Cash">Cash</option>
+                           <option value="Investment">Investment</option>
+                        </select>
+                     </div>
+                  </div>
+
+                  {/* Investment Type Selector */}
+                  {(formData.transferTo === 'Investment' || formData.paymentMode === 'Investment') && (
+                     <div className="space-y-2 animate-slide-up">
+                        <label className="text-xs font-bold text-blue-500 uppercase tracking-widest">Investment Type</label>
+                        <div className="flex flex-wrap gap-2">
+                           {INVESTMENT_TYPES.map(type => (
+                              <button 
+                                 key={type}
+                                 type="button"
+                                 onClick={() => setFormData({ ...formData, investmentType: type })}
+                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                                    formData.investmentType === type 
+                                    ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400' 
+                                    : 'border-slate-200 dark:border-slate-800 text-slate-500'
+                                 }`}
+                              >
+                                 {type}
+                              </button>
+                           ))}
+                        </div>
+                     </div>
+                  )}
+
+                  {/* Profit Logic */}
                   {formData.paymentMode === 'Investment' && formData.transferTo === 'Bank' && (
                       <div className="bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800/30 animate-fade-in">
                           <label className="flex items-center gap-3 cursor-pointer mb-3">
                             <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isWithdrawalWithProfit ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-emerald-300'}`}>
-                                {isWithdrawalWithProfit && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                                {isWithdrawalWithProfit && <Check className="w-3.5 h-3.5 text-white" />}
                             </div>
                             <input type="checkbox" className="hidden" checked={isWithdrawalWithProfit} onChange={(e) => setIsWithdrawalWithProfit(e.target.checked)} />
                             <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">Include Profit?</span>
                           </label>
-                          
                           {isWithdrawalWithProfit && (
                             <input 
                               type="number" 
                               placeholder="Profit Amount" 
-                              className="input-field border-emerald-200 focus:border-emerald-500 text-emerald-700 placeholder-emerald-700/50" 
+                              className="w-full p-3 rounded-xl border border-emerald-200 focus:border-emerald-500 text-emerald-700 outline-none font-bold" 
                               value={formData.profitAmount} 
                               onChange={(e) => setFormData({...formData, profitAmount: Number(e.target.value)})} 
                             />
                           )}
                       </div>
                   )}
-              </div>
+               </div>
             )}
 
-            {/* STANDARD FIELDS (Expense/Income) */}
-            {txType !== 'transfer' && (
-              <div className="grid grid-cols-2 gap-4 animate-slide-up">
-                <div>
-                    <label className="label">Category</label>
-                    <select className="input-field appearance-none" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
-                      {getCurrentCategories().map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                      <option value="Other">Other...</option>
-                    </select>
-                </div>
-                <div>
-                  <label className="label">Source</label>
-                  <select className="input-field appearance-none" value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}>
-                    <option value="Bank">Bank</option>
-                    <option value="Cash">Cash</option>
-                  </select>
-                </div>
-              </div>
-            )}
-            
-            {/* Custom Category Input with + Button */}
-            {txType !== 'transfer' && formData.category === 'Other' && (
-              <div className="animate-fade-in relative">
-                 <label className="label">Add New Category</label>
-                 <div className="flex gap-2">
-                     <input 
-                       type="text" 
-                       placeholder="e.g. Gym, Netflix..." 
-                       required 
-                       className="input-field bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 text-blue-700 placeholder-blue-400" 
-                       value={customCategory} 
-                       onChange={(e) => setCustomCategory(e.target.value)} 
-                     />
-                     <button 
-                        type="button" 
-                        onClick={handleAddCategory}
-                        disabled={!customCategory.trim()}
-                        className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/30"
-                     >
-                        <Plus className="w-5 h-5" />
-                     </button>
-                 </div>
-              </div>
-            )}
-            
-            <button 
-              type="submit" 
-              className="w-full mt-4 btn-primary py-4 text-sm uppercase tracking-widest font-black shadow-xl shadow-blue-500/20"
-            >
-              {initialData ? 'Update Entry' : 'Save Entry'}
-            </button>
-          </form>
         </div>
+
+        {/* FOOTER */}
+        <div className="p-6 pt-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+           <button 
+             onClick={handleSubmit}
+             disabled={!formData.amount}
+             className={`w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all transform active:scale-95 ${getButtonColor()} ${!formData.amount ? 'opacity-50 cursor-not-allowed' : ''}`}
+           >
+              {initialData ? 'Update Transaction' : 'Save Transaction'}
+           </button>
+        </div>
+
       </div>
     </div>
   );
