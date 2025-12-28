@@ -1,40 +1,32 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import Navbar from '../components/layout/Navbar';
-import Footer from '../components/layout/Footer';
+import Navbar from '../layout/Navbar'; // Adjusted path based on standard structure
+import Footer from '../layout/Footer';
+import AmbientBackground from '../ui/AmbientBackground'; // <--- IMPORT THIS
 
-/**
- * MainLayout
- * Purpose: Central wrapper for the application.
- * Features:
- * - Dynamic Dark Mode background
- * - Responsive padding to clear floating mobile navigation
- * - Max-width constraint for premium desktop viewing
- */
 const MainLayout = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-500">
+    // Added 'relative overflow-hidden' to contain the fixed background within the app context if needed, 
+    // though 'fixed' in AmbientBackground handles viewport positioning.
+    <div className="relative flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-500">
       
-      {/* 1. Global Navigation
-          Sticky positioning is managed within the component
-      */}
-      <Navbar />
+      {/* 1. Global Ambient Background (Behind everything) */}
+      <AmbientBackground />
 
-      {/* 2. Main Content Area
-          pb-32: Essential padding to ensure content clears the Floating Mobile Dock
-          max-w-[1600px]: Matches the "Wealth Hub" and "Knowledge Base" desktop width
-      */}
-      <main className="flex-grow w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32 lg:pb-12">
-        <div className="animate-fade-in">
-          <Outlet />
-        </div>
-      </main>
+      {/* 2. Content Wrapper (sits ABOVE background) */}
+      <div className="relative z-10 flex flex-col min-h-screen">
+        
+        <Navbar />
 
-      {/* 3. Global Footer 
-          The footer sits at the very bottom, below the main content
-      */}
-      <Footer />
-      
+        <main className="flex-grow w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32 lg:pb-12">
+          <div className="animate-fade-in">
+            <Outlet />
+          </div>
+        </main>
+
+        <Footer />
+        
+      </div>
     </div>
   );
 };
