@@ -41,31 +41,31 @@ const TaskSection = ({ tasks, goals, onToggleTask, onToggleGoal }) => {
                 </div>
                 <div className="space-y-2">
                   {tasks.map(t => (
-                    <div 
-                      key={t._id} 
-                      onClick={() => onToggleTask(t._id)}
-                      className={`group flex items-center gap-3 p-3 bg-white dark:bg-gray-800/40 rounded-xl border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md ${
-                        t.priority === 'High' 
-                          ? 'border-l-4 border-l-red-500 border-y-gray-100 border-r-gray-100 dark:border-y-gray-700 dark:border-r-gray-700' 
-                          : 'border-gray-100 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-700'
-                      }`}
-                    >
-                      {/* Checkbox Interaction */}
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                        t.priority === 'High' ? 'border-red-200 group-hover:border-red-500' : 'border-gray-300 dark:border-gray-600 group-hover:border-orange-500'
-                      }`}>
-                          <Check className="w-3 h-3 text-gray-900 dark:text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
-                          {t.title}
-                        </span>
-                        {t.priority === 'High' && (
-                          <span className="text-[10px] font-bold text-red-500 mt-0.5">High Priority</span>
-                        )}
-                      </div>
+                    <button 
+                    key={t._id} 
+                    onClick={() => onToggleTask(t._id)}
+                    className={`w-full text-left group flex items-center gap-3 p-3 bg-white dark:bg-gray-800/40 rounded-xl border transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-orange-500/50 ${
+                    t.priority === 'High' 
+                        ? 'border-l-4 border-l-red-500 border-y-gray-100 border-r-gray-100 dark:border-y-gray-700 dark:border-r-gray-700' 
+                        : 'border-gray-100 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-700'
+                    }`}
+                >
+                    {/* Inner content remains same */}
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                    t.priority === 'High' ? 'border-red-200 group-hover:border-red-500' : 'border-gray-300 dark:border-gray-600 group-hover:border-orange-500'
+                    }`}>
+                        <Check className="w-3 h-3 text-gray-900 dark:text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
+                    
+                    <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                        {t.title}
+                    </span>
+                    {t.priority === 'High' && (
+                        <span className="text-[10px] font-bold text-red-500 mt-0.5">High Priority</span>
+                    )}
+                    </div>
+                </button>
                   ))}
                 </div>
               </div>
