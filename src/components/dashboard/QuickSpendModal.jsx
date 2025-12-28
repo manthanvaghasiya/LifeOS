@@ -1,108 +1,307 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  X, Check, Wallet, TrendingUp, TrendingDown,
+  Coffee, ShoppingBag, Car, Zap, Heart,
+  Briefcase, GraduationCap, Smartphone, MoreHorizontal,
+  Landmark, ArrowRightLeft, Calendar, Plus, Star, Tag
+} from 'lucide-react';
 import API from '../../services/api';
-import { X, Zap } from 'lucide-react';
+
+// Map string names to Icon Components for storage/retrieval
+const ICON_MAP = {
+  Coffee, ShoppingBag, Car, Zap, Heart, Briefcase, GraduationCap, Smartphone,
+  MoreHorizontal, Landmark, Wallet, TrendingUp, Tag, Star
+};
+
+// Initial Data
+const INITIAL_CATEGORIES = {
+  expense: [
+    { id: 'Food', iconName: 'Coffee', color: 'text-orange-500', bg: 'bg-orange-100 dark:bg-orange-900/30' },
+    { id: 'Shopping', iconName: 'ShoppingBag', color: 'text-pink-500', bg: 'bg-pink-100 dark:bg-pink-900/30' },
+    { id: 'Transport', iconName: 'Car', color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' },
+    { id: 'Bills', iconName: 'Zap', color: 'text-yellow-500', bg: 'bg-yellow-100 dark:bg-yellow-900/30' },
+    { id: 'Health', iconName: 'Heart', color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' },
+    { id: 'Other', iconName: 'MoreHorizontal', color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-900/30' }, // "Other" option
+  ],
+  income: [
+    { id: 'Salary', iconName: 'Briefcase', color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900/30' },
+    { id: 'Business', iconName: 'TrendingUp', color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
+    { id: 'Investment', iconName: 'Landmark', color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' },
+    { id: 'Other', iconName: 'MoreHorizontal', color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-900/30' }, // "Other" option
+  ]
+};
 
 const QuickSpendModal = ({ onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    amount: '',
-    category: 'Food',
-    paymentMode: 'Bank',
-    date: new Date().toISOString().split('T')[0]
+  const [type, setType] = useState('expense');
+  const [amount, setAmount] = useState('');
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [loading, setLoading] = useState(false);
+  const [animating, setAnimating] = useState(false);
+
+  // Custom Category State
+  const [customCatName, setCustomCatName] = useState('');
+
+  // Load categories from LocalStorage or use Initial
+  const [categories, setCategories] = useState(() => {
+    const saved = localStorage.getItem('user_categories');
+    return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
   });
+
+  useEffect(() => {
+    setAnimating(true);
+    // Select first category (unless it was 'Other' which we want user to click explicitly to see input)
+    const firstCat = categories[type][0].id;
+    setCategory(firstCat);
+  }, [type]);
+
+  // Persist categories when changed
+  useEffect(() => {
+    localStorage.setItem('user_categories', JSON.stringify(categories));
+  }, [categories]);
+
+  const handleAddCustomCategory = () => {
+    if (!customCatName.trim()) return;
+
+    const newCategory = {
+      id: customCatName.trim(),
+      iconName: 'Tag', // Default icon for custom
+      color: 'text-indigo-500',
+      bg: 'bg-indigo-100 dark:bg-indigo-900/30'
+    };
+
+    setCategories(prev => {
+      // Insert before the last item (assuming "Other" is always last)
+      const currentList = [...prev[type]];
+      const otherIndex = currentList.findIndex(c => c.id === 'Other');
+
+      if (otherIndex !== -1) {
+        currentList.splice(otherIndex, 0, newCategory);
+      } else {
+        currentList.push(newCategory);
+      }
+
+      return { ...prev, [type]: currentList };
+    });
+
+    // Auto-select the new category and clear input
+    setCategory(newCategory.id);
+    setCustomCatName('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.amount || !formData.title) return;
+    if (!amount || !title) return;
 
+    setLoading(true);
     try {
-      const res = await API.post('/transactions', {
-        ...formData,
-        amount: Number(formData.amount),
-        type: 'expense', // Default to expense for quick spend
-        transferTo: null
-      });
-      onSuccess(res.data);
-      onClose();
+      const payload = {
+        title,
+        amount: parseFloat(amount),
+        type,
+        category,
+        date,
+        paymentMode: 'Bank',
+      };
+
+      const { data } = await API.post('/transactions', payload);
+      onSuccess(data);
+      handleClose();
     } catch (err) {
-      alert("Failed to add transaction");
+      console.error(err);
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 relative scale-100 animate-slide-up">
-        
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <X className="w-5 h-5 text-slate-500" />
-        </button>
+  const handleClose = () => {
+    setAnimating(false);
+    setTimeout(onClose, 200);
+  };
 
-        <div className="flex items-center gap-2 mb-6">
-            <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-xl text-rose-600">
-                <Zap className="w-5 h-5" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Quick Spend</h2>
+  const currentCategories = categories[type];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center sm:p-4">
+
+      <div
+        className={`absolute inset-0 bg-gray-900/30 dark:bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${animating ? 'opacity-100' : 'opacity-0'}`}
+        onClick={handleClose}
+      />
+
+      <div
+        className={`relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-t-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transition-all duration-300 transform ${animating ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-full md:translate-y-10 opacity-0 md:scale-95'
+          }`}
+      >
+
+        {/* HEADER */}
+        <div className="px-6 pt-6 pb-2 shrink-0 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+              Quick Add
+            </h2>
+            <p className="text-xs font-medium text-gray-400 dark:text-gray-500">
+              Record a transaction
+            </p>
+          </div>
+          <button
+            onClick={handleClose}
+            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label className="label">Amount</label>
-                <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">₹</span>
-                    <input 
-                        type="number" 
-                        required 
-                        autoFocus
-                        className="input-field pl-9 text-lg font-bold" 
-                        placeholder="0.00"
-                        value={formData.amount}
-                        onChange={e => setFormData({...formData, amount: e.target.value})}
+        {/* SCROLLABLE FORM */}
+        <div className="overflow-y-auto p-6 space-y-6 custom-scrollbar">
+
+          {/* TYPE TOGGLE */}
+          <div className="flex p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl">
+            {['expense', 'income'].map((t) => (
+              <button
+                key={t}
+                onClick={() => setType(t)}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 ${type === t
+                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm ring-1 ring-gray-200 dark:ring-gray-700'
+                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                  }`}
+              >
+                {t === 'expense' ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
+                <span>{t}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* B. MAIN INPUTS (Amount & Title) */}
+          <div className="space-y-4">
+            {/* Amount Input (Unchanged) */}
+            <div className="relative group">
+              <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold transition-colors ${
+                type === 'expense' ? 'text-red-500' : 'text-green-500'
+              }`}>
+                ₹
+              </span>
+              <input 
+                type="number" 
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0"
+                autoFocus
+                className="w-full pl-10 pr-4 py-4 bg-gray-50 dark:bg-gray-800/50 border-2 border-transparent focus:border-gray-200 dark:focus:border-gray-700 focus:bg-white dark:focus:bg-gray-800 rounded-2xl text-3xl font-black text-gray-900 dark:text-white placeholder-gray-300 outline-none transition-all"
+              />
+            </div>
+
+            {/* --- FIX IS HERE: Stack Title and Date on mobile --- */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input 
+                type="text" 
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="What is this for?"
+                className="flex-1 px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-transparent focus:border-gray-300 dark:focus:border-gray-600 rounded-xl text-sm font-semibold text-gray-900 dark:text-white outline-none transition-all"
+              />
+              
+              <div className="relative">
+                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                 </div>
+                 <input 
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    // Added 'w-full' so it stretches on mobile, and 'sm:w-auto' for desktop
+                    className="w-full sm:w-auto pl-9 pr-3 py-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 outline-none border border-transparent focus:border-gray-300 cursor-pointer"
+                 />
+              </div>
+            </div>
+          </div>
+
+          {/* CATEGORIES GRID */}
+          <div>
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">
+              Category
+            </label>
+
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+              {currentCategories.map((cat) => {
+                const Icon = ICON_MAP[cat.iconName] || Star;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setCategory(cat.id)}
+                    className={`flex flex-col items-center gap-2 p-2 rounded-xl border transition-all duration-200 ${category === cat.id
+                        ? `border-${cat.color.split('-')[1]}-500 bg-${cat.color.split('-')[1]}-50 dark:bg-${cat.color.split('-')[1]}-900/20 shadow-sm scale-105`
+                        : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
+                  >
+                    {/* Small Icon Size: w-4 h-4, Container: p-2 */}
+                    <div className={`p-2 rounded-full ${category === cat.id ? 'bg-white dark:bg-gray-800' : cat.bg} ${cat.color}`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <span className={`text-[10px] font-bold truncate w-full text-center ${category === cat.id ? 'text-gray-900 dark:text-white' : 'text-gray-500'}`}>
+                      {cat.id}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* DYNAMIC INPUT FOR "OTHER" */}
+            {category === 'Other' && (
+              <div className="mt-4 animate-fade-in-up">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <Tag className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="text"
+                      value={customCatName}
+                      onChange={(e) => setCustomCatName(e.target.value)}
+                      placeholder="Enter custom category..."
+                      className="w-full pl-9 pr-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-2 border-blue-100 dark:border-blue-900/30 focus:border-blue-500 rounded-xl text-sm font-semibold outline-none"
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddCustomCategory()}
                     />
-                </div>
-            </div>
+                  </div>
 
-            <div>
-                <label className="label">What was it?</label>
-                <input 
-                    type="text" 
-                    required 
-                    className="input-field font-semibold" 
-                    placeholder="e.g. Coffee"
-                    value={formData.title}
-                    onChange={e => setFormData({...formData, title: e.target.value})}
-                />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <label className="label">Category</label>
-                    <select 
-                        className="input-field appearance-none"
-                        value={formData.category}
-                        onChange={e => setFormData({...formData, category: e.target.value})}
-                    >
-                        {['Food', 'Travel', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Other'].map(c => (
-                            <option key={c} value={c}>{c}</option>
-                        ))}
-                    </select>
+                  <button
+                    onClick={handleAddCustomCategory}
+                    disabled={!customCatName.trim()}
+                    className="p-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-95"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
                 </div>
-                <div>
-                    <label className="label">Paid Via</label>
-                    <select 
-                        className="input-field appearance-none"
-                        value={formData.paymentMode}
-                        onChange={e => setFormData({...formData, paymentMode: e.target.value})}
-                    >
-                        <option value="Bank">Bank (UPI)</option>
-                        <option value="Cash">Cash</option>
-                    </select>
-                </div>
-            </div>
+                <p className="text-[10px] text-gray-400 mt-2 ml-1">
+                  * This will add a new category to your list.
+                </p>
+              </div>
+            )}
+          </div>
 
-            <button type="submit" className="w-full btn-primary py-3 mt-2 shadow-lg shadow-rose-500/20 bg-rose-600 hover:bg-rose-700">
-                Log Expense
-            </button>
-        </form>
+        </div>
+
+        {/* FOOTER */}
+        <div className="p-6 pt-2 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 z-10">
+          <button
+            onClick={handleSubmit}
+            disabled={!amount || !title || loading}
+            className={`w-full py-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-lg text-white shadow-xl transition-all duration-300 ${loading
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-gray-900 dark:bg-white dark:text-gray-900 hover:scale-[1.02] active:scale-95 shadow-gray-200 dark:shadow-none'
+              }`}
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <Check className="w-5 h-5 stroke-[3px]" />
+                <span>Save Transaction</span>
+              </>
+            )}
+          </button>
+        </div>
+
       </div>
     </div>
   );
