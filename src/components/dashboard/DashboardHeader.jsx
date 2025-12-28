@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Bell, Calendar, Sparkles } from 'lucide-react';
+import { Plus, Calendar, Sparkles } from 'lucide-react';
 
 const DashboardHeader = ({ user, onQuickSpend }) => {
   
@@ -16,15 +16,15 @@ const DashboardHeader = ({ user, onQuickSpend }) => {
     day: 'numeric' 
   });
 
-  // [CHANGE] Removed 'Achiever' fallback, now uses 'User'
   const firstName = user.name ? user.name.split(' ')[0] : 'User';
 
   return (
-    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 animate-fade-in">
+    // Changed items-start to ensure button aligns left on mobile, not stretched
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 animate-fade-in mb-8">
       
       {/* LEFT: Greeting & Date */}
       <div>
-        <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">
+        <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">
           <Calendar className="w-3.5 h-3.5" />
           {currentDate}
         </div>
@@ -36,22 +36,33 @@ const DashboardHeader = ({ user, onQuickSpend }) => {
         
         <p className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">
           <Sparkles className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-          Let's make today productive.
+          Your financial overview is ready.
         </p>
       </div>
 
-      {/* RIGHT: Actions */}
-      <div className="flex items-center gap-3 w-full md:w-auto">
-
-         {/* Quick Spend Button */}
+      {/* RIGHT: High-Impact Action Button */}
+      {/* Removed 'w-full' from container to prevent stretching */}
+      <div>
          <button 
             onClick={onQuickSpend}
-            className="flex-1 md:flex-none flex items-center justify-center gap-3 px-6 py-3.5 bg-gradient-to-r from-gray-900 to-black dark:from-white dark:to-gray-200 text-white dark:text-gray-900 rounded-2xl font-bold shadow-xl shadow-gray-200 dark:shadow-none hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all duration-300"
+            // UPDATED CLASSES:
+            // 1. Removed 'w-full' -> Now uses auto width
+            // 2. Added 'pr-6 pl-5' -> Balanced padding
+            className="group relative flex items-center gap-3 px-6 py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-[1.25rem] font-bold text-base md:text-lg shadow-xl shadow-gray-200 dark:shadow-none hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all duration-300 overflow-hidden"
          >
-            <div className="bg-white/20 dark:bg-black/10 p-1 rounded-lg">
-                <Plus className="w-4 h-4" /> 
+            {/* Animated Gradient Background on Hover */}
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-fuchsia-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            
+            {/* Button Content */}
+            <div className="relative flex items-center gap-2.5">
+              <div className="p-1.5 bg-white/20 dark:bg-black/10 rounded-lg group-hover:bg-white/20 transition-colors">
+                  <Plus className="w-5 h-5 stroke-[3px]" /> 
+              </div>
+              <span className="whitespace-nowrap">Quick Spend</span>
             </div>
-            <span>Quick Spend</span>
+
+            {/* Shine Effect */}
+            <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 group-hover:animate-shine" />
          </button>
       </div>
 
