@@ -38,7 +38,7 @@ const NoteCard = ({ note, onEdit, onTogglePin, onDelete }) => {
             {note.title}
             </h3>
         )}
-        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium opacity-80 line-clamp-5 md:line-clamp-4">
+        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium opacity-80 line-clamp-5 md:line-clamp-4 whitespace-pre-wrap">
           {note.content}
         </p>
       </div>

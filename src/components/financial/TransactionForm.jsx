@@ -1,3 +1,5 @@
+// src/components/financial/TransactionForm.jsx
+
 import React, { useState, useEffect } from 'react';
 import API from '../../services/api';
 import { 
@@ -8,7 +10,9 @@ import {
 // Default Lists
 const INITIAL_EXPENSE_CATS = ['Food', 'Shopping', 'Travel', 'Bills', 'Health', 'Education', 'Grocery', 'Entertainment', 'Fuel'];
 const INITIAL_INCOME_CATS = ['Salary', 'Freelance', 'Business', 'Investment', 'Gift', 'Rental'];
-const INVESTMENT_TYPES = ['SIP', 'Mutual Fund', 'Stocks', 'Gold', 'FD', 'Crypto', 'IPO'];
+
+// FIX: Renamed this from INVESTMENT_TYPES to INITIAL_INVESTMENT_TYPES so it matches the use in useState below
+const INITIAL_INVESTMENT_TYPES = ['SIP', 'Mutual Fund', 'Stocks', 'Gold', 'FD', 'Crypto', 'IPO'];
 
 const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   const [txType, setTxType] = useState('expense');
@@ -16,6 +20,9 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   // Dynamic Categories
   const [expenseCats, setExpenseCats] = useState(INITIAL_EXPENSE_CATS);
   const [incomeCats, setIncomeCats] = useState(INITIAL_INCOME_CATS);
+  
+  // FIX: This now correctly references the constant defined above
+  const [investmentTypes, setInvestmentTypes] = useState(INITIAL_INVESTMENT_TYPES);
 
   // Form State
   const [formData, setFormData] = useState({ 
@@ -25,8 +32,12 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   });
   
   const [customCategory, setCustomCategory] = useState('');
-  const [isAddingCat, setIsAddingCat] = useState(false); // Toggle for "Add Category" input
+  const [isAddingCat, setIsAddingCat] = useState(false); 
   const [isWithdrawalWithProfit, setIsWithdrawalWithProfit] = useState(false);
+
+  // New State for Custom Investment Input
+  const [customInv, setCustomInv] = useState('');
+  const [isAddingInv, setIsAddingInv] = useState(false);
 
   // --- 1. SMART COLOR THEME ---
   const getThemeColor = () => {
@@ -56,15 +67,20 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
       const formattedDate = initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
       
       const currentList = initialData.type === 'income' ? INITIAL_INCOME_CATS : INITIAL_EXPENSE_CATS;
-      const isStandard = currentList.includes(initialData.category) || INVESTMENT_TYPES.includes(initialData.category);
+      
+      // Use the state 'investmentTypes' here instead of the constant
+      const isStandard = currentList.includes(initialData.category) || investmentTypes.includes(initialData.category);
 
       let initCategory = initialData.category;
       
-      // Handle custom categories
+      // Handle custom categories & investment types
       if (!isStandard && initialData.category !== 'Transfer' && initialData.category !== 'Investment') {
-         // If it's custom, ensure it's in our list logic (simplified for UI)
-         if (initialData.type === 'expense' && !expenseCats.includes(initCategory)) setExpenseCats([...expenseCats, initCategory]);
-         if (initialData.type === 'income' && !incomeCats.includes(initCategory)) setIncomeCats([...incomeCats, initCategory]);
+         if (initialData.type === 'expense' && !expenseCats.includes(initCategory)) setExpenseCats(prev => [...prev, initCategory]);
+         if (initialData.type === 'income' && !incomeCats.includes(initCategory)) setIncomeCats(prev => [...prev, initCategory]);
+      }
+      
+      if (initialData.investmentType && !investmentTypes.includes(initialData.investmentType)) {
+          setInvestmentTypes(prev => [...prev, initialData.investmentType]);
       }
 
       setFormData({
@@ -79,6 +95,15 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
       });
     }
   }, [initialData]);
+
+  const handleAddInvestment = () => {
+    if (!customInv.trim()) return;
+    const newType = customInv.trim();
+    setInvestmentTypes([...investmentTypes, newType]);
+    setFormData({ ...formData, investmentType: newType });
+    setCustomInv('');
+    setIsAddingInv(false);
+  };
 
   const handleAddCategory = () => {
     if (!customCategory.trim()) return;
@@ -95,7 +120,6 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
     if(!formData.amount) return;
 
     try {
-      // (Keep existing complex Transfer/Investment logic)
       let finalCategory = formData.category;
       
       // ... logic for withdrawals ...
@@ -187,7 +211,7 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
         {/* SCROLLABLE FORM */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
 
-            {/* 1. AMOUNT INPUT (Massive) */}
+            {/* 1. AMOUNT INPUT */}
             <div className="text-center space-y-2">
                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Amount</label>
                <div className={`relative inline-flex items-center justify-center`}>
@@ -332,18 +356,47 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
 
                   {/* Investment Type Selector */}
                   {(formData.transferTo === 'Investment' || formData.paymentMode === 'Investment') && (
-                     <div className="space-y-2 animate-slide-up">
-                        <label className="text-xs font-bold text-blue-500 uppercase tracking-widest">Investment Type</label>
+                     <div className="space-y-3 animate-slide-up">
+                        
+                        {/* Header with Custom Button */}
+                        <div className="flex justify-between items-center">
+                            <label className="text-xs font-bold text-blue-500 uppercase tracking-widest">Investment Type</label>
+                            <button 
+                                onClick={() => setIsAddingInv(!isAddingInv)} 
+                                className="text-xs font-bold text-blue-500 hover:text-blue-600 transition"
+                            >
+                                + Custom
+                            </button>
+                        </div>
+
+                        {/* Custom Input Field */}
+                        {isAddingInv && (
+                            <div className="flex gap-2 animate-fade-in mb-2">
+                                <input 
+                                autoFocus
+                                type="text" 
+                                placeholder="e.g. Real Estate" 
+                                className="flex-1 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm font-bold text-blue-700 dark:text-blue-300 outline-none"
+                                value={customInv}
+                                onChange={(e) => setCustomInv(e.target.value)}
+                                />
+                                <button onClick={handleAddInvestment} className="p-2 bg-blue-600 text-white rounded-xl">
+                                <Check className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Selection List - Uses State Now */}
                         <div className="flex flex-wrap gap-2">
-                           {INVESTMENT_TYPES.map(type => (
+                           {investmentTypes.map(type => (
                               <button 
                                  key={type}
                                  type="button"
                                  onClick={() => setFormData({ ...formData, investmentType: type })}
                                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
                                     formData.investmentType === type 
-                                    ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400' 
-                                    : 'border-slate-200 dark:border-slate-800 text-slate-500'
+                                    ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 shadow-sm scale-105' 
+                                    : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
                                  }`}
                               >
                                  {type}

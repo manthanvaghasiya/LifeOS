@@ -125,6 +125,7 @@ const Goals = () => {
   const activeTasks = tasks.filter(t => !t.isCompleted);
   const completedTasks = tasks.filter(t => {
     if (!t.isCompleted) return false;
+    if (!t.updatedAt) return false;
 
     // Check if it was updated/completed TODAY
     const updated = new Date(t.updatedAt || new Date());

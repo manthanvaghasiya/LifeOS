@@ -2,7 +2,17 @@ import React from 'react';
 import { Layers, CheckSquare, Target, Check, Trophy } from 'lucide-react';
 
 const TaskSection = ({ tasks, goals, onToggleTask, onToggleGoal }) => {
-  const totalPending = tasks.length + goals.length;
+  const todayTasks = tasks.filter(t => {
+     if (!t.dueDate) return true; // No date = Show it (Backlog)
+     
+     const due = new Date(t.dueDate);
+     const todayEnd = new Date();
+     todayEnd.setHours(23, 59, 59, 999);
+     
+     return due <= todayEnd;
+  });
+
+  const totalPending = todayTasks.length + goals.length
 
   return (
     <div className="bg-white dark:bg-gray-900/60 dark:border-gray-800 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col h-full relative overflow-hidden transition-all duration-300 hover:shadow-md">
@@ -40,7 +50,7 @@ const TaskSection = ({ tasks, goals, onToggleTask, onToggleGoal }) => {
                   <span>Tasks</span>
                 </div>
                 <div className="space-y-2">
-                  {tasks.map(t => (
+                  {todayTasks.map(t => (
                     <button 
                     key={t._id} 
                     onClick={() => onToggleTask(t._id)}
