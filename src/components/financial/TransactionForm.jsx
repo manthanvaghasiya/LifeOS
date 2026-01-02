@@ -99,7 +99,11 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   const handleAddInvestment = () => {
     if (!customInv.trim()) return;
     const newType = customInv.trim();
-    setInvestmentTypes([...investmentTypes, newType]);
+
+    // FIX: Add to global constant so it persists if you reopen the modal
+    if (!INITIAL_INVESTMENT_TYPES.includes(newType)) INITIAL_INVESTMENT_TYPES.push(newType);
+    
+    setInvestmentTypes(prev => [...prev, newType]);
     setFormData({ ...formData, investmentType: newType });
     setCustomInv('');
     setIsAddingInv(false);
@@ -108,8 +112,17 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   const handleAddCategory = () => {
     if (!customCategory.trim()) return;
     const newCat = customCategory.trim();
-    if (txType === 'expense') setExpenseCats([...expenseCats, newCat]);
-    else setIncomeCats([...incomeCats, newCat]);
+    
+    if (txType === 'expense') {
+        // FIX: Add to global constant so it persists if you reopen the modal
+        if (!INITIAL_EXPENSE_CATS.includes(newCat)) INITIAL_EXPENSE_CATS.push(newCat);
+        setExpenseCats(prev => [...prev, newCat]);
+    } else {
+        // FIX: Add to global constant for Income
+        if (!INITIAL_INCOME_CATS.includes(newCat)) INITIAL_INCOME_CATS.push(newCat);
+        setIncomeCats(prev => [...prev, newCat]);
+    }
+    
     setFormData({ ...formData, category: newCat });
     setCustomCategory('');
     setIsAddingCat(false);
