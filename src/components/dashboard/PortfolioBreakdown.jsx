@@ -2,25 +2,42 @@ import React, { useMemo } from 'react';
 import { Briefcase, PieChart } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 
-// Must match the constants in other files
-const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
+// Default Base List (Will be expanded dynamically)
+const DEFAULT_INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
 
 const PortfolioBreakdown = ({ transactions }) => {
   
   // Calculate breakdown inside the component to keep parent clean
   const breakdown = useMemo(() => {
-    return INVESTMENT_TYPES.map(type => {
+    // 1. DYNAMICALLY BUILD THE LIST OF TYPES
+    // Start with defaults, but allow new types found in transaction data
+    const allTypes = new Set(DEFAULT_INVESTMENT_TYPES);
+
+    // Scan transactions for custom types
+    transactions.forEach(t => {
+        if (t.investmentType) {
+            allTypes.add(t.investmentType);
+        }
+    });
+
+    // Convert Set back to Array for mapping
+    const dynamicTypesList = Array.from(allTypes);
+
+    return dynamicTypesList.map(type => {
       const total = transactions.reduce((acc, t) => {
-        // 1. CHECK IF TRANSACTION RELATES TO THIS TYPE
+        // 2. CHECK IF TRANSACTION RELATES TO THIS TYPE
+        // Matches if the specific investment field matches OR if the category matches (legacy support)
         const isMatchType = t.investmentType === type || t.category === type;
 
         if (isMatchType) {
-          // 2. ADD MONEY (Investment Inflow)
+          // 3. ADD MONEY (Investment Inflow)
+          // Logic: Expense marked as Investment OR Transfer to Investment
           if (t.type === 'expense' || (t.type === 'transfer' && t.paymentMode !== 'Investment')) {
             return acc + t.amount;
           }
           
-          // 3. SUBTRACT MONEY (Investment Outflow / Withdrawal)
+          // 4. SUBTRACT MONEY (Investment Outflow / Withdrawal)
+          // Logic: Transfer FROM Investment (Withdrawal)
           if (t.type === 'transfer' && t.paymentMode === 'Investment') {
             return acc - t.amount;
           }
