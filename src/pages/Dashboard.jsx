@@ -4,6 +4,8 @@ import confetti from 'canvas-confetti';
 import API from '../services/api';
 import { generateInsights } from '../utils/smartInsights';
 import { addXP } from '../utils/gamification';
+// 1. IMPORT TOAST HOOK
+import { useToast } from '../context/ToastContext';
 
 // UI Components
 import AmbientBackground from '../components/ui/AmbientBackground';
@@ -19,6 +21,9 @@ import QuickSpendModal from '../components/dashboard/QuickSpendModal';
 const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
 
 const Dashboard = () => {
+  // 2. INITIALIZE TOAST
+  const toast = useToast();
+
   const [transactions, setTransactions] = useState([]);
   const [habits, setHabits] = useState([]);
   const [goals, setGoals] = useState([]);
@@ -49,6 +54,8 @@ const Dashboard = () => {
     } catch (err) { 
       console.error(err);
       setError("Unable to load data. Please check your connection.");
+      // Optional: Toast for background re-fetches
+      if (!loading) toast.error("Connection lost. Retrying...");
     } finally {
       setLoading(false);
     }
@@ -111,13 +118,9 @@ const Dashboard = () => {
     const monthlyInvested = thisMonthTransactions.reduce((acc, t) => {
         const isInv = t.category === 'Investment' || INVESTMENT_TYPES.includes(t.category) || t.investmentType;
         if (isInv) {
-            // Check for money ENTERING investment:
-            // 1. Expense marked as Investment (Buying assets directly)
-            // 2. Transfer NOT originating from Investment (e.g., Bank -> Investment)
             if (t.type === 'expense' || (t.type === 'transfer' && t.paymentMode !== 'Investment')) {
                  return acc + t.amount;
             }
-            // Removed the subtraction logic. Withdrawals will no longer reduce this monthly stat.
         }
         return acc;
     }, 0);
@@ -141,20 +144,12 @@ const Dashboard = () => {
 
   const dailyInsight = useMemo(() => generateInsights(transactions, habits, tasks), [transactions, habits, tasks]);
   
- // ✨ NEW: Celebration Effect (Place this above handlers)
   const triggerConfetti = () => {
     const count = 200;
-    const defaults = {
-      origin: { y: 0.7 },
-      zIndex: 9999
-    };
+    const defaults = { origin: { y: 0.7 }, zIndex: 9999 };
 
     function fire(particleRatio, opts) {
-      confetti({
-        ...defaults,
-        ...opts,
-        particleCount: Math.floor(count * particleRatio)
-      });
+      confetti({ ...defaults, ...opts, particleCount: Math.floor(count * particleRatio) });
     }
 
     fire(0.25, { spread: 26, startVelocity: 55 });
@@ -164,68 +159,76 @@ const Dashboard = () => {
     fire(0.1, { spread: 120, startVelocity: 45 });
   };
 
-  // --- HANDLERS ---
+  // --- HANDLERS WITH TOASTS ---
   
-  // 1. Habits: Supports Toggle (Add/Remove) + Confetti
+  // 1. Habits
   const handleToggleHabit = useCallback(async (id) => { 
     const habit = habits.find(h => h._id === id);
     if (!habit) return;
 
-    // Check if already completed today to determine action
     const isCompleted = habit.completedDates.includes(todayStr);
 
-    // Optimistic Update
     setHabits(prev => prev.map(h => {
         if (h._id === id) {
             return {
                 ...h,
                 completedDates: isCompleted
-                    ? h.completedDates.filter(d => d !== todayStr) // Remove if exists
-                    : [...h.completedDates, todayStr] // Add if missing
+                    ? h.completedDates.filter(d => d !== todayStr) 
+                    : [...h.completedDates, todayStr]
             };
         }
         return h;
     }));
 
-    // Trigger Effects (Only on Completion)
     if (!isCompleted) {
         triggerConfetti();
         addXP(10); 
+        // 3. HABIT SUCCESS
+        toast.success("Habit checked! +10 XP");
     }
 
     try { 
         await API.put(`/habits/${id}/toggle`, { date: todayStr }); 
     } catch (err) { 
-        // Revert on failure
+        // 4. HABIT ERROR
+        toast.error("Failed to sync habit.");
         fetchAllData(); 
     } 
-  }, [habits, todayStr]);
+  }, [habits, todayStr, toast]);
 
-  // 2. Goals: Confetti + XP
+  // 2. Goals
   const handleToggleGoal = useCallback(async (id) => { 
     setGoals(prev => prev.map(g => g._id === id ? { ...g, isCompleted: true } : g)); 
     
-    // Confetti for goals too!
     triggerConfetti();
     addXP(50);
+    // 5. GOAL SUCCESS
+    toast.success("Goal smashed! +50 XP");
 
     try { 
         await API.put(`/goals/${id}/toggle`); 
     } catch (err) { 
+        // 6. GOAL ERROR
+        toast.error("Failed to sync goal.");
         fetchAllData(); 
     } 
-  }, []);
+  }, [toast]);
 
-  // 3. Tasks: Simple Completion
+  // 3. Tasks
   const handleToggleTask = useCallback(async (id) => { 
     setTasks(prev => prev.map(t => t._id === id ? { ...t, isCompleted: true } : t)); 
     addXP(5);
+    // 7. TASK SUCCESS
+    toast.success("Task done. +5 XP");
+
     try { 
         await API.put(`/tasks/${id}/toggle`); 
     } catch (err) { 
+        // 8. TASK ERROR
+        toast.error("Failed to sync task.");
         fetchAllData(); 
     } 
-  }, []);
+  }, [toast]);
    
   if (loading) return <DashboardSkeleton />;
 
@@ -250,10 +253,8 @@ const Dashboard = () => {
   return (
     <div className="relative min-h-screen">
       
-      {/* Background Layer */}
       <AmbientBackground />
 
-      {/* Main Content Layer (z-10 ensures it is clickable above background) */}
       <div className="relative z-10 p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
         <DashboardHeader user={user} onQuickSpend={() => setShowForm(true)} />
 
@@ -302,6 +303,8 @@ const Dashboard = () => {
             onClose={() => setShowForm(false)} 
             onSuccess={(newData) => {
                 setTransactions(prev => [newData, ...prev]);
+                // 9. QUICK SPEND SUCCESS
+                toast.success("Transaction recorded successfully.");
             }} 
         />
       )}

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import Papa from 'papaparse';
 import { formatCurrency, formatDate } from '../utils/helpers';
+// 1. IMPORT TOAST HOOK
+import { useToast } from '../context/ToastContext';
+
 import FinancialHeader from '../components/financial/FinancialHeader';
 import FinancialSummary from '../components/financial/FinancialSummary';
 import TransactionTable from '../components/financial/TransactionTable';
@@ -14,6 +17,9 @@ import PortfolioBreakdown from '../components/dashboard/PortfolioBreakdown';
 const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
 
 const Financial = () => {
+  // 2. INITIALIZE TOAST
+  const toast = useToast();
+
   const [allTransactions, setAllTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewDate, setViewDate] = useState(new Date());
@@ -29,7 +35,12 @@ const Financial = () => {
       const res = await API.get('/transactions');
       setAllTransactions(res.data);
       setLoading(false);
-    } catch (err) { console.error(err); setLoading(false); }
+    } catch (err) { 
+      console.error(err); 
+      setLoading(false);
+      // Optional: Notify user if data fails to load
+      toast.error("Failed to load financial data.");
+    }
   };
 
   // --- DATA FILTERING ---
@@ -111,25 +122,40 @@ const Financial = () => {
 
   // --- HANDLERS ---
   const handleExport = () => {
-    const csvData = currentMonthTransactions.map(t => ({
-      Date: formatDate(t.date), 
-      Title: t.title, 
-      Category: t.category, 
-      Type: t.type.toUpperCase(), 
-      Source: t.paymentMode || 'Bank', 
-      Amount: t.amount
-    }));
-    const csv = Papa.unparse(csvData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a'); 
-    link.href = URL.createObjectURL(blob); 
-    link.setAttribute('download', `LifeOS_${formattedMonth}.csv`);
-    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    try {
+        const csvData = currentMonthTransactions.map(t => ({
+        Date: formatDate(t.date), 
+        Title: t.title, 
+        Category: t.category, 
+        Type: t.type.toUpperCase(), 
+        Source: t.paymentMode || 'Bank', 
+        Amount: t.amount
+        }));
+        const csv = Papa.unparse(csvData);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a'); 
+        link.href = URL.createObjectURL(blob); 
+        link.setAttribute('download', `LifeOS_${formattedMonth}.csv`);
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        
+        // 3. EXPORT SUCCESS
+        toast.success("Financial report exported successfully.");
+    } catch (error) {
+        toast.error("Failed to export data.");
+    }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Delete transaction?")) return;
-    try { await API.delete(`/transactions/${id}`); setAllTransactions(prev => prev.filter(t => t._id !== id)); } catch (err) {}
+    try { 
+        await API.delete(`/transactions/${id}`); 
+        setAllTransactions(prev => prev.filter(t => t._id !== id)); 
+        // 4. DELETE SUCCESS
+        toast.success("Transaction deleted.");
+    } catch (err) {
+        // 5. DELETE ERROR
+        toast.error("Could not delete transaction.");
+    }
   };
 
   const onTransactionSaved = (newData, isUpdate) => {
@@ -142,6 +168,8 @@ const Financial = () => {
             return [newData, ...prev];
         }
     });
+    // 6. SAVE/UPDATE SUCCESS
+    toast.success(isUpdate ? "Transaction updated." : "Transaction added successfully.");
   };
 
   if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading your finances...</div>;

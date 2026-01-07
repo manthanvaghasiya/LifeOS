@@ -4,7 +4,8 @@ import {
   User, Mail, Lock, Eye, EyeOff, ArrowRight, 
   Shield, Check, Cpu, Zap, Layers, Database, Wifi
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+// 1. IMPORT TOAST HOOK
+import { useToast } from '../context/ToastContext';
 import API from '../services/api';
 
 // --- PRODUCTION STYLES (Mobile Optimized) ---
@@ -280,6 +281,9 @@ const HolographicBlueprint = ({ mousePosition }) => {
 
 const Signup = () => {
   const navigate = useNavigate();
+  // 2. INITIALIZE TOAST
+  const toast = useToast();
+
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -334,7 +338,7 @@ const Signup = () => {
     }
 
     setIsLoading(true);
-    const loadingToast = toast.loading("Forging your digital identity...");
+    // Note: We don't use loading toasts anymore, we rely on the button spinner state.
 
     try {
       const { data } = await API.post('/auth/register', {
@@ -345,11 +349,14 @@ const Signup = () => {
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data));
+      window.dispatchEvent(new Event('authChange'));
       
-      toast.success(`Welcome, ${data.name}!`, { id: loadingToast });
+      // 3. SUCCESS TOAST
+      toast.success(`Welcome, ${data.name}!`);
       navigate('/dashboard'); 
     } catch (error) {
-      toast.error(error.response?.data?.message || "Registration failed.", { id: loadingToast });
+      // 4. ERROR TOAST
+      toast.error(error.response?.data?.message || "Registration failed.");
     } finally {
       setIsLoading(false);
     }

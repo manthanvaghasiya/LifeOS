@@ -10,21 +10,18 @@ export const useToast = () => {
   return context;
 };
 
-// Custom Event Name
 export const TOAST_EVENT = 'lifeos-toast-event';
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  // 1. Core Logic to Add Toast
   const addToast = useCallback((message, type = 'info', duration = 4000) => {
     const id = Math.random().toString(36).substr(2, 9);
     
-    // Prevent duplicate messages (Production Polish)
     setToasts((prev) => {
-        const isDuplicate = prev.some(t => t.message === message);
-        if (isDuplicate) return prev;
-        // Limit to 3 toasts at a time to prevent screen flooding
+        // Prevent duplicates
+        if (prev.some(t => t.message === message)) return prev;
+        // Limit to 3 (prevent screen clutter)
         if (prev.length >= 3) return [...prev.slice(1), { id, message, type, duration }];
         return [...prev, { id, message, type, duration }];
     });
@@ -38,18 +35,15 @@ export const ToastProvider = ({ children }) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  // 2. ✨ GLOBAL EVENT LISTENER (The Bridge for api.js)
   useEffect(() => {
     const handleGlobalToast = (e) => {
         const { message, type, duration } = e.detail;
         addToast(message, type, duration);
     };
-
     window.addEventListener(TOAST_EVENT, handleGlobalToast);
     return () => window.removeEventListener(TOAST_EVENT, handleGlobalToast);
   }, [addToast]);
 
-  // Public API for React Components
   const toast = {
     success: (msg, duration) => addToast(msg, 'success', duration),
     error: (msg, duration) => addToast(msg, 'error', duration),
@@ -61,8 +55,13 @@ export const ToastProvider = ({ children }) => {
     <ToastContext.Provider value={toast}>
       {children}
       
-      {/* Toast Container - Responsive Positioning */}
-      <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-[9999] flex flex-col gap-3 pointer-events-none items-center sm:items-end">
+      {/* ✨ NOTIFICATION CONTAINER POSITIONING 
+         - Mobile/Tablet: Top Center (top-2 left-2 right-2)
+         - Desktop: Top Right (md:top-6 md:right-6)
+      */}
+      <div className="fixed z-[9999] pointer-events-none flex flex-col gap-2 
+                      top-2 left-2 right-2 items-center 
+                      md:top-6 md:right-6 md:left-auto md:items-end">
         <AnimatePresence mode="popLayout">
           {toasts.map((t) => (
             <Toast key={t.id} {...t} onClose={() => removeToast(t.id)} />

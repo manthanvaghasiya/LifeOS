@@ -3,7 +3,8 @@ import API from '../services/api';
 import { 
   Plus, Search, X, Sparkles, PenTool, StickyNote, Hash, Pin, ArrowLeft 
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+// 1. IMPORT
+import { useToast } from '../context/ToastContext';
 import NoteCard from '../components/notes/NoteCard';
 
 const COLORS = [
@@ -22,7 +23,9 @@ const Notes = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editId, setEditId] = useState(null);
   
-  // Form State
+  // 2. INITIALIZE
+  const toast = useToast();
+  
   const [formData, setFormData] = useState({ title: '', content: '', color: COLORS[0].class, isPinned: false, tags: [] });
   const [tagInput, setTagInput] = useState('');
 
@@ -37,7 +40,7 @@ const Notes = () => {
   };
 
   const handleSubmit = async (e) => {
-    if (e) e.preventDefault(); // Handle both button click and form submit
+    if (e) e.preventDefault(); 
     if (!formData.title.trim() && !formData.content.trim()) {
         toast.error("Can't save an empty note");
         return;
@@ -75,7 +78,7 @@ const Notes = () => {
     try {
       const res = await API.put(`/notes/${note._id}`, { ...note, isPinned: !note.isPinned });
       setNotes(notes.map(n => n._id === note._id ? res.data : n));
-      toast.success(res.data.isPinned ? 'Pinned' : 'Unpinned');
+      toast.success(res.data.isPinned ? 'Note pinned' : 'Note unpinned');
     } catch (err) { toast.error('Update failed'); }
   };
 
@@ -84,7 +87,7 @@ const Notes = () => {
     try {
       await API.delete(`/notes/${id}`);
       setNotes(notes.filter(n => n._id !== id));
-      toast.success('Deleted');
+      toast.success('Note deleted');
     } catch (err) { toast.error('Delete failed'); }
   };
 
@@ -94,20 +97,21 @@ const Notes = () => {
     setTagInput('');
   };
 
+  // ... (Filtering and JSX logic remain unchanged) ...
   const filteredNotes = notes.filter(n => {
-    const search = searchTerm.toLowerCase();
-    return (
-      n.title?.toLowerCase().includes(search) || 
-      n.content?.toLowerCase().includes(search) ||
-      n.tags?.some(tag => tag.toLowerCase().includes(search))
-    );
+      const search = searchTerm.toLowerCase();
+      return (
+        n.title?.toLowerCase().includes(search) || 
+        n.content?.toLowerCase().includes(search) ||
+        n.tags?.some(tag => tag.toLowerCase().includes(search))
+      );
   });
-
+  
   const pinnedNotes = filteredNotes.filter(n => n.isPinned);
   const otherNotes = filteredNotes.filter(n => !n.isPinned);
-
+  
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center"><div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div></div>
+      <div className="min-h-screen flex items-center justify-center"><div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div></div>
   );
 
   return (

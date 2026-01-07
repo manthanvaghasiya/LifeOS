@@ -5,20 +5,24 @@ import {
   Calendar, CheckSquare, Link as LinkIcon, Trash2
 } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
-import { addXP } from '../utils/gamification';
-import GoalCard from '../components/goals/GoalCard';
+// 1. IMPORT HOOK
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import GoalCard from '../components/goals/GoalCard';
 
 const Goals = () => {
   const { refreshUser } = useAuth();
+  // 2. INITIALIZE HOOK
+  const toast = useToast();
+  
   const [goals, setGoals] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ... (State declarations remain the same) ...
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [goalEditId, setGoalEditId] = useState(null);
   const [goalFormData, setGoalFormData] = useState({ title: '', type: 'Long Term', deadline: '' });
-
   const [newTask, setNewTask] = useState('');
   const [priority, setPriority] = useState('Medium');
   const [dueDate, setDueDate] = useState('');
@@ -35,7 +39,11 @@ const Goals = () => {
       setGoals(goalsRes.data);
       setTasks(tasksRes.data);
       setLoading(false);
-    } catch (err) { console.error(err); setLoading(false); }
+    } catch (err) { 
+      console.error(err); 
+      setLoading(false); 
+      // Optional: toast.error("Failed to load goals");
+    }
   };
 
   const handleGoalSubmit = async (e) => {
@@ -44,34 +52,42 @@ const Goals = () => {
       if (goalEditId) {
         const res = await API.put(`/goals/${goalEditId}`, goalFormData);
         setGoals(goals.map(g => g._id === goalEditId ? res.data : g));
+        toast.success("Goal updated successfully!");
       } else {
         const res = await API.post('/goals', goalFormData);
         setGoals([...goals, res.data]);
+        toast.success("New goal set!");
       }
       closeGoalForm();
-    } catch (err) { alert("Error saving goal."); }
-  };
-
-  const toggleGoal = async (id) => {
-    // ... optimistic updates ...
-    try { 
-        await API.put(`/goals/${id}/toggle`); 
-        if (isCompleting) {
-            await refreshUser(); // Fetch new level
-        }
-    } catch (err) { fetchAll(); }
+    } catch (err) { 
+      toast.error("Failed to save goal.");
+    }
   };
 
   const deleteGoal = async (id) => {
     if (!window.confirm("Delete goal?")) return;
-    try { await API.delete(`/goals/${id}`); setGoals(goals.filter(g => g._id !== id)); } catch (err) { }
+    try { 
+        await API.delete(`/goals/${id}`); 
+        setGoals(goals.filter(g => g._id !== id)); 
+        toast.success("Goal deleted.");
+    } catch (err) { 
+        toast.error("Could not delete goal.");
+    }
   };
 
+  // ... (toggleGoal, openGoalEdit, closeGoalForm remain same) ...
+  const toggleGoal = async (id) => {
+      try { 
+          await API.put(`/goals/${id}/toggle`); 
+          await refreshUser();
+      } catch (err) { fetchAll(); }
+  };
+  
   const openGoalEdit = (goal) => {
-    setGoalFormData({ title: goal.title, type: goal.type || 'Long Term', deadline: goal.deadline ? goal.deadline.split('T')[0] : '' });
-    setGoalEditId(goal._id); setShowGoalForm(true);
+      setGoalFormData({ title: goal.title, type: goal.type || 'Long Term', deadline: goal.deadline ? goal.deadline.split('T')[0] : '' });
+      setGoalEditId(goal._id); setShowGoalForm(true);
   };
-
+  
   const closeGoalForm = () => { setShowGoalForm(false); setGoalEditId(null); setGoalFormData({ title: '', type: 'Long Term', deadline: '' }); };
 
   const addTask = async (e) => {
@@ -86,274 +102,258 @@ const Goals = () => {
       });
       setTasks([...tasks, res.data]);
       setNewTask(''); setPriority('Medium'); setDueDate(''); setLinkedGoalId('');
-    } catch (err) { alert('Error adding task'); }
-  };
-
-  const toggleTask = async (id) => {
-    // ... optimistic updates ...
-    const task = tasks.find(t => t._id === id);
-    const isCompleting = !task.isCompleted;
-    
-    setTasks(tasks.map(t => t._id === id ? { ...t, isCompleted: isCompleting, updatedAt: new Date().toISOString() } : t));
-
-    try { 
-        await API.put(`/tasks/${id}/toggle`); 
-        
-        // 3. THE FIX: Fetch the real level from DB instead of guessing
-        if (isCompleting) {
-           await refreshUser(); 
-        }
-    } catch (err) { fetchAll(); }
+      toast.success("Task added to queue.");
+    } catch (err) { 
+        toast.error('Error adding task.');
+    }
   };
 
   const deleteTask = async (id) => {
     if (!window.confirm("Delete task?")) return;
-    try { await API.delete(`/tasks/${id}`); setTasks(tasks.filter(t => t._id !== id)); } catch (err) { }
+    try { 
+        await API.delete(`/tasks/${id}`); 
+        setTasks(tasks.filter(t => t._id !== id));
+        toast.success("Task removed.");
+    } catch (err) { 
+        toast.error("Could not delete task.");
+    }
+  };
+  
+  // ... (Rest of component logic: toggleTask, filters, render) ...
+  // (Paste the rest of the existing filtering logic and JSX here unchanged)
+  // Just ensure you don't use alert() anywhere in the JSX if you had inline ones.
+  
+  const toggleTask = async (id) => {
+      const task = tasks.find(t => t._id === id);
+      const isCompleting = !task.isCompleted;
+      setTasks(tasks.map(t => t._id === id ? { ...t, isCompleted: isCompleting, updatedAt: new Date().toISOString() } : t));
+  
+      try { 
+          await API.put(`/tasks/${id}/toggle`); 
+          if (isCompleting) await refreshUser(); 
+      } catch (err) { fetchAll(); }
   };
 
-  // --- DATA FILTERING LOGIC ---
+  // ... Filter Logic ...
   const longTermGoals = goals.filter(g => g.type === 'Long Term');
-
   const shortTermGoals = goals.filter(g => {
     if (g.type !== 'Short Term') return false;
     if (!g.isCompleted) return true;
     const lastUpdate = new Date(g.updatedAt).toLocaleDateString();
     const today = new Date().toLocaleDateString();
-    return lastUpdate === today; // Auto-remove after 1 day
+    return lastUpdate === today;
   });
-
   const activeTasks = tasks.filter(t => !t.isCompleted);
   const completedTasks = tasks.filter(t => {
-    if (!t.isCompleted) return false;
-    if (!t.updatedAt) return false;
-
-    // Check if it was updated/completed TODAY
-    const updated = new Date(t.updatedAt || new Date());
-    const today = new Date();
-
-    return updated.getDate() === today.getDate() &&
-      updated.getMonth() === today.getMonth() &&
-      updated.getFullYear() === today.getFullYear();
+      if (!t.isCompleted) return false;
+      if (!t.updatedAt) return false;
+      const updated = new Date(t.updatedAt || new Date());
+      const today = new Date();
+      return updated.getDate() === today.getDate() &&
+        updated.getMonth() === today.getMonth() &&
+        updated.getFullYear() === today.getFullYear();
   });
-
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-
   const todayList = activeTasks.filter(t => {
-    if (!t.dueDate) return true; // No date = Today
-    const d = new Date(t.dueDate);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime() <= todayStart.getTime(); // Past & Today
+      if (!t.dueDate) return true; 
+      const d = new Date(t.dueDate);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime() <= todayStart.getTime(); 
   });
-
   const futureList = activeTasks.filter(t => {
-    if (!t.dueDate) return false;
-    const d = new Date(t.dueDate);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime() > todayStart.getTime(); // Tomorrow onwards
+      if (!t.dueDate) return false;
+      const d = new Date(t.dueDate);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime() > todayStart.getTime();
   });
-
   const pendingGoalsCount = goals.filter(g => !g.isCompleted).length;
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
-    </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      </div>
   );
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto space-y-10 animate-fade-in min-h-screen">
-
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider rounded-full border border-amber-200 dark:border-amber-800">
-              {pendingGoalsCount} Pending Goals
-            </span>
-          </div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-            Execution Center <Sparkles className="w-6 h-6 text-yellow-500 fill-yellow-200 animate-pulse" />
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
-            Align your daily actions with your life vision.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowGoalForm(true)}
-          className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 px-6 rounded-2xl font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
-        >
-          <Plus className="w-4 h-4" /> New Goal
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-
-        {/* COLUMN 1: DAILY TASKS */}
-        <div className="flex flex-col h-full min-h-[600px] bg-white dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden">
-          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-            <div className="flex flex-col">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <CheckSquare className="w-5 h-5 text-blue-500" /> Daily Tasks
-              </h3>
-            </div>
-            <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800">
-              {activeTasks.length} Pending
-            </span>
-          </div>
-
-          <div className="p-4 bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
-            <form onSubmit={addTask} className="flex flex-col gap-3">
-              <input
-                type="text"
-                placeholder="What needs to be done?"
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
-              />
-
-              <div className="flex flex-wrap gap-2"> {/* Added flex-wrap for better mobile fit */}
-
-                {/* Priority Select */}
-                <select
-                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg px-2 py-2 outline-none"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                >
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
-
-                {/* 👇 NEW: DATE INPUT 👇 */}
-                <input
-                  type="date"
-                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg px-2 py-2 outline-none"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                />
-
-                {/* Link Goal Select */}
-                <div className="relative flex-1 min-w-[100px]">
-                  <select
-                    className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg pl-8 pr-3 py-2 outline-none"
-                    value={linkedGoalId}
-                    onChange={(e) => setLinkedGoalId(e.target.value)}
-                  >
-                    <option value="">Link Goal</option>
-                    {shortTermGoals.map(g => (<option key={g._id} value={g._id}>{g.title}</option>))}
-                  </select>
-                  <LinkIcon className="w-3 h-3 absolute left-3 top-2.5 text-slate-400" />
-                </div>
-
-                <button type="submit" className="bg-blue-600 text-white rounded-lg px-4 hover:bg-blue-700 transition shadow-md">
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* */}
-          <div className="p-4 space-y-2 overflow-y-auto flex-1 custom-scrollbar max-h-[500px]">
-
-            {/* 1. TODAY'S TASKS */}
-            {todayList.map(task => (
-              <TaskItem key={task._id} task={task} toggleTask={toggleTask} deleteTask={deleteTask} />
-            ))}
-
-            {/* 2. DIVIDER LINE (Only shows if there are future tasks) */}
-            {futureList.length > 0 && (
-              <div className="relative py-3 flex items-center gap-3">
-                <div className="h-px bg-slate-200 dark:bg-slate-700/50 flex-1"></div>
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-white dark:bg-slate-900 px-2 rounded-full border border-slate-100 dark:border-slate-800">
-                  Upcoming
+      <div className="p-6 max-w-[1600px] mx-auto space-y-10 animate-fade-in min-h-screen">
+          {/* ... Header and JSX unchanged ... */}
+          {/* Header */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider rounded-full border border-amber-200 dark:border-amber-800">
+                  {pendingGoalsCount} Pending Goals
                 </span>
-                <div className="h-px bg-slate-200 dark:bg-slate-700/50 flex-1"></div>
               </div>
-            )}
-
-            {/* 3. FUTURE TASKS */}
-            {futureList.map(task => (
-              <TaskItem key={task._id} task={task} toggleTask={toggleTask} deleteTask={deleteTask} />
-            ))}
-
-            {/* 4. COMPLETED TASKS (Existing Code) */}
-            {completedTasks.length > 0 && (
-              <div className="pt-4 mt-2 border-t border-slate-100 dark:border-slate-800/50">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2 text-center opacity-70">Completed Today</p>
-                <div className="space-y-1 opacity-60">
-                  {completedTasks.map(task => <TaskItem key={task._id} task={task} toggleTask={toggleTask} deleteTask={deleteTask} />)}
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                Execution Center <Sparkles className="w-6 h-6 text-yellow-500 fill-yellow-200 animate-pulse" />
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
+                Align your daily actions with your life vision.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowGoalForm(true)}
+              className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 px-6 rounded-2xl font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
+            >
+              <Plus className="w-4 h-4" /> New Goal
+            </button>
+          </div>
+    
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            {/* COLUMN 1: DAILY TASKS */}
+            <div className="flex flex-col h-full min-h-[600px] bg-white dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <div className="flex flex-col">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <CheckSquare className="w-5 h-5 text-blue-500" /> Daily Tasks
+                  </h3>
                 </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800">
+                  {activeTasks.length} Pending
+                </span>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* COLUMN 2: SHORT TERM */}
-        <div className="flex flex-col h-full min-h-[600px] bg-white dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden">
-          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-500" /> Short Term
-            </h3>
-            <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold border border-amber-200 dark:border-amber-800">
-              {shortTermGoals.filter(g => !g.isCompleted).length} Pending
-            </span>
-          </div>
-          <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar max-h-[650px]">
-            {shortTermGoals.map(goal => (
-              <GoalCard key={goal._id} goal={goal} handleToggle={toggleGoal} handleEdit={openGoalEdit} handleDelete={deleteGoal} />
-            ))}
-          </div>
-        </div>
-
-        {/* COLUMN 3: LONG TERM */}
-        <div className="flex flex-col h-full min-h-[600px] bg-white dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden">
-          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Mountain className="w-5 h-5 text-indigo-500" /> Long Term
-            </h3>
-            <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-800">
-              {longTermGoals.filter(g => !g.isCompleted).length} Pending
-            </span>
-          </div>
-          <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar max-h-[650px]">
-            {longTermGoals.map(goal => (
-              <GoalCard key={goal._id} goal={goal} handleToggle={toggleGoal} handleEdit={openGoalEdit} handleDelete={deleteGoal} />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {showGoalForm && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl relative border border-slate-200 dark:border-slate-800">
-            <button onClick={closeGoalForm} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"><X className="w-5 h-5 text-slate-500" /></button>
-            <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">{goalEditId ? 'Refine Goal' : 'New Goal'}</h2>
-            <form onSubmit={handleGoalSubmit} className="space-y-5">
-              <div>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 block ml-1">Title</label>
-                <input type="text" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold dark:text-white" value={goalFormData.title} onChange={(e) => setGoalFormData({ ...goalFormData, title: e.target.value })} placeholder="e.g. Save ₹1 Lakh" />
+    
+              <div className="p-4 bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
+                <form onSubmit={addTask} className="flex flex-col gap-3">
+                  <input
+                    type="text"
+                    placeholder="What needs to be done?"
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    value={newTask}
+                    onChange={(e) => setNewTask(e.target.value)}
+                  />
+    
+                  <div className="flex flex-wrap gap-2">
+                    <select
+                      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg px-2 py-2 outline-none"
+                      value={priority}
+                      onChange={(e) => setPriority(e.target.value)}
+                    >
+                      <option value="High">High</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                    </select>
+    
+                    <input
+                      type="date"
+                      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg px-2 py-2 outline-none"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                    />
+    
+                    <div className="relative flex-1 min-w-[100px]">
+                      <select
+                        className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg pl-8 pr-3 py-2 outline-none"
+                        value={linkedGoalId}
+                        onChange={(e) => setLinkedGoalId(e.target.value)}
+                      >
+                        <option value="">Link Goal</option>
+                        {shortTermGoals.map(g => (<option key={g._id} value={g._id}>{g.title}</option>))}
+                      </select>
+                      <LinkIcon className="w-3 h-3 absolute left-3 top-2.5 text-slate-400" />
+                    </div>
+    
+                    <button type="submit" className="bg-blue-600 text-white rounded-lg px-4 hover:bg-blue-700 transition shadow-md">
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </form>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 block ml-1">Horizon</label>
-                  <select className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-slate-700 dark:text-gray-200" value={goalFormData.type} onChange={(e) => setGoalFormData({ ...goalFormData, type: e.target.value })}>
-                    <option value="Short Term">Short Term</option>
-                    <option value="Long Term">Long Term</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 block ml-1">Deadline</label>
-                  <input type="date" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-slate-700 dark:text-gray-200" value={goalFormData.deadline} onChange={(e) => setGoalFormData({ ...goalFormData, deadline: e.target.value })} />
-                </div>
+    
+              <div className="p-4 space-y-2 overflow-y-auto flex-1 custom-scrollbar max-h-[500px]">
+                {todayList.map(task => (
+                  <TaskItem key={task._id} task={task} toggleTask={toggleTask} deleteTask={deleteTask} />
+                ))}
+                {futureList.length > 0 && (
+                  <div className="relative py-3 flex items-center gap-3">
+                    <div className="h-px bg-slate-200 dark:bg-slate-700/50 flex-1"></div>
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-white dark:bg-slate-900 px-2 rounded-full border border-slate-100 dark:border-slate-800">
+                      Upcoming
+                    </span>
+                    <div className="h-px bg-slate-200 dark:bg-slate-700/50 flex-1"></div>
+                  </div>
+                )}
+                {futureList.map(task => (
+                  <TaskItem key={task._id} task={task} toggleTask={toggleTask} deleteTask={deleteTask} />
+                ))}
+                {completedTasks.length > 0 && (
+                  <div className="pt-4 mt-2 border-t border-slate-100 dark:border-slate-800/50">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2 text-center opacity-70">Completed Today</p>
+                    <div className="space-y-1 opacity-60">
+                      {completedTasks.map(task => <TaskItem key={task._id} task={task} toggleTask={toggleTask} deleteTask={deleteTask} />)}
+                    </div>
+                  </div>
+                )}
               </div>
-              <button type="submit" className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-4 rounded-2xl font-black hover:scale-[1.02] transition-all shadow-xl mt-4 uppercase tracking-widest text-sm">Save Vision</button>
-            </form>
+            </div>
+    
+            {/* COLUMN 2: SHORT TERM */}
+            <div className="flex flex-col h-full min-h-[600px] bg-white dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-amber-500" /> Short Term
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold border border-amber-200 dark:border-amber-800">
+                  {shortTermGoals.filter(g => !g.isCompleted).length} Pending
+                </span>
+              </div>
+              <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar max-h-[650px]">
+                {shortTermGoals.map(goal => (
+                  <GoalCard key={goal._id} goal={goal} handleToggle={toggleGoal} handleEdit={openGoalEdit} handleDelete={deleteGoal} />
+                ))}
+              </div>
+            </div>
+    
+            {/* COLUMN 3: LONG TERM */}
+            <div className="flex flex-col h-full min-h-[600px] bg-white dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Mountain className="w-5 h-5 text-indigo-500" /> Long Term
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-800">
+                  {longTermGoals.filter(g => !g.isCompleted).length} Pending
+                </span>
+              </div>
+              <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar max-h-[650px]">
+                {longTermGoals.map(goal => (
+                  <GoalCard key={goal._id} goal={goal} handleToggle={toggleGoal} handleEdit={openGoalEdit} handleDelete={deleteGoal} />
+                ))}
+              </div>
+            </div>
           </div>
+    
+          {showGoalForm && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+              <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl relative border border-slate-200 dark:border-slate-800">
+                <button onClick={closeGoalForm} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"><X className="w-5 h-5 text-slate-500" /></button>
+                <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">{goalEditId ? 'Refine Goal' : 'New Goal'}</h2>
+                <form onSubmit={handleGoalSubmit} className="space-y-5">
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 block ml-1">Title</label>
+                    <input type="text" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold dark:text-white" value={goalFormData.title} onChange={(e) => setGoalFormData({ ...goalFormData, title: e.target.value })} placeholder="e.g. Save 竄ｹ1 Lakh" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 block ml-1">Horizon</label>
+                      <select className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-slate-700 dark:text-gray-200" value={goalFormData.type} onChange={(e) => setGoalFormData({ ...goalFormData, type: e.target.value })}>
+                        <option value="Short Term">Short Term</option>
+                        <option value="Long Term">Long Term</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 block ml-1">Deadline</label>
+                      <input type="date" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl outline-none font-bold text-slate-700 dark:text-gray-200" value={goalFormData.deadline} onChange={(e) => setGoalFormData({ ...goalFormData, deadline: e.target.value })} />
+                    </div>
+                  </div>
+                  <button type="submit" className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-4 rounded-2xl font-black hover:scale-[1.02] transition-all shadow-xl mt-4 uppercase tracking-widest text-sm">Save Vision</button>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  );
+      );
 };
 
 const TaskItem = ({ task, toggleTask, deleteTask }) => {
