@@ -1,16 +1,39 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BarChart2, Layers, Activity, Calendar } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, Cell, Tooltip } from 'recharts';
 
-const HabitMonthlyOverview = ({ leaderboardMonth, setLeaderboardMonth, monthlyStats, activeHabitsCount, avgDailyConsistency }) => {
+const HabitMonthlyOverview = ({ leaderboardMonth, setLeaderboardMonth, monthlyStats = [], activeHabitsCount, avgDailyConsistency }) => {
   
+  // 1. ✨ LOGIC IMPROVEMENT: Real-time Average Consistency
+  // Calculates average only for days that have occurred (up to today).
+  // This fixes the issue where future empty days drag down the monthly average.
+  const realTimeConsistency = useMemo(() => {
+    if (!monthlyStats || monthlyStats.length === 0) return 0;
+
+    // Get strictly local date string (YYYY-MM-DD) to avoid timezone offsets
+    const todayStr = new Date().toLocaleDateString('en-CA');
+
+    const validDays = monthlyStats.filter(stat => {
+        // Normalize stat date to YYYY-MM-DD
+        const statDateStr = new Date(stat.date).toLocaleDateString('en-CA');
+        // Only include dates strictly in the past or today
+        return statDateStr <= todayStr;
+    });
+
+    if (validDays.length === 0) return 0;
+
+    const total = validDays.reduce((acc, curr) => acc + (curr.percent || 0), 0);
+    return Math.round(total / validDays.length);
+  }, [monthlyStats]);
+
   // Alignment Constants
   const COLUMN_WIDTH = 45;
   const STICKY_WIDTH = 100;
   const CHART_WIDTH = Math.max(monthlyStats.length * COLUMN_WIDTH, 600); 
 
   return (
-    <div className="bg-white dark:bg-gray-900/60 rounded-[2.5rem] shadow-xl shadow-indigo-100/20 dark:shadow-none border border-gray-100 dark:border-gray-800 p-6 transition-all duration-300">
+    // RESPONSIVE: Fluid padding
+    <div className="bg-white dark:bg-gray-900/60 rounded-[2.5rem] shadow-xl shadow-indigo-100/20 dark:shadow-none border border-gray-100 dark:border-gray-800 p-[clamp(1.5rem,2vw,2rem)] transition-all duration-300">
         
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -35,10 +58,11 @@ const HabitMonthlyOverview = ({ leaderboardMonth, setLeaderboardMonth, monthlySt
             </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-[clamp(1.5rem,2vw,2rem)]">
             
             {/* LEFT: SUMMARY CARD */}
-            <div className="lg:col-span-1 bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 dark:from-indigo-900 dark:via-violet-900 dark:to-purple-900 p-6 md:p-8 rounded-[2rem] text-white shadow-2xl shadow-indigo-500/30 flex flex-col justify-between relative overflow-hidden min-h-[220px] lg:min-h-0">
+            {/* RESPONSIVE: Fluid padding */}
+            <div className="lg:col-span-1 bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 dark:from-indigo-900 dark:via-violet-900 dark:to-purple-900 p-[clamp(1.5rem,2vw,2rem)] rounded-[2rem] text-white shadow-2xl shadow-indigo-500/30 flex flex-col justify-between relative overflow-hidden min-h-[220px] lg:min-h-0">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-500/20 rounded-full blur-3xl -ml-10 -mb-10"></div>
 
@@ -51,7 +75,11 @@ const HabitMonthlyOverview = ({ leaderboardMonth, setLeaderboardMonth, monthlySt
 
                 <div className="relative z-10 mt-8 pt-8 border-t border-white/20">
                     <div className="flex items-end gap-3 mb-1">
-                        <span className="text-5xl md:text-6xl font-black tracking-tighter">{avgDailyConsistency}</span>
+                        {/* LOGIC: Display the calculated 'realTimeConsistency' instead of the prop */}
+                        {/* RESPONSIVE: Fluid typography for the big number */}
+                        <span className="text-[clamp(3rem,4vw,3.75rem)] font-black tracking-tighter leading-none">
+                            {realTimeConsistency}
+                        </span>
                         <span className="text-2xl font-bold mb-1.5">%</span>
                     </div>
                     <div className="flex items-center gap-2 text-indigo-100 font-medium">

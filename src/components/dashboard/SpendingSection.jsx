@@ -7,28 +7,39 @@ import { formatCurrency } from '../../utils/helpers';
 const SpendingSection = ({ transactions }) => {
   
   // 1. ✨ OPTIMIZED DATA CALCULATION (Refactored)
-  // Use useMemo to prevent recalculation on every render
+  // FIXED: Timezone consistency and Number safety
   const chartData = useMemo(() => {
     const data = [];
     const today = new Date();
-    // Explicit day names ensure consistency across locales/devices
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
     for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        const dayName = days[d.getDay()];
-        const dateStr = d.toISOString().split('T')[0];
+        
+        // Use Local Time for day names (e.g., "Mon") to match user's wall clock
+        const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+        
+        // Use Local Time YYYY-MM-DD for comparison to avoid UTC timezone shifts
+        // (e.g. 8PM EST shouldn't count as tomorrow)
+        const dateKey = d.toLocaleDateString('en-CA'); 
 
-        // Sum expenses for this specific day
         const total = transactions
-            .filter(t => t.type === 'expense' && t.date.startsWith(dateStr))
-            .reduce((acc, t) => acc + t.amount, 0);
+            .filter(t => {
+                if (t.type !== 'expense') return false;
+                
+                // Robustly handle Date objects or Strings
+                const tDate = new Date(t.date);
+                const tDateKey = tDate.toLocaleDateString('en-CA');
+                
+                return tDateKey === dateKey;
+            })
+            // Ensure we add Numbers, guarding against string '100' + '200' = '100200'
+            .reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
             
         data.push({ 
             day: dayName, 
             amount: total,
-            fullDate: dateStr
+            fullDate: dateKey
         });
     }
     return data;
@@ -65,11 +76,12 @@ const SpendingSection = ({ transactions }) => {
         </h3>
       </div>
 
-      {/* 3. ✨ RECHARTS IMPLEMENTATION (Replaces CSS Chart) */}
-      <div className="h-[160px] w-full mt-6 px-4">
+      {/* 3. ✨ RECHARTS IMPLEMENTATION */}
+      {/* FIXED: Removed arbitrary margin, ensured strict height for ResponsiveContainer */}
+      <div className="h-[180px] w-full mt-4 px-2">
         {transactions.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} barSize={16}>
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={20}>
                     <XAxis 
                         dataKey="day" 
                         axisLine={false} 
@@ -79,18 +91,18 @@ const SpendingSection = ({ transactions }) => {
                     />
                     <Tooltip 
                         content={<CustomTooltip />} 
-                        cursor={{ fill: 'transparent' }} // Removes the gray hover box for a cleaner look
+                        cursor={{ fill: 'rgba(139, 92, 246, 0.1)', radius: 4 }} // Soft highlight instead of transparent
                     />
                     <Bar 
                         dataKey="amount" 
-                        radius={[6, 6, 6, 6]} // Rounded bars for modern feel
-                        animationDuration={1500}
+                        radius={[4, 4, 4, 4]}
+                        animationDuration={1000}
                     >
                         {chartData.map((entry, index) => (
                             <Cell 
                                 key={`cell-${index}`} 
-                                // Dynamic coloring based on value
-                                fill={entry.amount > 0 ? '#8b5cf6' : 'transparent'} 
+                                // Show a faint gray bar if value is 0 so the chart doesn't look "broken"
+                                fill={entry.amount > 0 ? '#8b5cf6' : 'rgba(255,255,255,0.05)'} 
                                 className="transition-all duration-300 hover:opacity-80"
                             />
                         ))}
@@ -98,6 +110,7 @@ const SpendingSection = ({ transactions }) => {
                 </BarChart>
             </ResponsiveContainer>
         ) : (
+            // ... existing empty state ...
             <div className="flex flex-col items-center justify-center h-full text-gray-400 text-xs">
                  <p>No activity data available for this week</p>
             </div>
