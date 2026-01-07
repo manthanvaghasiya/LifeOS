@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import API from '../services/api';
 import { generateInsights } from '../utils/smartInsights';
 import { addXP } from '../utils/gamification';
@@ -110,8 +111,13 @@ const Dashboard = () => {
     const monthlyInvested = thisMonthTransactions.reduce((acc, t) => {
         const isInv = t.category === 'Investment' || INVESTMENT_TYPES.includes(t.category) || t.investmentType;
         if (isInv) {
-            if (t.type === 'expense' || (t.type === 'transfer' && t.paymentMode !== 'Investment')) return acc + t.amount;
-            if (t.type === 'transfer' && t.paymentMode === 'Investment') return acc - t.amount;
+            // Check for money ENTERING investment:
+            // 1. Expense marked as Investment (Buying assets directly)
+            // 2. Transfer NOT originating from Investment (e.g., Bank -> Investment)
+            if (t.type === 'expense' || (t.type === 'transfer' && t.paymentMode !== 'Investment')) {
+                 return acc + t.amount;
+            }
+            // Removed the subtraction logic. Withdrawals will no longer reduce this monthly stat.
         }
         return acc;
     }, 0);
@@ -134,21 +140,91 @@ const Dashboard = () => {
   const pendingShortTermGoals = useMemo(() => goals.filter(g => !g.isCompleted && g.type === 'Short Term').sort((a, b) => new Date(a.deadline) - new Date(b.deadline)), [goals]);
 
   const dailyInsight = useMemo(() => generateInsights(transactions, habits, tasks), [transactions, habits, tasks]);
+  
+ // ✨ NEW: Celebration Effect (Place this above handlers)
+  const triggerConfetti = () => {
+    const count = 200;
+    const defaults = {
+      origin: { y: 0.7 },
+      zIndex: 9999
+    };
+
+    function fire(particleRatio, opts) {
+      confetti({
+        ...defaults,
+        ...opts,
+        particleCount: Math.floor(count * particleRatio)
+      });
+    }
+
+    fire(0.25, { spread: 26, startVelocity: 55 });
+    fire(0.2, { spread: 60 });
+    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+    fire(0.1, { spread: 120, startVelocity: 45 });
+  };
 
   // --- HANDLERS ---
+  
+  // 1. Habits: Supports Toggle (Add/Remove) + Confetti
   const handleToggleHabit = useCallback(async (id) => { 
-    setHabits(prev => prev.map(h => h._id === id ? { ...h, completedDates: [...h.completedDates, todayStr] } : h)); 
-    try { await API.put(`/habits/${id}/toggle`, { date: todayStr }); addXP(10); } catch (err) { fetchAllData(); } 
-  }, [todayStr]);
+    const habit = habits.find(h => h._id === id);
+    if (!habit) return;
 
+    // Check if already completed today to determine action
+    const isCompleted = habit.completedDates.includes(todayStr);
+
+    // Optimistic Update
+    setHabits(prev => prev.map(h => {
+        if (h._id === id) {
+            return {
+                ...h,
+                completedDates: isCompleted
+                    ? h.completedDates.filter(d => d !== todayStr) // Remove if exists
+                    : [...h.completedDates, todayStr] // Add if missing
+            };
+        }
+        return h;
+    }));
+
+    // Trigger Effects (Only on Completion)
+    if (!isCompleted) {
+        triggerConfetti();
+        addXP(10); 
+    }
+
+    try { 
+        await API.put(`/habits/${id}/toggle`, { date: todayStr }); 
+    } catch (err) { 
+        // Revert on failure
+        fetchAllData(); 
+    } 
+  }, [habits, todayStr]);
+
+  // 2. Goals: Confetti + XP
   const handleToggleGoal = useCallback(async (id) => { 
     setGoals(prev => prev.map(g => g._id === id ? { ...g, isCompleted: true } : g)); 
-    try { await API.put(`/goals/${id}/toggle`); addXP(50); } catch (err) { fetchAllData(); } 
+    
+    // Confetti for goals too!
+    triggerConfetti();
+    addXP(50);
+
+    try { 
+        await API.put(`/goals/${id}/toggle`); 
+    } catch (err) { 
+        fetchAllData(); 
+    } 
   }, []);
 
+  // 3. Tasks: Simple Completion
   const handleToggleTask = useCallback(async (id) => { 
     setTasks(prev => prev.map(t => t._id === id ? { ...t, isCompleted: true } : t)); 
-    try { await API.put(`/tasks/${id}/toggle`); addXP(5); } catch (err) { fetchAllData(); } 
+    addXP(5);
+    try { 
+        await API.put(`/tasks/${id}/toggle`); 
+    } catch (err) { 
+        fetchAllData(); 
+    } 
   }, []);
    
   if (loading) return <DashboardSkeleton />;

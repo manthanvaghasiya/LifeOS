@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Pencil, Trash2, Check } from 'lucide-react';
 
 const HabitGrid = ({ habits, weekDays, today, handlePrevWeek, handleNextWeek, toggleHabitDate, handleEdit, deleteHabit }) => {
@@ -10,6 +10,22 @@ const HabitGrid = ({ habits, weekDays, today, handlePrevWeek, handleNextWeek, to
       day: d.toLocaleDateString('en-US', { weekday: 'short' }), 
       date: d.getDate() 
     };
+  };
+
+  // ✨ HELPER: Calculate Monthly Progress based on the View Context
+  // This ensures the progress bar shows performance for the specific month being viewed
+  const getMonthlyStats = (habit) => {
+      // Use the first day of the currently viewed week to determine the "Month Context"
+      const referenceDate = weekDays.length > 0 ? new Date(weekDays[0]) : new Date();
+      const monthPrefix = `${referenceDate.getFullYear()}-${String(referenceDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      // Filter completion dates that match this specific month (e.g., "2024-01")
+      const currentMonthCount = habit.completedDates.filter(d => d.startsWith(monthPrefix)).length;
+      
+      // Calculate percentage for the bar (capped at 100%)
+      const percentage = Math.min((currentMonthCount / habit.target) * 100, 100);
+      
+      return { count: currentMonthCount, percentage };
   };
 
   const dateRangeText = `${new Date(weekDays[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(weekDays[6]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
@@ -29,7 +45,10 @@ const HabitGrid = ({ habits, weekDays, today, handlePrevWeek, handleNextWeek, to
 
       {/* --- MOBILE VIEW (Cards) --- */}
       <div className="md:hidden flex flex-col divide-y divide-gray-50 dark:divide-gray-800">
-          {habits.length > 0 ? habits.map((habit) => (
+          {habits.length > 0 ? habits.map((habit) => {
+              const stats = getMonthlyStats(habit);
+              
+              return (
               <div key={habit._id} className="p-5 flex flex-col gap-4">
                   {/* Top Row: Title & Actions */}
                   <div className="flex justify-between items-start">
@@ -37,10 +56,10 @@ const HabitGrid = ({ habits, weekDays, today, handlePrevWeek, handleNextWeek, to
                           <h4 className="font-bold text-gray-900 dark:text-white text-base">{habit.title}</h4>
                           <div className="flex items-center gap-2 mt-1">
                               <span className="text-xs text-gray-400 font-medium bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded-md border border-gray-100 dark:border-gray-700">
-                                Target: {habit.target} Days
+                                Target: {habit.target}/mo
                               </span>
                               <span className="text-xs text-indigo-500 font-bold">
-                                {habit.completedDates.length} Done
+                                {stats.count} Done
                               </span>
                           </div>
                       </div>
@@ -79,7 +98,7 @@ const HabitGrid = ({ habits, weekDays, today, handlePrevWeek, handleNextWeek, to
                       })}
                   </div>
               </div>
-          )) : (
+          )}) : (
               <div className="py-12 text-center text-gray-400 text-sm font-medium">No habits being tracked this week.</div>
           )}
       </div>
@@ -106,7 +125,9 @@ const HabitGrid = ({ habits, weekDays, today, handlePrevWeek, handleNextWeek, to
                   </tr>
               </thead>
               <tbody className="text-sm">
-                  {habits.map((habit) => (
+                  {habits.map((habit) => {
+                      const stats = getMonthlyStats(habit);
+                      return (
                       <tr key={habit._id} className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition border-b border-gray-50 dark:border-gray-800 last:border-0">
                           
                           {/* Habit Name Cell */}
@@ -114,9 +135,11 @@ const HabitGrid = ({ habits, weekDays, today, handlePrevWeek, handleNextWeek, to
                               <p className="font-bold text-gray-800 dark:text-gray-200 text-base">{habit.title}</p>
                               <div className="flex items-center gap-2 mt-1">
                                   <div className="h-1.5 w-16 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min((habit.completedDates.length / habit.target) * 100, 100)}%` }}></div>
+                                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${stats.percentage}%` }}></div>
                                   </div>
-                                  <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">{habit.completedDates.length}/{habit.target}</span>
+                                  <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                                      {stats.count}/{habit.target} <span className="text-[9px] opacity-70 uppercase">Month</span>
+                                  </span>
                               </div>
                           </td>
 
@@ -151,7 +174,7 @@ const HabitGrid = ({ habits, weekDays, today, handlePrevWeek, handleNextWeek, to
                               </div>
                           </td>
                       </tr>
-                  ))}
+                  )})}
                   {habits.length === 0 && (
                       <tr><td colSpan={9} className="py-12 text-center text-gray-400 text-sm font-medium">No habits being tracked this week.</td></tr>
                   )}

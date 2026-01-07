@@ -7,7 +7,11 @@ import {
 } from 'lucide-react';
 import API from '../../services/api';
 
-// Map string names to Icon Components for storage/retrieval
+// ✨ FIXED: Added missing imports
+import { useToast } from '../../context/ToastContext';
+import confetti from 'canvas-confetti';
+
+// Map string names to Icon Components
 const ICON_MAP = {
   Coffee, ShoppingBag, Car, Zap, Heart, Briefcase, GraduationCap, Smartphone,
   MoreHorizontal, Landmark, Wallet, TrendingUp, Tag, Star
@@ -21,17 +25,17 @@ const INITIAL_CATEGORIES = {
     { id: 'Transport', iconName: 'Car', color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' },
     { id: 'Bills', iconName: 'Zap', color: 'text-yellow-500', bg: 'bg-yellow-100 dark:bg-yellow-900/30' },
     { id: 'Health', iconName: 'Heart', color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' },
-    { id: 'Other', iconName: 'MoreHorizontal', color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-900/30' }, // "Other" option
+    { id: 'Other', iconName: 'MoreHorizontal', color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-900/30' }, 
   ],
   income: [
     { id: 'Salary', iconName: 'Briefcase', color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900/30' },
     { id: 'Business', iconName: 'TrendingUp', color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
     { id: 'Investment', iconName: 'Landmark', color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' },
-    { id: 'Other', iconName: 'MoreHorizontal', color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-900/30' }, // "Other" option
+    { id: 'Other', iconName: 'MoreHorizontal', color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-900/30' }, 
   ]
 };
 
-const QuickSpendModal = ({ onClose, onSuccess }) => {
+const QuickSpendModal = ({ onClose, onSuccess }) => { // Kept 'onSuccess' here
   const [type, setType] = useState('expense');
   const [amount, setAmount] = useState('');
   const [title, setTitle] = useState('');
@@ -41,10 +45,9 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [animating, setAnimating] = useState(false);
 
-  // Custom Category State
   const [customCatName, setCustomCatName] = useState('');
+  const toast = useToast(); // Hook call is correct now
 
-  // Load categories from LocalStorage or use Initial
   const [categories, setCategories] = useState(() => {
     const saved = localStorage.getItem('user_categories');
     return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
@@ -52,12 +55,10 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
 
   useEffect(() => {
     setAnimating(true);
-    // Select first category (unless it was 'Other' which we want user to click explicitly to see input)
     const firstCat = categories[type][0].id;
     setCategory(firstCat);
   }, [type]);
 
-  // Persist categories when changed
   useEffect(() => {
     localStorage.setItem('user_categories', JSON.stringify(categories));
   }, [categories]);
@@ -67,50 +68,70 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
 
     const newCategory = {
       id: customCatName.trim(),
-      iconName: 'Tag', // Default icon for custom
+      iconName: 'Tag', 
       color: 'text-indigo-500',
       bg: 'bg-indigo-100 dark:bg-indigo-900/30'
     };
 
     setCategories(prev => {
-      // Insert before the last item (assuming "Other" is always last)
       const currentList = [...prev[type]];
       const otherIndex = currentList.findIndex(c => c.id === 'Other');
-
       if (otherIndex !== -1) {
         currentList.splice(otherIndex, 0, newCategory);
       } else {
         currentList.push(newCategory);
       }
-
       return { ...prev, [type]: currentList };
     });
 
-    // Auto-select the new category and clear input
     setCategory(newCategory.id);
     setCustomCatName('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!amount || !title) return;
+    
+    // Validation
+    if (!title.trim()) {
+      toast.error("Wait! What is this spending for?");
+      return;
+    }
+    if (!amount || amount <= 0) {
+      toast.warning("Please enter a valid amount");
+      return;
+    }
 
     setLoading(true);
     try {
-      const payload = {
-        title,
+      const newTransaction = {
         amount: parseFloat(amount),
-        type,
+        title, 
         category,
-        date, // Sends today's date automatically
-        paymentMode, // 2. USE STATE VARIABLE HERE (was hardcoded 'Bank')
+        type: type, // Ensure correct type (income/expense)
+        date: date, // Use the selected date
+        paymentMode // ✨ FIXED: Included paymentMode in API call
       };
 
-      const { data } = await API.post('/transactions', payload);
-      onSuccess(data);
-      handleClose();
-    } catch (err) {
-      console.error(err);
+      const res = await API.post('/transactions', newTransaction);
+      
+      // ✨ FIXED: Used 'onSuccess' instead of 'onTransactionAdded'
+      if (onSuccess) onSuccess(res.data);
+      
+      toast.success(`${type === 'income' ? 'Income' : 'Expense'} saved successfully!`);
+      
+      // Confetti
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: type === 'income' ? ['#10b981', '#34d399'] : ['#ef4444', '#f97316']
+      });
+
+      handleClose(); // Close with animation
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to save transaction");
+    } finally {
       setLoading(false);
     }
   };
@@ -122,9 +143,10 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
 
   const currentCategories = categories[type];
 
+  // ... (Rest of your JSX is perfect, no changes needed below)
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center sm:p-4">
-
+      {/* ... existing JSX code ... */}
       <div
         className={`absolute inset-0 bg-gray-900/30 dark:bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${animating ? 'opacity-100' : 'opacity-0'}`}
         onClick={handleClose}
@@ -134,7 +156,6 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
         className={`relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-t-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transition-all duration-300 transform ${animating ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-full md:translate-y-10 opacity-0 md:scale-95'
           }`}
       >
-
         {/* HEADER */}
         <div className="px-6 pt-6 pb-2 shrink-0 flex justify-between items-center">
           <div>
@@ -173,8 +194,7 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
             ))}
           </div>
 
-          {/* */}
-          {/* B. MAIN INPUTS (Amount & Title) */}
+          {/* MAIN INPUTS (Amount & Title) */}
           <div className="space-y-4">
             
             {/* 1. AMOUNT + VERTICAL PAYMENT TOGGLE */}
@@ -200,25 +220,25 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
               {/* Right: Vertical Payment Mode Buttons */}
               <div className="w-20 flex flex-col border-l border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-900/30">
                  <button
-                    onClick={() => setPaymentMode('Cash')}
-                    className={`flex-1 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider transition-all ${
-                       paymentMode === 'Cash' 
-                       ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
-                       : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                    }`}
+                   onClick={() => setPaymentMode('Cash')}
+                   className={`flex-1 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider transition-all ${
+                      paymentMode === 'Cash' 
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
+                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                   }`}
                  >
-                    Cash
+                   Cash
                  </button>
                  <div className="h-px bg-gray-200 dark:bg-gray-700"></div>
                  <button
-                    onClick={() => setPaymentMode('Bank')}
-                    className={`flex-1 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider transition-all ${
-                       paymentMode === 'Bank' 
-                       ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
-                       : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                    }`}
+                   onClick={() => setPaymentMode('Bank')}
+                   className={`flex-1 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider transition-all ${
+                      paymentMode === 'Bank' 
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
+                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                   }`}
                  >
-                    Bank
+                   Bank
                  </button>
               </div>
             </div>
@@ -237,11 +257,10 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
                     <Calendar className="h-4 w-4 text-gray-400" />
                  </div>
                  <input 
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    // Added 'w-full' so it stretches on mobile, and 'sm:w-auto' for desktop
-                    className="w-full sm:w-auto pl-9 pr-3 py-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 outline-none border border-transparent focus:border-gray-300 cursor-pointer"
+                   type="date"
+                   value={date}
+                   onChange={(e) => setDate(e.target.value)}
+                   className="w-full sm:w-auto pl-9 pr-3 py-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 outline-none border border-transparent focus:border-gray-300 cursor-pointer"
                  />
               </div>
             </div>
@@ -266,7 +285,6 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
                       : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                   >
-                    {/* Small Icon Size: w-4 h-4, Container: p-2 */}
                     <div className={`p-2 rounded-full ${category === cat.id ? 'bg-white dark:bg-gray-800' : cat.bg} ${cat.color}`}>
                       <Icon className="w-4 h-4" />
                     </div>

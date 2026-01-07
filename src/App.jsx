@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import LevelUpModal from './components/gamification/LevelUpModal';
+import { ToastProvider } from './context/ToastContext';
 
 // ⚡ Lazy Load Pages (Commercial Performance Optimization)
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -54,6 +55,7 @@ const App = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <ToastProvider>
       <Router>
         {/* Main App Container
           - Uses 'slate-50' for a premium dashboard background.
@@ -93,6 +95,7 @@ const App = () => {
           
         </div>
       </Router>
+      </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
   );

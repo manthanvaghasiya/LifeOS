@@ -15,111 +15,55 @@ const FinancialAnalytics = ({ transactions }) => {
     investment: true
   });
 
-  // --- 1. ADVANCED DATA PROCESSING (Refactored) ---
+  
+  // --- 1. ADVANCED DATA PROCESSING ---
   const dailyData = useMemo(() => {
-    // Generate current week's days (Sunday to Saturday)
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 (Sun) to 6 (Sat)
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - dayOfWeek); // Go back to Sunday
-    startOfWeek.setHours(0, 0, 0, 0);
+    if (!transactions || transactions.length === 0) return [];
 
-    const weekMap = new Map();
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-    // Initialize 7 days with 0 values
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(startOfWeek);
-        d.setDate(startOfWeek.getDate() + i);
-        const dayName = days[d.getDay()];
-        // Key logic: We use the Date object comparison for mapping, but formatted name for display
-        const dateKey = d.toDateString(); 
-        weekMap.set(dateKey, { 
-            name: dayName, // Show "Sun", "Mon" etc.
-            fullDate: d,
-            income: 0, 
-            expense: 0, 
-            investment: 0 
-        });
-    }
-
-    if (transactions && transactions.length > 0) {
-        transactions.forEach(t => {
-            const tDate = new Date(t.date);
-            // Only process if transaction is in the current week window
-            // (You can adjust this filter if you want to show the transaction's specific week instead)
-            const dateKey = tDate.toDateString();
-
-            if (weekMap.has(dateKey)) {
-                const dayStats = weekMap.get(dateKey);
-
-                if (t.type === 'income') {
-                    dayStats.income += t.amount;
-                } else if (
-                    t.category === 'Investment' || 
-                    INVESTMENT_TYPES.includes(t.category) ||
-                    t.investmentType
-                ) {
-                    if (t.type === 'expense' || (t.type === 'transfer' && t.paymentMode !== 'Investment')) {
-                        dayStats.investment += t.amount;
-                    }
-                } else if (t.type === 'expense') {
-                    dayStats.expense += t.amount;
-                }
-            }
-        });
-    }
-
-    return Array.from(weekMap.values());
-  }, [transactions]);
-  // // --- 1. ADVANCED DATA PROCESSING ---
-  // const dailyData = useMemo(() => {
-  //   if (!transactions || transactions.length === 0) return [];
-
-  //   const grouped = {};
+    const grouped = {};
     
-  //   // Sort transactions by date (Oldest to Newest)
-  //   const sortedTx = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+    // Sort transactions by date (Oldest to Newest)
+    const sortedTx = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  //   sortedTx.forEach(t => {
-  //     const dateObj = new Date(t.date);
-  //     const day = dateObj.getDate();
-  //     const monthShort = dateObj.toLocaleString('default', { month: 'short' });
-  //     const key = `${day} ${monthShort}`; 
-  //     const sortKey = dateObj.getTime();
+    sortedTx.forEach(t => {
+      const dateObj = new Date(t.date);
+      const day = dateObj.getDate();
+      const monthShort = dateObj.toLocaleString('default', { month: 'short' });
+      const key = `${day} ${monthShort}`; 
+      const sortKey = dateObj.getTime();
 
-  //     if (!grouped[key]) {
-  //       grouped[key] = { name: key, income: 0, expense: 0, investment: 0, sortId: sortKey };
-  //     }
+      if (!grouped[key]) {
+        grouped[key] = { name: key, income: 0, expense: 0, investment: 0, sortId: sortKey };
+      }
       
-  //     // LOGIC: Smart Categorization for the Graph
+      // LOGIC: Smart Categorization for the Graph
       
-  //     // 1. Income
-  //     if (t.type === 'income') {
-  //       grouped[key].income += t.amount;
-  //     } 
+      // 1. Income
+      if (t.type === 'income') {
+        grouped[key].income += t.amount;
+      } 
       
-  //     // 2. Investment (Expense as Inv OR Transfer To Inv)
-  //     else if (
-  //       t.category === 'Investment' || 
-  //       INVESTMENT_TYPES.includes(t.category) ||
-  //       t.investmentType
-  //     ) {
-  //       // Only count positive flow into investment (Money In)
-  //       // We exclude withdrawals (paymentMode === 'Investment') so the graph shows "How much did I invest?"
-  //       if (t.type === 'expense' || (t.type === 'transfer' && t.paymentMode !== 'Investment')) {
-  //           grouped[key].investment += t.amount;
-  //       }
-  //     } 
+      // 2. Investment (Expense as Inv OR Transfer To Inv)
+      else if (
+        t.category === 'Investment' || 
+        INVESTMENT_TYPES.includes(t.category) ||
+        t.investmentType
+      ) {
+        // Only count positive flow into investment (Money In)
+        // We exclude withdrawals (paymentMode === 'Investment') so the graph shows "How much did I invest?"
+        if (t.type === 'expense' || (t.type === 'transfer' && t.paymentMode !== 'Investment')) {
+            grouped[key].investment += t.amount;
+        }
+      } 
       
-  //     // 3. Expense (Standard)
-  //     else if (t.type === 'expense') {
-  //       grouped[key].expense += t.amount;
-  //     }
-  //   });
+      // 3. Expense (Standard)
+      else if (t.type === 'expense') {
+        grouped[key].expense += t.amount;
+      }
+    });
 
-  //   return Object.values(grouped).sort((a, b) => a.sortId - b.sortId);
-  // }, [transactions]);
+    return Object.values(grouped).sort((a, b) => a.sortId - b.sortId);
+  }, [transactions]);
 
   // --- 2. PREMIUM TOOLTIP COMPONENT ---
   const CustomTooltip = ({ active, payload, label }) => {

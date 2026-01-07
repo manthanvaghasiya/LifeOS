@@ -1,36 +1,59 @@
-import React from 'react';
-import { Clock, TrendingUp, Wallet, Receipt, BarChart3 } from 'lucide-react';
+import React, { useMemo } from 'react';
+// Added Recharts imports for production-grade visualization
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Clock, TrendingUp, Wallet, Receipt } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 
 const SpendingSection = ({ transactions }) => {
   
-  // 1. ✨ CALCULATE LAST 7 DAYS SPENDING
-  const getLast7DaysData = () => {
+  // 1. ✨ OPTIMIZED DATA CALCULATION (Refactored)
+  // Use useMemo to prevent recalculation on every render
+  const chartData = useMemo(() => {
     const data = [];
     const today = new Date();
+    // Explicit day names ensure consistency across locales/devices
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
     for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        const dayStr = d.toLocaleDateString('en-US', { weekday: 'narrow' }); // M, T, W...
+        const dayName = days[d.getDay()];
         const dateStr = d.toISOString().split('T')[0];
 
-        // Sum expenses for this day
+        // Sum expenses for this specific day
         const total = transactions
             .filter(t => t.type === 'expense' && t.date.startsWith(dateStr))
             .reduce((acc, t) => acc + t.amount, 0);
             
-        data.push({ day: dayStr, amount: total });
+        data.push({ 
+            day: dayName, 
+            amount: total,
+            fullDate: dateStr
+        });
     }
     return data;
-  };
+  }, [transactions]);
 
-  const chartData = getLast7DaysData();
-  const maxSpend = Math.max(...chartData.map(d => d.amount)) || 1; // Avoid divide by zero
+  // 2. ✨ CUSTOM TOOLTIP COMPONENT
+  // Provides precise feedback without cluttering the UI
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-gray-900/90 backdrop-blur-md text-white text-xs p-3 rounded-xl shadow-2xl border border-white/10">
+          <p className="font-bold mb-1 text-gray-300">{payload[0].payload.day}</p>
+          <p className="font-mono text-purple-300 font-bold text-sm">
+            {formatCurrency(payload[0].value)}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="bg-white dark:bg-gray-900/60 dark:border-gray-800 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col w-full min-h-[400px] relative overflow-hidden transition-all duration-300 hover:shadow-md">
       
+      {/* ... existing header code ... */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-indigo-500"></div>
       
       <div className="p-6 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center shrink-0">
@@ -42,41 +65,56 @@ const SpendingSection = ({ transactions }) => {
         </h3>
       </div>
 
-      {/* 2. ✨ THE MINI CHART (CSS Only, No Heavy Libraries) */}
-      {transactions.length > 0 && (
-          <div className="px-6 pt-6 pb-2">
-            <div className="flex items-end justify-between h-24 gap-2">
-                {chartData.map((d, idx) => (
-                    <div key={idx} className="flex flex-col items-center justify-end h-full flex-1 group relative">
-                        {/* Tooltip */}
-                        <div className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold bg-gray-900 text-white px-2 py-1 rounded shadow-lg pointer-events-none whitespace-nowrap z-10">
-                            {formatCurrency(d.amount)}
-                        </div>
-                        
-                        {/* Bar */}
-                        <div 
-                            style={{ height: `${(d.amount / maxSpend) * 80}%`, minHeight: '4px' }} 
-                            className={`w-full max-w-[12px] rounded-t-full transition-all duration-500 ${
-                                d.amount > 0 ? 'bg-purple-500/80 dark:bg-purple-500' : 'bg-gray-100 dark:bg-gray-800'
-                            }`}
-                        />
-                        {/* Label */}
-                        <span className="text-[10px] text-gray-400 mt-2 font-medium">{d.day}</span>
-                    </div>
-                ))}
+      {/* 3. ✨ RECHARTS IMPLEMENTATION (Replaces CSS Chart) */}
+      <div className="h-[160px] w-full mt-6 px-4">
+        {transactions.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} barSize={16}>
+                    <XAxis 
+                        dataKey="day" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fill: '#9ca3af', fontSize: 11, fontWeight: 600 }} 
+                        dy={10} 
+                    />
+                    <Tooltip 
+                        content={<CustomTooltip />} 
+                        cursor={{ fill: 'transparent' }} // Removes the gray hover box for a cleaner look
+                    />
+                    <Bar 
+                        dataKey="amount" 
+                        radius={[6, 6, 6, 6]} // Rounded bars for modern feel
+                        animationDuration={1500}
+                    >
+                        {chartData.map((entry, index) => (
+                            <Cell 
+                                key={`cell-${index}`} 
+                                // Dynamic coloring based on value
+                                fill={entry.amount > 0 ? '#8b5cf6' : 'transparent'} 
+                                className="transition-all duration-300 hover:opacity-80"
+                            />
+                        ))}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        ) : (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 text-xs">
+                 <p>No activity data available for this week</p>
             </div>
-            <div className="mt-4 h-px bg-gray-50 dark:bg-gray-800" />
-          </div>
-      )}
+        )}
+      </div>
 
-      {/* 3. Transaction List (Existing) */}
+      <div className="mx-6 mt-4 h-px bg-gray-50 dark:bg-gray-800" />
+
+      {/* 4. Transaction List (Existing) */}
       <div className="p-0 flex-1 overflow-y-auto custom-scrollbar">
+        {/* ... existing list rendering code ... */}
         {transactions.length > 0 ? (
           <ul className="divide-y divide-gray-50 dark:divide-gray-800">
             {transactions.slice(0, 5).map(t => (
               <li key={t._id} className="group p-5 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-default">
-                
-                <div className="flex items-center gap-4 overflow-hidden">
+                {/* ... existing list item content ... */}
+                 <div className="flex items-center gap-4 overflow-hidden">
                   <div className={`p-2.5 rounded-xl shrink-0 transition-transform group-hover:scale-110 ${
                     t.type === 'income' 
                       ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' 
