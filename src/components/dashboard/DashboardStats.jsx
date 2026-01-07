@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   Wallet, TrendingUp, TrendingDown, PieChart, 
   Landmark, Banknote, ArrowUpRight, ArrowDownRight 
@@ -14,11 +14,17 @@ const DashboardStats = ({
   monthlyInvested = 0 
 }) => {
 
+  // LOGIC: Calculate Total Liquidity (Bank + Cash) to replace Net Worth display
+  // OPTIMIZATION: Memoize to prevent re-calculation on unrelated renders
+  const totalLiquidity = useMemo(() => bankBalance + cashBalance, [bankBalance, cashBalance]);
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in-up">
+    // RESPONSIVE: Switched to Dynamic Grid (auto-fit) to handle 4K, Laptop, Tablet, Mobile without hardcoded breakpoints.
+    // RESPONSIVE: Fluid gap using clamp().
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-[clamp(1rem,1.5vw,1.5rem)] animate-fade-in-up">
       
-      {/* 1. HERO CARD: Net Worth (Blue Gradient) */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-[2rem] text-white shadow-xl shadow-blue-500/20 transition-transform hover:scale-[1.02] group">
+      {/* 1. HERO CARD: Total Balance (Bank + Cash) */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 p-[clamp(1.25rem,1.5vw,1.5rem)] rounded-[2rem] text-white shadow-xl shadow-blue-500/20 transition-transform hover:scale-[1.02] group">
         
         {/* Decorative Background Elements */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-3xl opacity-10 -mr-16 -mt-16 transition-opacity group-hover:opacity-20"></div>
@@ -34,9 +40,9 @@ const DashboardStats = ({
                 <p className="text-blue-100 text-xs font-bold uppercase tracking-widest">Total Balance</p>
             </div>
             
-            {/* ✅ FIXED: Added 'text-white' class here to override global h2 styles */}
-            <h2 className="text-3xl font-extrabold tracking-tight text-white">
-              {formatCurrency(totalNetWorth)}
+            {/* RESPONSIVE: Fluid typography using clamp() for pixel-perfect scaling */}
+            <h2 className="text-[clamp(1.75rem,2.5vw,2.25rem)] font-extrabold tracking-tight text-white">
+              {formatCurrency(totalLiquidity)}
             </h2>
           </div>
 
@@ -93,7 +99,8 @@ const DashboardStats = ({
 
 // --- Internal Helper Component for Consistency ---
 const StatCard = ({ title, amount, icon: Icon, color, bgColor, trendIcon: TrendIcon, trendLabel }) => (
-  <div className="relative overflow-hidden bg-white dark:bg-gray-900/60 dark:border-gray-800 p-6 rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 group">
+  // RESPONSIVE: Fluid padding
+  <div className="relative overflow-hidden bg-white dark:bg-gray-900/60 dark:border-gray-800 p-[clamp(1.25rem,1.5vw,1.5rem)] rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 group">
     
     <div className="flex justify-between items-start mb-4">
         {/* Icon Wrapper */}
@@ -112,7 +119,8 @@ const StatCard = ({ title, amount, icon: Icon, color, bgColor, trendIcon: TrendI
         <p className="text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">
             {title} <span className="text-[10px] normal-case opacity-70">(Month)</span>
         </p>
-        <h3 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+        {/* RESPONSIVE: Fluid font size for values */}
+        <h3 className="text-[clamp(1.5rem,2vw,1.8rem)] font-bold text-gray-900 dark:text-white tracking-tight">
             {formatCurrency(amount)}
         </h3>
     </div>
