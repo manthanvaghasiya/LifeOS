@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '../context/ToastContext';
 import API from '../services/api';
 import {
     User, Mail, Lock, Save, Trash2, LogOut, Shield,
@@ -12,6 +13,20 @@ import { useTheme } from '../context/ThemeContext';
 const Settings = () => {
     const { user, login, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
+    const toast = useToast();
+
+    const handleSave = () => {
+    // Perform your save logic here...
+    const isSuccess = true; // simulation
+
+    if (isSuccess) {
+      // 3. Use it! This shows a green success bubble
+      toast.success("Settings saved successfully!");
+    } else {
+      // Or show a red error bubble
+      toast.error("Failed to save settings.");
+    }
+  };
 
     //
     // LOGIC: Handle Image Upload
@@ -259,9 +274,12 @@ const Settings = () => {
                       </div>
                    </div>
                    <div className="pt-2">
-                       <button type="submit" className="w-full sm:w-auto px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/30 transition-all active:scale-95 flex items-center justify-center gap-2">
-                           <Save className="w-4 h-4" /> Save Changes
-                       </button>
+                       <button 
+        onClick={handleSave}
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+      >
+        Save Changes
+      </button>
                    </div>
                 </form>
              </div>
