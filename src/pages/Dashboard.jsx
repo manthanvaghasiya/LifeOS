@@ -291,7 +291,7 @@ const Dashboard = () => {
                 </div>
 
                 <div className="h-full">
-                  <SpendingSection transactions={todayTransactions} />
+                 <SpendingSection transactions={transactions} />
                 </div>
             </div>
         </div>
