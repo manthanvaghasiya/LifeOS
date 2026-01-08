@@ -4,7 +4,6 @@ import confetti from 'canvas-confetti';
 import API from '../services/api';
 import { generateInsights } from '../utils/smartInsights';
 import { addXP } from '../utils/gamification';
-// 1. IMPORT TOAST HOOK
 import { useToast } from '../context/ToastContext';
 
 // UI Components
@@ -21,7 +20,6 @@ import QuickSpendModal from '../components/dashboard/QuickSpendModal';
 const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
 
 const Dashboard = () => {
-  // 2. INITIALIZE TOAST
   const toast = useToast();
 
   const [transactions, setTransactions] = useState([]);
@@ -32,7 +30,6 @@ const Dashboard = () => {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState(null);
 
-  // Parse user only once on mount
   const [user] = useState(() => JSON.parse(localStorage.getItem('user')) || { name: 'User' });
 
   useEffect(() => { fetchAllData(); }, []);
@@ -54,7 +51,6 @@ const Dashboard = () => {
     } catch (err) { 
       console.error(err);
       setError("Unable to load data. Please check your connection.");
-      // Optional: Toast for background re-fetches
       if (!loading) toast.error("Connection lost. Retrying...");
     } finally {
       setLoading(false);
@@ -133,8 +129,7 @@ const Dashboard = () => {
   }, [transactions, thisMonthTransactions]);
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const incompleteHabits = useMemo(() => habits.filter(h => !h.completedDates.includes(todayStr)), [habits, todayStr]);
-   
+  
   const pendingTasks = useMemo(() => tasks.filter(t => !t.isCompleted).sort((a, b) => {
       const pOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
       return pOrder[a.priority] - pOrder[b.priority];
@@ -159,15 +154,16 @@ const Dashboard = () => {
     fire(0.1, { spread: 120, startVelocity: 45 });
   };
 
-  // --- HANDLERS WITH TOASTS ---
+  // --- HANDLERS ---
   
-  // 1. Habits
+  // 1. Habits (UPDATED LOGIC)
   const handleToggleHabit = useCallback(async (id) => { 
     const habit = habits.find(h => h._id === id);
     if (!habit) return;
 
     const isCompleted = habit.completedDates.includes(todayStr);
 
+    // Optimistic Update
     setHabits(prev => prev.map(h => {
         if (h._id === id) {
             return {
@@ -180,17 +176,25 @@ const Dashboard = () => {
         return h;
     }));
 
+    // Logic: Only popup/celebrate if completion TARGET is met
     if (!isCompleted) {
-        triggerConfetti();
-        addXP(10); 
-        // 3. HABIT SUCCESS
-        toast.success("Habit checked! +10 XP");
+        // Calculate progress including this new check
+        const currentMonthPrefix = todayStr.slice(0, 7);
+        const monthlyProgress = habit.completedDates.filter(d => d.startsWith(currentMonthPrefix)).length + 1;
+
+        if (monthlyProgress === habit.target) {
+            triggerConfetti();
+            addXP(50); // Bonus XP
+            toast.success(`🎯 Target Smashed! ${habit.title} completed for the month!`);
+        } else {
+            addXP(10); // Standard XP
+            // No Toast for daily check-in (as requested: "popup remove")
+        }
     }
 
     try { 
         await API.put(`/habits/${id}/toggle`, { date: todayStr }); 
     } catch (err) { 
-        // 4. HABIT ERROR
         toast.error("Failed to sync habit.");
         fetchAllData(); 
     } 
@@ -202,13 +206,11 @@ const Dashboard = () => {
     
     triggerConfetti();
     addXP(50);
-    // 5. GOAL SUCCESS
     toast.success("Goal smashed! +50 XP");
 
     try { 
         await API.put(`/goals/${id}/toggle`); 
     } catch (err) { 
-        // 6. GOAL ERROR
         toast.error("Failed to sync goal.");
         fetchAllData(); 
     } 
@@ -218,13 +220,11 @@ const Dashboard = () => {
   const handleToggleTask = useCallback(async (id) => { 
     setTasks(prev => prev.map(t => t._id === id ? { ...t, isCompleted: true } : t)); 
     addXP(5);
-    // 7. TASK SUCCESS
     toast.success("Task done. +5 XP");
 
     try { 
         await API.put(`/tasks/${id}/toggle`); 
     } catch (err) { 
-        // 8. TASK ERROR
         toast.error("Failed to sync task.");
         fetchAllData(); 
     } 
@@ -274,8 +274,9 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch relative">
             <div className="relative min-h-[500px] lg:min-h-0">
               <div className="lg:absolute lg:inset-0 h-full">
+                {/* UPDATED: Pass ALL habits, not incomplete ones */}
                 <HabitSection 
-                  habits={incompleteHabits} 
+                  habits={habits} 
                   onToggle={handleToggleHabit} 
                 />
               </div>
@@ -303,7 +304,6 @@ const Dashboard = () => {
             onClose={() => setShowForm(false)} 
             onSuccess={(newData) => {
                 setTransactions(prev => [newData, ...prev]);
-                // 9. QUICK SPEND SUCCESS
                 toast.success("Transaction recorded successfully.");
             }} 
         />
