@@ -15,6 +15,11 @@ const TaskSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // ✨ NEW FIELD: URGENCY FLAG
+  isUrgent: {
+    type: Boolean,
+    default: false
+  },
   priority: {
     type: String,
     enum: ['High', 'Medium', 'Low'],
@@ -24,7 +29,6 @@ const TaskSchema = new mongoose.Schema({
     type: Date,
     default: Date.now 
   },
-  // --- NEW FIELD: LINK TO GOAL ---
   linkedGoal: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Goal',
