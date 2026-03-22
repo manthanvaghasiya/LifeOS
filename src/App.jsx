@@ -9,6 +9,7 @@ import LevelUpModal from './components/gamification/LevelUpModal';
 import { ToastProvider } from './context/ToastContext';
 
 // ⚡ Lazy Load Pages (Commercial Performance Optimization)
+const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Financial = lazy(() => import('./pages/Financial'));
 const Habits = lazy(() => import('./pages/Habits'));
@@ -17,6 +18,11 @@ const Notes = lazy(() => import('./pages/Notes'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
+const Product = lazy(() => import('./pages/Product'));
+const About = lazy(() => import('./pages/About'));
+const Pricing = lazy(() => import('./pages/Pricing'));
+const Manifesto = lazy(() => import('./pages/Manifesto'));
+const Contact = lazy(() => import('./pages/Contact'));
 
 // Minimal Loader for Suspense
 const PageLoader = () => (
@@ -77,8 +83,15 @@ const App = () => {
                 <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
                 <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to="/" />} />
 
+                {/* ✨ NEW PUBLIC ROUTES ✨ */}
+                    <Route path="/product" element={<Product />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/pricing" element={<Pricing />} />
+                    <Route path="/manifesto" element={<Manifesto />} />
+                    <Route path="/contact" element={<Contact />} />
+
                 {/* Protected Routes */}
-                <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+               <Route path="/" element={isAuthenticated ? <Dashboard /> : <Home />} />
                 <Route path="/transactions" element={isAuthenticated ? <Financial /> : <Navigate to="/login" />} />
                 <Route path="/habits" element={isAuthenticated ? <Habits /> : <Navigate to="/login" />} />
                 <Route path="/goals" element={isAuthenticated ? <Goals /> : <Navigate to="/login" />} />
