@@ -75,20 +75,24 @@ const Dashboard = () => {
   const financialStats = useMemo(() => {
     const calculateLifetimeBalance = (mode) => {
         return transactions.reduce((acc, t) => {
-          const source = t.paymentMode || 'Bank'; 
-          const destination = t.transferTo; 
-          
+          const source = t.paymentMode || 'Bank';
+          const destination = t.transferTo || null;
+
           if (mode === 'Bank' || mode === 'Cash') {
+              // Income: money coming in
               if (source === mode && t.type === 'income') return acc + t.amount;
-              if (t.type === 'transfer') {
-                  if (destination === mode) return acc + t.amount;
-                  if (!destination && source === 'Investment' && mode === 'Bank') return acc + t.amount;
-              }
+
+              // Transfer IN: money being transferred to this account (but not self-transfer)
+              if (t.type === 'transfer' && destination === mode && source !== mode) return acc + t.amount;
+
+              // Special case: Investment withdrawal without specified destination defaults to Bank
+              if (t.type === 'transfer' && !destination && source === 'Investment' && mode === 'Bank') return acc + t.amount;
+
+              // Expense: money going out
               if (source === mode && t.type === 'expense') return acc - t.amount;
-              if (source === mode && t.type === 'transfer') {
-                  if (destination === mode) return acc; 
-                  return acc - t.amount;
-              }
+
+              // Transfer OUT: money being transferred from this account (but not self-transfer)
+              if (source === mode && t.type === 'transfer' && destination !== mode) return acc - t.amount;
           }
           if (mode === 'Investment') {
               const isInvCategory = t.category === 'Investment' || INVESTMENT_TYPES.includes(t.category);

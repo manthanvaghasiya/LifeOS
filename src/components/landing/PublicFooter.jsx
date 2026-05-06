@@ -1,114 +1,117 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Twitter, Github, Linkedin, Heart } from 'lucide-react';
+import { Heart, Mail, MapPin } from 'lucide-react';
 
 const PublicFooter = () => {
   const currentYear = new Date().getFullYear();
 
-  const footerLinks = {
-    product: [
-      { name: 'Features', path: '/product' },
-      { name: 'Pricing', path: '/pricing' },
-      { name: 'Manifesto', path: '/manifesto' },
-      { name: 'Changelog', path: '#', badge: 'New' },
-    ],
-    company: [
-      { name: 'Our Story', path: '/about' },
-      { name: 'Contact', path: '/contact' },
-      { name: 'Careers', path: '#' },
-      { name: 'Blog', path: '#' },
-    ],
-    legal: [
-      { name: 'Privacy Policy', path: '#' },
-      { name: 'Terms of Service', path: '#' },
-      { name: 'Cookie Policy', path: '#' },
-    ]
-  };
-
   return (
-    <footer className="relative bg-white dark:bg-[#030712] border-t border-slate-200 dark:border-white/5 pt-24 pb-12 transition-colors duration-500 overflow-hidden">
-      
-      {/* --- COSMIC BACKGROUND GLOW --- */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-[600px] h-[300px] bg-blue-500/5 dark:bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none"></div>
-
-      <div className="max-w-7xl mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12 mb-20">
-          
-          {/* --- BRAND SECTION --- */}
-          <div className="lg:col-span-2">
-            <Link to="/" className="flex items-center gap-3 group mb-6 inline-flex">
-              <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden group-hover:shadow-blue-500/30 transition-all duration-300">
-                 <img src="/logo.png" alt="LifeOS" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+    <footer className="bg-slate-950 text-slate-100 py-16 border-t border-slate-800">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* Top Section */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+          {/* Brand */}
+          <div className="md:col-span-1">
+            <Link to="/" className="flex items-center gap-2 mb-6 group">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center font-black text-white text-sm group-hover:shadow-lg group-hover:shadow-blue-500/50 transition-all">
+                L
               </div>
-              <span className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                Life<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">OS</span>
-              </span>
+              <span className="text-xl font-black text-white">LifeOS</span>
             </Link>
-            <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-xs leading-relaxed font-medium">
-              Architect your daily existence. A unified operating system for habits, wealth, and goals.
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Your complete personal finance operating system. Manage finances, build habits, and achieve goals.
             </p>
-            <div className="flex items-center gap-4">
-              {[
-                { icon: Twitter, color: 'hover:text-[#1DA1F2] hover:bg-blue-500/10' },
-                { icon: Github, color: 'hover:text-slate-900 dark:hover:text-white hover:bg-slate-500/10' },
-                { icon: Linkedin, color: 'hover:text-[#0A66C2] hover:bg-blue-600/10' }
-              ].map((social, i) => (
-                <a 
-                  key={i} 
-                  href="#" 
-                  className={`w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 transition-all duration-300 ${social.color} hover:-translate-y-1`}
-                >
-                  <social.icon size={18} />
-                </a>
-              ))}
-            </div>
           </div>
 
-          {/* --- LINKS COLUMNS --- */}
-          {Object.entries(footerLinks).map(([category, links]) => (
-            <div key={category} className="lg:col-span-1">
-              <h4 className="text-slate-900 dark:text-white font-bold mb-6 uppercase tracking-widest text-xs">
-                {category}
-              </h4>
-              <ul className="space-y-4">
-                {links.map((link) => (
-                  <li key={link.name}>
-                    <Link 
-                      to={link.path} 
-                      className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-colors text-sm font-semibold flex items-center gap-2 group"
-                    >
-                      {link.name}
-                      {link.badge && (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold uppercase tracking-tighter">
-                          {link.badge}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {/* Product */}
+          <div>
+            <h4 className="font-bold text-white mb-6 text-sm uppercase tracking-wider">Product</h4>
+            <ul className="space-y-3">
+              {['Features', 'Pricing', 'Security', 'Roadmap'].map((item) => (
+                <li key={item}>
+                  <Link
+                    to={item === 'Pricing' ? '/pricing' : '#'}
+                    className="text-sm text-slate-400 hover:text-white transition-colors font-medium"
+                  >
+                    {item}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-          {/* --- NEWSLETTER SECTION --- */}
-          <div className="lg:col-span-1 lg:ml-auto">
-             <h4 className="text-slate-900 dark:text-white font-bold mb-6 uppercase tracking-widest text-xs">
-                Status
-              </h4>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 w-fit">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">All Systems Operational</span>
-              </div>
+          {/* Company */}
+          <div>
+            <h4 className="font-bold text-white mb-6 text-sm uppercase tracking-wider">Company</h4>
+            <ul className="space-y-3">
+              {['About', 'Blog', 'Contact', 'Careers'].map((item) => (
+                <li key={item}>
+                  <Link
+                    to={item === 'Contact' ? '/contact' : '#'}
+                    className="text-sm text-slate-400 hover:text-white transition-colors font-medium"
+                  >
+                    {item}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h4 className="font-bold text-white mb-6 text-sm uppercase tracking-wider">Legal</h4>
+            <ul className="space-y-3">
+              {['Privacy', 'Terms', 'Cookie Policy', 'Status'].map((item) => (
+                <li key={item}>
+                  <Link to="#" className="text-sm text-slate-400 hover:text-white transition-colors font-medium">
+                    {item}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        {/* --- BOTTOM BAR --- */}
-        <div className="pt-10 border-t border-slate-200 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-slate-500 dark:text-slate-500 text-xs font-medium">
-            © {currentYear} LifeOS Labs. Built for the modern architect.
-          </p>
-          <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-xs font-medium">
-            Made with <Heart size={14} className="text-red-500 fill-red-500 animate-bounce" /> in Surat
+        {/* Middle Section - Contact & Social */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-12 border-y border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
+              <Mail className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase font-bold">Email</p>
+              <a href="mailto:support@lifeos.app" className="text-sm font-medium text-white hover:text-blue-400 transition-colors">
+                support@lifeos.app
+              </a>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
+              <MapPin className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase font-bold">Location</p>
+              <p className="text-sm font-medium text-white">Surat, India</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
+              <Heart className="w-5 h-5 text-rose-400" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase font-bold">Status</p>
+              <p className="text-sm font-medium text-emerald-400">All Systems Online</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Section */}
+        <div className="pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+          <p>© {currentYear} LifeOS. All rights reserved.</p>
+          <div className="flex items-center gap-1">
+            Made with <Heart size={14} className="text-rose-500 fill-rose-500 mx-1" /> in Surat
           </div>
         </div>
       </div>

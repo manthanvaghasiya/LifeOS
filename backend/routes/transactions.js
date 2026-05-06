@@ -18,7 +18,7 @@ router.get('/', protect, async (req, res) => {
 // ADD TRANSACTION (Updated)
 router.post('/', protect, async (req, res) => {
   try {
-    const { title, amount, type, category, paymentMode, date, investmentType } = req.body; // <--- Extract investmentType
+    const { title, amount, type, category, paymentMode, date, investmentType, transferTo } = req.body;
 
     const transaction = await Transaction.create({
       user: req.user.id,
@@ -27,7 +27,8 @@ router.post('/', protect, async (req, res) => {
       type,
       category,
       paymentMode,
-      investmentType: investmentType || null, // <--- Save it
+      investmentType: investmentType || null,
+      transferTo: transferTo || null,
       date: date || Date.now()
     });
 

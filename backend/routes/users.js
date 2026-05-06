@@ -81,5 +81,46 @@ router.put('/xp', protect, async (req, res) => {
   }
 });
 
+// 5. GET CUSTOM CATEGORIES
+router.get('/categories', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('customCategories');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user.customCategories);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch categories' });
+  }
+});
+
+// 6. ADD CUSTOM CATEGORY
+router.put('/categories', protect, async (req, res) => {
+  try {
+    const { type, name } = req.body; // type: 'expense' | 'income' | 'investmentTypes'
+
+    if (!type || !name) {
+      return res.status(400).json({ message: 'Type and name are required' });
+    }
+
+    if (!['expense', 'income', 'investmentTypes'].includes(type)) {
+      return res.status(400).json({ message: 'Invalid category type' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const trimmed = name.trim();
+    const catArray = user.customCategories[type];
+
+    // Prevent duplicates
+    if (!catArray.includes(trimmed)) {
+      catArray.push(trimmed);
+      await user.save();
+    }
+
+    res.json(user.customCategories);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to add category' });
+  }
+});
 
 module.exports = router;

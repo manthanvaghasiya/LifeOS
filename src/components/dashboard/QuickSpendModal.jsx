@@ -6,8 +6,7 @@ import {
   Landmark, ArrowRightLeft, Calendar, Plus, Star, Tag
 } from 'lucide-react';
 import API from '../../services/api';
-
-// ✨ FIXED: Added missing imports
+import useCategories from '../../hooks/useCategories';
 import { useToast } from '../../context/ToastContext';
 import confetti from 'canvas-confetti';
 
@@ -17,25 +16,38 @@ const ICON_MAP = {
   MoreHorizontal, Landmark, Wallet, TrendingUp, Tag, Star
 };
 
-// Initial Data
-const INITIAL_CATEGORIES = {
-  expense: [
-    { id: 'Food', iconName: 'Coffee', color: 'text-orange-500', bg: 'bg-orange-100 dark:bg-orange-900/30' },
-    { id: 'Shopping', iconName: 'ShoppingBag', color: 'text-pink-500', bg: 'bg-pink-100 dark:bg-pink-900/30' },
-    { id: 'Transport', iconName: 'Car', color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' },
-    { id: 'Bills', iconName: 'Zap', color: 'text-yellow-500', bg: 'bg-yellow-100 dark:bg-yellow-900/30' },
-    { id: 'Health', iconName: 'Heart', color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' },
-    { id: 'Other', iconName: 'MoreHorizontal', color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-900/30' }, 
-  ],
-  income: [
-    { id: 'Salary', iconName: 'Briefcase', color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900/30' },
-    { id: 'Business', iconName: 'TrendingUp', color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
-    { id: 'Investment', iconName: 'Landmark', color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' },
-    { id: 'Other', iconName: 'MoreHorizontal', color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-900/30' }, 
-  ]
+// Category icon & color assignments
+const CATEGORY_ICONS = {
+  Food: { iconName: 'Coffee', color: 'text-orange-500', bg: 'bg-orange-100 dark:bg-orange-900/30' },
+  Shopping: { iconName: 'ShoppingBag', color: 'text-pink-500', bg: 'bg-pink-100 dark:bg-pink-900/30' },
+  Transport: { iconName: 'Car', color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' },
+  Travel: { iconName: 'Car', color: 'text-cyan-500', bg: 'bg-cyan-100 dark:bg-cyan-900/30' },
+  Bills: { iconName: 'Zap', color: 'text-yellow-500', bg: 'bg-yellow-100 dark:bg-yellow-900/30' },
+  Health: { iconName: 'Heart', color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' },
+  Education: { iconName: 'GraduationCap', color: 'text-violet-500', bg: 'bg-violet-100 dark:bg-violet-900/30' },
+  Grocery: { iconName: 'ShoppingBag', color: 'text-lime-500', bg: 'bg-lime-100 dark:bg-lime-900/30' },
+  Entertainment: { iconName: 'Smartphone', color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900/30' },
+  Fuel: { iconName: 'Car', color: 'text-slate-500', bg: 'bg-slate-100 dark:bg-slate-900/30' },
+  Salary: { iconName: 'Briefcase', color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900/30' },
+  Business: { iconName: 'TrendingUp', color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
+  Investment: { iconName: 'Landmark', color: 'text-indigo-500', bg: 'bg-indigo-100 dark:bg-indigo-900/30' },
+  Freelance: { iconName: 'Briefcase', color: 'text-teal-500', bg: 'bg-teal-100 dark:bg-teal-900/30' },
+  Gift: { iconName: 'Star', color: 'text-rose-500', bg: 'bg-rose-100 dark:bg-rose-900/30' },
+  Rental: { iconName: 'Landmark', color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' }
 };
 
-const QuickSpendModal = ({ onClose, onSuccess }) => { // Kept 'onSuccess' here
+const CUSTOM_COLORS = [
+  { color: 'text-indigo-500', bg: 'bg-indigo-100 dark:bg-indigo-900/30' },
+  { color: 'text-violet-500', bg: 'bg-violet-100 dark:bg-violet-900/30' },
+  { color: 'text-fuchsia-500', bg: 'bg-fuchsia-100 dark:bg-fuchsia-900/30' },
+  { color: 'text-cyan-500', bg: 'bg-cyan-100 dark:bg-cyan-900/30' },
+  { color: 'text-teal-500', bg: 'bg-teal-100 dark:bg-teal-900/30' },
+  { color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
+  { color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/30' },
+  { color: 'text-rose-500', bg: 'bg-rose-100 dark:bg-rose-900/30' }
+];
+
+const QuickSpendModal = ({ onClose, onSuccess }) => {
   const [type, setType] = useState('expense');
   const [amount, setAmount] = useState('');
   const [title, setTitle] = useState('');
@@ -44,47 +56,26 @@ const QuickSpendModal = ({ onClose, onSuccess }) => { // Kept 'onSuccess' here
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
   const [animating, setAnimating] = useState(false);
-
   const [customCatName, setCustomCatName] = useState('');
-  const toast = useToast(); // Hook call is correct now
 
-  const [categories, setCategories] = useState(() => {
-    const saved = localStorage.getItem('user_categories');
-    return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
-  });
+  const toast = useToast();
+  const { expenseCategories, incomeCategories, addCategory, loading: categoriesLoading } = useCategories();
+
+  const currentCategories = type === 'expense' ? expenseCategories : incomeCategories;
 
   useEffect(() => {
     setAnimating(true);
-    const firstCat = categories[type][0].id;
-    setCategory(firstCat);
-  }, [type]);
+    if (currentCategories.length > 0) {
+      setCategory(currentCategories[0]);
+    }
+  }, [type, currentCategories]);
 
-  useEffect(() => {
-    localStorage.setItem('user_categories', JSON.stringify(categories));
-  }, [categories]);
-
-  const handleAddCustomCategory = () => {
+  const handleAddCustomCategory = async () => {
     if (!customCatName.trim()) return;
 
-    const newCategory = {
-      id: customCatName.trim(),
-      iconName: 'Tag', 
-      color: 'text-indigo-500',
-      bg: 'bg-indigo-100 dark:bg-indigo-900/30'
-    };
-
-    setCategories(prev => {
-      const currentList = [...prev[type]];
-      const otherIndex = currentList.findIndex(c => c.id === 'Other');
-      if (otherIndex !== -1) {
-        currentList.splice(otherIndex, 0, newCategory);
-      } else {
-        currentList.push(newCategory);
-      }
-      return { ...prev, [type]: currentList };
-    });
-
-    setCategory(newCategory.id);
+    const newCatName = customCatName.trim();
+    await addCategory(type, newCatName);
+    setCategory(newCatName);
     setCustomCatName('');
   };
 
@@ -140,10 +131,6 @@ const QuickSpendModal = ({ onClose, onSuccess }) => { // Kept 'onSuccess' here
     setAnimating(false);
     setTimeout(onClose, 200);
   };
-
-  const currentCategories = categories[type];
-
-  // ... (Rest of your JSX is perfect, no changes needed below)
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center sm:p-4">
       {/* ... existing JSX code ... */}
@@ -274,22 +261,28 @@ const QuickSpendModal = ({ onClose, onSuccess }) => { // Kept 'onSuccess' here
             </label>
 
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
-              {currentCategories.map((cat) => {
-                const Icon = ICON_MAP[cat.iconName] || Star;
+              {currentCategories.map((catName, idx) => {
+                // Look up category in CATEGORY_ICONS map
+                const catConfig = CATEGORY_ICONS[catName];
+                const iconName = catConfig?.iconName || 'Tag';
+                const color = catConfig?.color || CUSTOM_COLORS[idx % CUSTOM_COLORS.length].color;
+                const bg = catConfig?.bg || CUSTOM_COLORS[idx % CUSTOM_COLORS.length].bg;
+                const Icon = ICON_MAP[iconName] || Tag;
+
                 return (
                   <button
-                    key={cat.id}
-                    onClick={() => setCategory(cat.id)}
-                    className={`flex flex-col items-center gap-2 p-2 rounded-xl border transition-all duration-200 ${category === cat.id
-                      ? `border-${cat.color.split('-')[1]}-500 bg-${cat.color.split('-')[1]}-50 dark:bg-${cat.color.split('-')[1]}-900/20 shadow-sm scale-105`
+                    key={catName}
+                    onClick={() => setCategory(catName)}
+                    className={`flex flex-col items-center gap-2 p-2 rounded-xl border transition-all duration-200 ${category === catName
+                      ? `${bg} shadow-sm scale-105 border-current`
                       : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                   >
-                    <div className={`p-2 rounded-full ${category === cat.id ? 'bg-white dark:bg-gray-800' : cat.bg} ${cat.color}`}>
+                    <div className={`p-2 rounded-full ${category === catName ? 'bg-white dark:bg-gray-800' : bg} ${color}`}>
                       <Icon className="w-4 h-4" />
                     </div>
-                    <span className={`text-[10px] font-bold truncate w-full text-center ${category === cat.id ? 'text-gray-900 dark:text-white' : 'text-gray-500'}`}>
-                      {cat.id}
+                    <span className={`text-[10px] font-bold truncate w-full text-center ${category === catName ? 'text-gray-900 dark:text-white' : 'text-gray-500'}`}>
+                      {catName}
                     </span>
                   </button>
                 );

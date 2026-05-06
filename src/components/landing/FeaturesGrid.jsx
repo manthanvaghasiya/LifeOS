@@ -1,55 +1,94 @@
 import React from 'react';
-import { Target, CalendarCheck, TrendingUp, StickyNote } from 'lucide-react';
+import { TrendingUp, Target, Zap, Brain, BarChart3, Lock } from 'lucide-react';
 
 const FeaturesGrid = () => {
+  const features = [
+    {
+      icon: TrendingUp,
+      title: 'Smart Finance Tracking',
+      description: 'Real-time expense tracking with AI-powered insights. Know exactly where your money goes.',
+      gradient: 'from-emerald-500 to-teal-500',
+      size: 'md:col-span-2'
+    },
+    {
+      icon: Target,
+      title: 'Goal Management',
+      description: 'Set and crush financial goals with intelligent tracking.',
+      gradient: 'from-blue-500 to-indigo-500',
+      size: 'md:col-span-1'
+    },
+    {
+      icon: Zap,
+      title: 'Habit Tracking',
+      description: 'Build wealth-building habits that stick with streak tracking.',
+      gradient: 'from-amber-500 to-orange-500',
+      size: 'md:col-span-1'
+    },
+    {
+      icon: Brain,
+      title: 'AI Insights',
+      description: 'Get actionable financial advice powered by machine learning.',
+      gradient: 'from-pink-500 to-rose-500',
+      size: 'md:col-span-1'
+    },
+    {
+      icon: BarChart3,
+      title: 'Portfolio Optimization',
+      description: 'AI-powered investment recommendations tailored to your goals.',
+      gradient: 'from-violet-500 to-purple-500',
+      size: 'md:col-span-1'
+    },
+    {
+      icon: Lock,
+      title: 'Bank-Level Security',
+      description: 'Your data is encrypted end-to-end. PCI-DSS compliant.',
+      gradient: 'from-cyan-500 to-blue-500',
+      size: 'md:col-span-1'
+    }
+  ];
+
   return (
-    <section className="py-32 bg-white dark:bg-[#030712] relative z-10 border-t border-slate-200 dark:border-white/5 transition-colors duration-500">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tight transition-colors duration-500">Everything in perfect sync.</h2>
-          <p className="text-xl text-slate-600 dark:text-slate-400 font-light transition-colors duration-500">Four flawless pillars designed to eliminate friction from your routine.</p>
+    <section id="features" className="relative py-24 px-6 bg-slate-50 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800 transition-colors duration-500">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tight transition-colors duration-500">
+            Powerful Features
+          </h2>
+          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto transition-colors duration-500">
+            Everything you need to manage your finances, habits, and goals in one beautiful platform.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Card 1: Habits */}
-          <div className="group relative bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] p-8 rounded-[2rem] overflow-hidden hover:border-blue-500/50 dark:hover:border-blue-500/30 transition-colors duration-500 backdrop-blur-sm shadow-sm hover:shadow-xl dark:shadow-none">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100 dark:bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-200 dark:group-hover:bg-blue-500/20 transition-colors duration-500 translate-x-1/2 -translate-y-1/2"></div>
-            <div className="w-14 h-14 bg-white dark:bg-gradient-to-br dark:from-blue-500/20 dark:to-transparent border border-slate-200 dark:border-blue-500/30 rounded-2xl flex items-center justify-center mb-8 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform duration-500 shadow-sm dark:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
-              <CalendarCheck size={28} />
-            </div>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 transition-colors duration-500">Habits</h3>
-            <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-light transition-colors duration-500">Forge unbreakable consistency. Track your routines with beautiful streak visualizations.</p>
-          </div>
+        {/* Bento Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {features.map((feature, idx) => {
+            const IconComponent = feature.icon;
+            return (
+              <div
+                key={idx}
+                className={`${feature.size} group relative overflow-hidden rounded-2xl bg-gradient-to-br ${feature.gradient} p-8 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 cursor-pointer`}
+              >
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-all duration-300" />
 
-          {/* Card 2: Finances */}
-          <div className="group relative bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] p-8 rounded-[2rem] overflow-hidden hover:border-emerald-500/50 dark:hover:border-emerald-500/30 transition-colors duration-500 backdrop-blur-sm shadow-sm hover:shadow-xl dark:shadow-none">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100 dark:bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-200 dark:group-hover:bg-emerald-500/20 transition-colors duration-500 translate-x-1/2 -translate-y-1/2"></div>
-            <div className="w-14 h-14 bg-white dark:bg-gradient-to-br dark:from-emerald-500/20 dark:to-transparent border border-slate-200 dark:border-emerald-500/30 rounded-2xl flex items-center justify-center mb-8 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform duration-500 shadow-sm dark:shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-              <TrendingUp size={28} />
-            </div>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 transition-colors duration-500">Finances</h3>
-            <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-light transition-colors duration-500">Command your wealth. Intelligent expense tracking and portfolio insights at a glance.</p>
-          </div>
-
-          {/* Card 3: Goals */}
-          <div className="group relative bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] p-8 rounded-[2rem] overflow-hidden hover:border-amber-500/50 dark:hover:border-amber-500/30 transition-colors duration-500 backdrop-blur-sm shadow-sm hover:shadow-xl dark:shadow-none">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100 dark:bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-200 dark:group-hover:bg-amber-500/20 transition-colors duration-500 translate-x-1/2 -translate-y-1/2"></div>
-            <div className="w-14 h-14 bg-white dark:bg-gradient-to-br dark:from-amber-500/20 dark:to-transparent border border-slate-200 dark:border-amber-500/30 rounded-2xl flex items-center justify-center mb-8 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform duration-500 shadow-sm dark:shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-              <Target size={28} />
-            </div>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 transition-colors duration-500">Goals</h3>
-            <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-light transition-colors duration-500">Demolish massive objectives by breaking them into precise, actionable micro-tasks.</p>
-          </div>
-
-          {/* Card 4: Notes */}
-          <div className="group relative bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] p-8 rounded-[2rem] overflow-hidden hover:border-fuchsia-500/50 dark:hover:border-fuchsia-500/30 transition-colors duration-500 backdrop-blur-sm shadow-sm hover:shadow-xl dark:shadow-none">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-100 dark:bg-fuchsia-500/10 rounded-full blur-3xl group-hover:bg-fuchsia-200 dark:group-hover:bg-fuchsia-500/20 transition-colors duration-500 translate-x-1/2 -translate-y-1/2"></div>
-            <div className="w-14 h-14 bg-white dark:bg-gradient-to-br dark:from-fuchsia-500/20 dark:to-transparent border border-slate-200 dark:border-fuchsia-500/30 rounded-2xl flex items-center justify-center mb-8 text-fuchsia-600 dark:text-fuchsia-400 group-hover:scale-110 transition-transform duration-500 shadow-sm dark:shadow-[0_0_15px_rgba(217,70,239,0.2)]">
-              <StickyNote size={28} />
-            </div>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 transition-colors duration-500">Notes</h3>
-            <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-light transition-colors duration-500">Your digital cortex. Capture inspiration instantly and organize your thoughts beautifully.</p>
-          </div>
+                {/* Content */}
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="mb-6">
+                    <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
+                      <IconComponent className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-black text-white mb-3">{feature.title}</h3>
+                  <p className="text-sm md:text-base text-white/90 flex-grow">{feature.description}</p>
+                  <div className="mt-6 flex items-center gap-2 text-white/80 group-hover:text-white transition-colors">
+                    <span className="text-xs font-bold uppercase tracking-wider">Learn More</span>
+                    <span className="group-hover:translate-x-1 transition-transform">→</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

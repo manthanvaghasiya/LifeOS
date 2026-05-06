@@ -2,27 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import API from '../../services/api';
-import { 
-  X, ArrowRight, Wallet, CreditCard, Calendar, 
-  Tag, Plus, Check, Banknote, Building2, TrendingUp 
+import useCategories from '../../hooks/useCategories';
+import {
+  X, ArrowRight, Wallet, CreditCard, Calendar,
+  Tag, Plus, Check, Banknote, Building2, TrendingUp
 } from 'lucide-react';
-
-// Default Lists
-const INITIAL_EXPENSE_CATS = ['Food', 'Shopping', 'Travel', 'Bills', 'Health', 'Education', 'Grocery', 'Entertainment', 'Fuel'];
-const INITIAL_INCOME_CATS = ['Salary', 'Freelance', 'Business', 'Investment', 'Gift', 'Rental'];
-
-// FIX: Renamed this from INVESTMENT_TYPES to INITIAL_INVESTMENT_TYPES so it matches the use in useState below
-const INITIAL_INVESTMENT_TYPES = ['SIP', 'Mutual Fund', 'Stocks', 'Gold', 'FD', 'Crypto', 'IPO'];
 
 const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   const [txType, setTxType] = useState('expense');
-  
-  // Dynamic Categories
-  const [expenseCats, setExpenseCats] = useState(INITIAL_EXPENSE_CATS);
-  const [incomeCats, setIncomeCats] = useState(INITIAL_INCOME_CATS);
-  
-  // FIX: This now correctly references the constant defined above
-  const [investmentTypes, setInvestmentTypes] = useState(INITIAL_INVESTMENT_TYPES);
+  const { expenseCategories, incomeCategories, investmentTypes, addCategory, addInvestmentType } = useCategories();
 
   // Form State
   const [formData, setFormData] = useState({ 
@@ -31,13 +19,11 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
     date: new Date().toISOString().split('T')[0] 
   });
   
+  const [isAddingCat, setIsAddingCat] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
-  const [isAddingCat, setIsAddingCat] = useState(false); 
   const [isWithdrawalWithProfit, setIsWithdrawalWithProfit] = useState(false);
-
-  // New State for Custom Investment Input
-  const [customInv, setCustomInv] = useState('');
   const [isAddingInv, setIsAddingInv] = useState(false);
+  const [customInv, setCustomInv] = useState('');
 
   // --- 1. SMART COLOR THEME ---
   const getThemeColor = () => {
@@ -56,39 +42,30 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   useEffect(() => {
     // Set default category when type switches
     if (!initialData) {
-        if (txType === 'expense' && !formData.category) setFormData(prev => ({ ...prev, category: expenseCats[0] }));
-        else if (txType === 'income' && !formData.category) setFormData(prev => ({ ...prev, category: incomeCats[0] }));
+      if (txType === 'expense' && !formData.category && expenseCategories.length > 0) {
+        setFormData(prev => ({ ...prev, category: expenseCategories[0] }));
+      } else if (txType === 'income' && !formData.category && incomeCategories.length > 0) {
+        setFormData(prev => ({ ...prev, category: incomeCategories[0] }));
+      }
     }
-  }, [txType]);
+
+    // Ensure transferTo is always set for transfers
+    if (txType === 'transfer' && !formData.transferTo) {
+      setFormData(prev => ({ ...prev, transferTo: prev.transferTo || 'Cash' }));
+    }
+  }, [txType, expenseCategories, incomeCategories]);
 
   useEffect(() => {
     if (initialData) {
       setTxType(initialData.type);
       const formattedDate = initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-      
-      const currentList = initialData.type === 'income' ? INITIAL_INCOME_CATS : INITIAL_EXPENSE_CATS;
-      
-      // Use the state 'investmentTypes' here instead of the constant
-      const isStandard = currentList.includes(initialData.category) || investmentTypes.includes(initialData.category);
-
-      let initCategory = initialData.category;
-      
-      // Handle custom categories & investment types
-      if (!isStandard && initialData.category !== 'Transfer' && initialData.category !== 'Investment') {
-         if (initialData.type === 'expense' && !expenseCats.includes(initCategory)) setExpenseCats(prev => [...prev, initCategory]);
-         if (initialData.type === 'income' && !incomeCats.includes(initCategory)) setIncomeCats(prev => [...prev, initCategory]);
-      }
-      
-      if (initialData.investmentType && !investmentTypes.includes(initialData.investmentType)) {
-          setInvestmentTypes(prev => [...prev, initialData.investmentType]);
-      }
 
       setFormData({
         title: initialData.title || '',
         amount: initialData.amount || '',
         paymentMode: initialData.paymentMode || 'Bank',
         transferTo: initialData.type === 'transfer' ? (initialData.transferTo || 'Cash') : 'Cash',
-        category: initCategory || 'Other',
+        category: initialData.category || 'Other',
         investmentType: initialData.investmentType || 'SIP',
         date: formattedDate,
         profitAmount: ''
@@ -96,33 +73,21 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
     }
   }, [initialData]);
 
-  const handleAddInvestment = () => {
+  const handleAddInvestment = async () => {
     if (!customInv.trim()) return;
     const newType = customInv.trim();
 
-    // FIX: Add to global constant so it persists if you reopen the modal
-    if (!INITIAL_INVESTMENT_TYPES.includes(newType)) INITIAL_INVESTMENT_TYPES.push(newType);
-    
-    setInvestmentTypes(prev => [...prev, newType]);
+    await addInvestmentType(newType);
     setFormData({ ...formData, investmentType: newType });
     setCustomInv('');
     setIsAddingInv(false);
   };
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!customCategory.trim()) return;
     const newCat = customCategory.trim();
-    
-    if (txType === 'expense') {
-        // FIX: Add to global constant so it persists if you reopen the modal
-        if (!INITIAL_EXPENSE_CATS.includes(newCat)) INITIAL_EXPENSE_CATS.push(newCat);
-        setExpenseCats(prev => [...prev, newCat]);
-    } else {
-        // FIX: Add to global constant for Income
-        if (!INITIAL_INCOME_CATS.includes(newCat)) INITIAL_INCOME_CATS.push(newCat);
-        setIncomeCats(prev => [...prev, newCat]);
-    }
-    
+
+    await addCategory(txType, newCat);
     setFormData({ ...formData, category: newCat });
     setCustomCategory('');
     setIsAddingCat(false);
@@ -165,7 +130,7 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
         type: txType,
         category: finalCategory,
         paymentMode: formData.paymentMode,
-        transferTo: txType === 'transfer' ? formData.transferTo : null,
+        transferTo: txType === 'transfer' ? (formData.transferTo || 'Cash') : null,
         investmentType: (finalCategory === 'Investment' || formData.paymentMode === 'Investment') ? formData.investmentType : null,
         date: formData.date
       };
@@ -181,7 +146,7 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
     } catch (err) { alert("Error saving transaction"); }
   };
 
-  const currentCategories = txType === 'income' ? incomeCats : expenseCats;
+  const currentCategories = txType === 'income' ? incomeCategories : expenseCategories;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">

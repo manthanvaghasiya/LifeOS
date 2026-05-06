@@ -13,13 +13,13 @@ const NavItem = ({ path, label, icon: Icon, isActive, isMobile }) => {
       <Link
         to={path}
         className={`relative flex flex-col items-center justify-center transition-all duration-300 ${isActive
-            ? "text-blue-600 -translate-y-3"
-            : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+          ? "text-blue-600 -translate-y-3"
+          : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
           }`}
       >
         <div className={`p-3 rounded-full transition-all duration-300 ${isActive
-            ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-110"
-            : "bg-transparent"
+          ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-110"
+          : "bg-transparent"
           }`}>
           <Icon size={isActive ? 22 : 24} strokeWidth={isActive ? 2.5 : 2} />
         </div>
@@ -33,16 +33,15 @@ const NavItem = ({ path, label, icon: Icon, isActive, isMobile }) => {
   }
 
   return (
-    <Link 
-      to={path} 
-      className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 group ${
-        isActive
-          ? "text-blue-600 bg-blue-50/80 dark:bg-blue-900/20 dark:text-blue-400" 
+    <Link
+      to={path}
+      className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 group ${isActive
+          ? "text-blue-600 bg-blue-50/80 dark:bg-blue-900/20 dark:text-blue-400"
           : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
-      }`}
+        }`}
     >
-      <Icon size={18} className={`transition-colors ${isActive ? "fill-blue-600/20 dark:fill-blue-400/20" : ""}`} /> 
-      
+      <Icon size={18} className={`transition-colors ${isActive ? "fill-blue-600/20 dark:fill-blue-400/20" : ""}`} />
+
       {/* WRAP LABEL: This ensures the line is exactly under the text */}
       <span className="relative">
         {label}
@@ -64,11 +63,11 @@ const Navbar = () => {
 
   // 3. [FIXED] Get First Letter of Name (Fallback to 'U' only if name is missing)
   //
-// Use ?. to safely access name while loading
-const initials = user?.name && user.name !== 'User' ? user.name.charAt(0).toUpperCase() : 'U';
+  // Use ?. to safely access name while loading
+  const initials = user?.name && user.name !== 'User' ? user.name.charAt(0).toUpperCase() : 'U';
   //
-// Use ?. to prevent math on null values
-const xpPercent = user?.requiredXP ? Math.min((user.currentXP / user.requiredXP) * 100, 100) : 0;
+  // Use ?. to prevent math on null values
+  const xpPercent = user?.requiredXP ? Math.min((user.currentXP / user.requiredXP) * 100, 100) : 0;
 
   const navItems = [
     { path: '/', label: 'Home', icon: LayoutDashboard }, // Fixed Home Link
@@ -90,16 +89,16 @@ const xpPercent = user?.requiredXP ? Math.min((user.currentXP / user.requiredXP)
         <div className="max-w-7xl mx-auto pointer-events-auto">
           <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 shadow-lg shadow-slate-200/20 dark:shadow-black/20 rounded-2xl px-4 py-3 flex justify-between items-center transition-all duration-300">
 
-           {/* Brand */}
-           <Link to="/" className="flex items-center gap-3 group">
-              
+            {/* Brand */}
+            <Link to="/" className="flex items-center gap-3 group">
+
               {/* FIX: Size w-10 (40px) | scale-105 removes internal whitespace | object-cover fills corners */}
               <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 shadow-md group-hover:shadow-blue-500/30 transition-all duration-300 flex items-center justify-center overflow-hidden">
-                 <img 
-                   src="/logo.png" 
-                   alt="LifeOS" 
-                   className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-300" 
-                 />
+                <img
+                  src="/logo.png"
+                  alt="LifeOS"
+                  className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-300"
+                />
               </div>
 
               <div className="flex flex-col">
@@ -124,11 +123,11 @@ const xpPercent = user?.requiredXP ? Math.min((user.currentXP / user.requiredXP)
 
               {/* XP Bar (Improved) */}
               <div className="group relative flex flex-col items-end min-w-[120px] cursor-help">
-                
+
                 {/* 1. HOVER TOOLTIP: Shows "XP Remaining" */}
                 <div className="absolute -bottom-10 right-0 w-max opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 pointer-events-none z-50">
                   <div className="bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded shadow-xl border border-slate-700">
-                    { (user?.requiredXP || 100) - (user?.currentXP || 0) } XP to Level { (user?.level || 1) + 1 }
+                    {(user?.requiredXP || 100) - (user?.currentXP || 0)} XP to Level {(user?.level || 1) + 1}
                   </div>
                   {/* Little Arrow */}
                   <div className="absolute -top-1 right-6 w-2 h-2 bg-slate-800 rotate-45 border-t border-l border-slate-700"></div>
@@ -139,7 +138,7 @@ const xpPercent = user?.requiredXP ? Math.min((user.currentXP / user.requiredXP)
                   <div className="bg-amber-100 dark:bg-amber-900/30 p-0.5 rounded-full">
                     <Zap size={10} className="text-amber-500 fill-amber-500 animate-pulse" />
                   </div>
-                  <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 tracking-tight">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 tracking-tight">
                     Lvl {user?.level || 1}
                   </span>
                   <span className="text-[10px] text-slate-400 font-medium tabular-nums">
@@ -149,7 +148,7 @@ const xpPercent = user?.requiredXP ? Math.min((user.currentXP / user.requiredXP)
 
                 {/* 3. BAR: Richer Gradient & Inner Shadow */}
                 <div className="w-36 h-2.5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-full overflow-hidden relative shadow-inner">
-                  <div 
+                  <div
                     className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full transition-all duration-1000 ease-out relative group-hover:brightness-110"
                     style={{ width: `${xpPercent}%` }}
                   >

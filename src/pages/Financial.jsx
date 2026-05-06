@@ -54,53 +54,45 @@ const Financial = () => {
   // --- 1. ROBUST BALANCE CALCULATION ---
   const calculateTotalBalance = (mode) => {
     return allTransactions.reduce((acc, t) => {
-      const source = t.paymentMode || 'Bank'; 
-      const destination = t.transferTo; 
-      
+      const source = t.paymentMode || 'Bank';
+      const destination = t.transferTo || null;
+
       // --- LOGIC FOR BANK & CASH ---
       if (mode === 'Bank' || mode === 'Cash') {
-          // Income
+          // Income: money coming in
           if (source === mode && t.type === 'income') return acc + t.amount;
-          
-          // Transfer IN
-          if (t.type === 'transfer') {
-              if (destination === mode) return acc + t.amount;
-              // Fallback: Investment withdrawals usually go to Bank if not specified
-              if (!destination && source === 'Investment' && mode === 'Bank') return acc + t.amount;
-          }
 
-          // Expense
+          // Transfer IN: money being transferred to this account (but not self-transfer)
+          if (t.type === 'transfer' && destination === mode && source !== mode) return acc + t.amount;
+
+          // Special case: Investment withdrawal without specified destination defaults to Bank
+          if (t.type === 'transfer' && !destination && source === 'Investment' && mode === 'Bank') return acc + t.amount;
+
+          // Expense: money going out
           if (source === mode && t.type === 'expense') return acc - t.amount;
 
-          // Transfer OUT
-          if (source === mode && t.type === 'transfer') {
-              if (destination === mode) return acc; // Ignore self-transfer
-              return acc - t.amount;
-          }
+          // Transfer OUT: money being transferred from this account (but not self-transfer)
+          if (source === mode && t.type === 'transfer' && destination !== mode) return acc - t.amount;
       }
 
       // --- LOGIC FOR INVESTMENT (Total Portfolio Value) ---
       if (mode === 'Investment') {
           const isInvCategory = t.category === 'Investment' || INVESTMENT_TYPES.includes(t.category);
-          
+
           // Add: Money entering Investment
           // 1. Expense categorized as Investment
           if (t.type === 'expense' && isInvCategory) return acc + t.amount;
           // 2. Transfer TO Investment
-          if (t.type === 'transfer') {
-              if (destination === 'Investment') return acc + t.amount;
-              if (!destination && source !== 'Investment' && isInvCategory) return acc + t.amount;
-          }
+          if (t.type === 'transfer' && destination === 'Investment') return acc + t.amount;
+          // 3. Investment category expense without explicit transfer
+          if (t.type === 'transfer' && !destination && source !== 'Investment' && isInvCategory) return acc + t.amount;
 
           // Subtract: Money leaving Investment (Withdrawal)
           if (source === 'Investment' && t.type === 'transfer') {
-              // Only subtract if it's going out (to Bank/Cash), NOT internal transfer
-              if (destination === 'Bank' || destination === 'Cash' || !destination) {
-                  return acc - t.amount;
-              }
+              if (destination === 'Bank' || destination === 'Cash' || !destination) return acc - t.amount;
           }
       }
-      
+
       return acc;
     }, 0);
   };
