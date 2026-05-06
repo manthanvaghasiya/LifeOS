@@ -53,23 +53,23 @@ const LoginForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {/* Error Alert */}
       {error && (
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-red-500/20 border border-red-500/50 text-red-200 animate-in">
-          <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-          <p className="text-sm font-medium">{error}</p>
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-200 animate-in">
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <p className="text-xs font-medium">{error}</p>
         </div>
       )}
 
       {/* Email Field */}
-      <div className="space-y-2">
-        <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+      <div className="space-y-1.5">
+        <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
           Email Address
         </label>
         <div className="relative group">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-400 transition-colors">
-            <Mail className="w-5 h-5" />
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors">
+            <Mail className="w-4 h-4" />
           </div>
           <input
             type="email"
@@ -78,25 +78,25 @@ const LoginForm = () => {
               setFormData({ ...formData, email: e.target.value });
               setError('');
             }}
-            className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+            className="w-full pl-11 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all"
             placeholder="you@example.com"
           />
           {formData.email && isValidEmail(formData.email) && (
             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-400">
-              <CheckCircle className="w-5 h-5" />
+              <CheckCircle className="w-4 h-4" />
             </div>
           )}
         </div>
       </div>
 
       {/* Password Field */}
-      <div className="space-y-2">
-        <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+      <div className="space-y-1.5">
+        <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
           Password
         </label>
         <div className="relative group">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-400 transition-colors">
-            <Lock className="w-5 h-5" />
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors">
+            <Lock className="w-4 h-4" />
           </div>
           <input
             type={showPassword ? 'text' : 'password'}
@@ -105,35 +105,35 @@ const LoginForm = () => {
               setFormData({ ...formData, password: e.target.value });
               setError('');
             }}
-            className="w-full pl-12 pr-12 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+            className="w-full pl-11 pr-11 py-2.5 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all"
             placeholder="••••••••"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
           >
-            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
       {/* Remember Me & Forgot Password */}
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex items-center justify-between text-[11px] pt-1">
         <label className="flex items-center gap-2 cursor-pointer group">
           <input
             type="checkbox"
             checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)}
-            className="w-4 h-4 rounded border-white/30 bg-white/10 text-blue-500 focus:ring-blue-500/50 cursor-pointer"
+            className="w-3.5 h-3.5 rounded border-white/20 bg-slate-900/50 text-emerald-500 focus:ring-emerald-500/20 cursor-pointer"
           />
-          <span className="text-slate-300 group-hover:text-white transition-colors font-medium">
+          <span className="text-slate-400 group-hover:text-white transition-colors">
             Remember me
           </span>
         </label>
         <Link
           to="/"
-          className="text-blue-400 hover:text-blue-300 font-semibold transition-colors"
+          className="text-white hover:text-emerald-400 transition-colors"
         >
           Forgot password?
         </Link>
@@ -143,28 +143,20 @@ const LoginForm = () => {
       <button
         type="submit"
         disabled={isLoading || !isFormValid}
-        className="w-full py-3 mt-6 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-slate-600 disabled:to-slate-700 text-white font-bold rounded-lg transition-all transform hover:scale-[1.02] disabled:scale-100 disabled:opacity-60 flex items-center justify-center gap-2 group"
+        className="w-full py-3 mt-4 bg-white hover:bg-slate-100 disabled:bg-white/10 text-slate-900 disabled:text-white/40 font-bold text-sm rounded-xl transition-all disabled:opacity-100 flex items-center justify-center gap-2 group"
       >
         {isLoading ? (
           <>
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
             <span>Signing In...</span>
           </>
         ) : (
           <>
             <span>Sign In</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </>
         )}
       </button>
-
-      {/* Divider Text */}
-      <p className="text-center text-xs text-slate-500 font-medium">
-        By signing in, you agree to our{' '}
-        <Link to="#" className="text-blue-400 hover:underline">
-          Terms of Service
-        </Link>
-      </p>
     </form>
   );
 };
