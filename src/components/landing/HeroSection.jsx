@@ -1,116 +1,120 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Zap } from 'lucide-react';
+import { ArrowRight, Flame, TrendingUp, Zap } from 'lucide-react';
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center pt-20 pb-20 px-6 overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 via-slate-900 to-slate-950 transition-colors duration-500">
+    <section className="relative min-h-screen flex items-center justify-center pt-24 pb-20 px-6 overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 -left-40 w-80 h-80 bg-cyan-400/20 dark:bg-cyan-600/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 right-1/3 w-80 h-80 bg-purple-400/10 dark:bg-purple-600/5 rounded-full blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-blue-400/15 dark:bg-blue-600/8 rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 -left-40 w-[400px] h-[400px] bg-cyan-400/15 dark:bg-cyan-600/6 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-40 right-1/3 w-[400px] h-[400px] bg-purple-400/8 dark:bg-purple-600/4 rounded-full blur-[120px]" />
       </div>
 
       <div className="max-w-5xl mx-auto w-full relative z-10">
         {/* Badge */}
-        <div className="flex justify-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30">
-            <Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
-              🎉 First Month FREE — No credit card needed
+        <div className="flex justify-center mb-10">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 dark:bg-emerald-500/8 border border-emerald-200/60 dark:border-emerald-500/20">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+              First Month FREE — No credit card needed
             </span>
           </div>
         </div>
 
         {/* Main Heading */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight mb-8 leading-tight text-slate-900 dark:text-white transition-colors duration-500">
+          <h1 className="text-5xl sm:text-6xl lg:text-8xl font-black tracking-tight mb-8 text-slate-900 dark:text-white transition-colors duration-500" style={{ lineHeight: '0.95' }}>
             Your Life,
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-600 to-purple-600 dark:from-blue-400 dark:via-cyan-400 dark:to-purple-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-500 to-purple-600 dark:from-blue-400 dark:via-cyan-400 dark:to-purple-400">
               Fully Optimized.
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed font-light transition-colors duration-500">
-            Manage finances, build wealth-building habits, and crush your goals—all in one beautifully designed system. Get started instantly. Free forever plan available.
+          <p className="text-lg sm:text-xl text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed font-light transition-colors duration-500">
+            Finance, habits, and goals — unified in one system that levels you up.
           </p>
         </div>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
           <Link
             to="/signup"
-            className="group relative w-full sm:w-auto px-8 py-4 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold text-lg shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/50 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+            className="group w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold text-base shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2"
           >
             <span>Start Free Trial</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
           </Link>
 
           <Link
-            to="/pricing"
-            className="w-full sm:w-auto px-8 py-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2 backdrop-blur-sm"
+            to="/product"
+            className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-semibold text-base hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300 flex items-center justify-center gap-2"
           >
-            <span>View Plans</span>
-            <ArrowRight className="w-5 h-5" />
+            <span>See How It Works</span>
           </Link>
         </div>
 
-        {/* Dashboard Preview */}
-        <div className="relative max-w-4xl mx-auto mt-20">
-          <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 dark:from-blue-500/10 dark:to-cyan-500/10 rounded-2xl blur-2xl"></div>
+        {/* Dashboard Preview — 3 Mini Cards */}
+        <div className="relative max-w-4xl mx-auto">
+          <div className="absolute -inset-8 bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-purple-500/10 rounded-3xl blur-3xl" />
 
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 lg:p-10 shadow-2xl dark:shadow-[0_0_50px_rgba(59,130,246,0.15)]">
-            {/* Dashboard Header */}
-            <div className="flex items-center justify-between mb-8 pb-8 border-b border-slate-200 dark:border-slate-800">
-              <div>
-                <h3 className="font-bold text-slate-900 dark:text-white text-xl">Dashboard</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Your financial overview at a glance</p>
+          <div className="relative bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-white/5 rounded-2xl p-6 lg:p-8 shadow-2xl dark:shadow-[0_0_80px_rgba(59,130,246,0.08)] backdrop-blur-sm">
+            {/* Window Chrome */}
+            <div className="flex items-center gap-2 mb-6 pb-6 border-b border-slate-100 dark:border-white/5">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 bg-rose-400/80 rounded-full" />
+                <div className="w-3 h-3 bg-amber-400/80 rounded-full" />
+                <div className="w-3 h-3 bg-emerald-400/80 rounded-full" />
               </div>
-              <div className="flex gap-2">
-                <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+              <div className="flex-1 text-center">
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">lifeos.app/dashboard</span>
               </div>
             </div>
 
-            {/* Dashboard Grid */}
+            {/* Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Spending */}
-              <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-                  This Month
-                </p>
-                <p className="text-3xl font-black text-slate-900 dark:text-white mb-4">₹8,420</p>
-                <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                  <div className="w-2/3 h-full bg-gradient-to-r from-rose-500 to-orange-500"></div>
+              {/* Net Worth */}
+              <div className="group bg-slate-50 dark:bg-white/[0.03] rounded-xl p-5 border border-slate-100 dark:border-white/5 hover:border-emerald-200 dark:hover:border-emerald-500/20 transition-all duration-500 hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Net Worth</span>
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-3">68% of budget</p>
+                <p className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white mb-3">₹4,85,200</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md">↑ 12.4%</span>
+                  <span className="text-xs text-slate-400">this month</span>
+                </div>
               </div>
 
-              {/* Savings */}
-              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-900/50 rounded-xl p-6 border border-emerald-200 dark:border-emerald-800">
-                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-3">
-                  Saved This Year
-                </p>
-                <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mb-4">₹1,24,500</p>
-                <div className="w-full h-2 bg-emerald-200 dark:bg-emerald-800 rounded-full overflow-hidden">
-                  <div className="w-4/5 h-full bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+              {/* Streak */}
+              <div className="group bg-slate-50 dark:bg-white/[0.03] rounded-xl p-5 border border-slate-100 dark:border-white/5 hover:border-orange-200 dark:hover:border-orange-500/20 transition-all duration-500 hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Active Streak</span>
+                  <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
                 </div>
-                <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-3">↑ 18% YoY</p>
+                <p className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white mb-3">47 Days</p>
+                <div className="flex gap-1">
+                  {[1,1,1,1,1,1,1].map((_, i) => (
+                    <div key={i} className="flex-1 h-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-400" />
+                  ))}
+                </div>
               </div>
 
-              {/* Level */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-900/50 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
-                <p className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider mb-3">
-                  Current Level
-                </p>
-                <p className="text-3xl font-black text-blue-600 dark:text-blue-400 mb-4">Level 18</p>
-                <div className="w-full h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
-                  <div className="w-3/4 h-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
+              {/* Level & XP */}
+              <div className="group bg-slate-50 dark:bg-white/[0.03] rounded-xl p-5 border border-slate-100 dark:border-white/5 hover:border-blue-200 dark:hover:border-blue-500/20 transition-all duration-500 hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Current Level</span>
+                  <Zap className="w-4 h-4 text-blue-500" />
                 </div>
-                <p className="text-xs text-blue-700 dark:text-blue-400 mt-3">7.5k / 10k XP</p>
+                <p className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white mb-3">Level 18</p>
+                <div className="space-y-1.5">
+                  <div className="w-full h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+                    <div className="w-3/4 h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" />
+                  </div>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">7,500 / 10,000 XP</p>
+                </div>
               </div>
             </div>
           </div>

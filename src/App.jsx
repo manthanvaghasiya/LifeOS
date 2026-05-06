@@ -18,11 +18,10 @@ const Notes = lazy(() => import('./pages/Notes'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
-const Product = lazy(() => import('./pages/Product'));
 const About = lazy(() => import('./pages/About'));
 const Pricing = lazy(() => import('./pages/Pricing'));
-const Manifesto = lazy(() => import('./pages/Manifesto'));
 const Contact = lazy(() => import('./pages/Contact'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Minimal Loader for Suspense
 const PageLoader = () => (
@@ -84,10 +83,8 @@ const App = () => {
                 <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to="/" />} />
 
                 {/* ✨ NEW PUBLIC ROUTES ✨ */}
-                    <Route path="/product" element={<Product />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/pricing" element={<Pricing />} />
-                    <Route path="/manifesto" element={<Manifesto />} />
                     <Route path="/contact" element={<Contact />} />
 
                 {/* Protected Routes */}
@@ -98,8 +95,8 @@ const App = () => {
                 <Route path="/notes" element={isAuthenticated ? <Notes /> : <Navigate to="/login" />} />
                 <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
 
-                {/* Catch-all */}
-                <Route path="*" element={<Navigate to="/" />} />
+                {/* Catch-all — 404 */}
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
           </main>

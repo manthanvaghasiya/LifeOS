@@ -1,73 +1,39 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Shield, Zap } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 const FinalCTA = () => {
   return (
-    <section className="relative py-24 px-6 bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 border-b border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-500">
-      {/* Background Effects */}
+    <section className="relative py-32 px-6 overflow-hidden transition-colors duration-500">
+      {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-gradient-to-r from-blue-500/20 via-cyan-500/20 to-purple-500/20 dark:from-blue-500/10 dark:via-cyan-500/10 dark:to-purple-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-gradient-to-r from-blue-500/10 via-cyan-500/8 to-purple-500/10 rounded-full blur-[120px]" />
       </div>
 
-      <div className="max-w-4xl mx-auto relative z-10">
-        {/* Main CTA Card */}
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 rounded-3xl p-12 md:p-16 text-center border border-slate-700 dark:border-slate-800 shadow-2xl">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-xs font-bold uppercase tracking-widest mb-8">
-            <Zap className="w-4 h-4" />
-            Limited Time Offer
-          </div>
+      <div className="max-w-3xl mx-auto relative z-10 text-center">
+        <h2 className="text-4xl md:text-6xl lg:text-7xl font-black text-slate-900 dark:text-white mb-6 tracking-tight" style={{ lineHeight: '1.05' }}>
+          Stop drifting.
+          <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-500 to-purple-600 dark:from-blue-400 dark:via-cyan-400 dark:to-purple-400">
+            Start designing.
+          </span>
+        </h2>
 
-          {/* Heading */}
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-6 leading-tight">
-            Start Your Financial
-            <br />
-            Transformation Today
-          </h2>
+        <p className="text-lg text-slate-500 dark:text-slate-400 mb-12 font-light max-w-lg mx-auto">
+          Take control of your finances, habits, and goals — all in one place.
+        </p>
 
-          {/* Description */}
-          <p className="text-lg text-slate-300 mb-12 max-w-2xl mx-auto font-light">
-            Join thousands of users optimizing their finances, building wealth, and achieving their goals. First month completely free.
-          </p>
+        <Link
+          to="/signup"
+          className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold text-lg shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all duration-300"
+        >
+          <span>Get Started — It's Free</span>
+          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+        </Link>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-            <Link
-              to="/signup"
-              className="group relative w-full sm:w-auto px-8 py-4 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-            >
-              <span>Start Free Trial</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-
-            <Link
-              to="/pricing"
-              className="w-full sm:w-auto px-8 py-4 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold transition-all flex items-center justify-center gap-2"
-            >
-              <span>View Pricing</span>
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
-
-          {/* Trust Indicators */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8 border-t border-slate-700">
-            <div className="flex items-center gap-2 text-slate-300">
-              <Shield className="w-5 h-5 text-emerald-400" />
-              <span className="text-sm font-semibold">Bank-Level Security</span>
-            </div>
-            <div className="hidden sm:block w-px h-6 bg-slate-700"></div>
-            <div className="flex items-center gap-2 text-slate-300">
-              <Zap className="w-5 h-5 text-amber-400" />
-              <span className="text-sm font-semibold">No Credit Card Required</span>
-            </div>
-            <div className="hidden sm:block w-px h-6 bg-slate-700"></div>
-            <div className="flex items-center gap-2 text-slate-300">
-              <ArrowRight className="w-5 h-5 text-blue-400" />
-              <span className="text-sm font-semibold">Cancel Anytime</span>
-            </div>
-          </div>
-        </div>
+        <p className="mt-6 text-sm text-slate-400 dark:text-slate-500">
+          No credit card. 2-minute setup. Cancel anytime.
+        </p>
       </div>
     </section>
   );
