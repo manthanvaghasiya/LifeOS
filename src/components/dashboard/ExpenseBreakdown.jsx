@@ -133,7 +133,7 @@ const ExpenseBreakdown = ({ transactions }) => {
                         >
                             {/* --- DONUT CHART --- */}
                             <div className="w-full sm:w-1/2 h-[240px] sm:h-[260px] relative flex items-center justify-center shrink-0">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                                     <PieChart>
                                         <Pie
                                             activeIndex={activeIndex}

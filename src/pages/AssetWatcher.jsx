@@ -314,7 +314,7 @@ const AssetWatcher = () => {
                       </div>
 
                       <div className="w-full h-[300px] min-h-[300px]">
-                          <ResponsiveContainer width="99%" height="100%">
+                          <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1}>
                               <LineChart data={selectedAsset.priceHistory.map(h => ({
                                   ...h,
                                   displayDate: new Date(h.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })

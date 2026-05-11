@@ -253,7 +253,7 @@ const HealthDashboard = () => {
           
           {historyData.length > 0 ? (
             <div className="w-full h-72">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <BarChart data={formattedHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <XAxis 
                     dataKey="displayDate" 

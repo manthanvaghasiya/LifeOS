@@ -143,8 +143,8 @@ const SpendingSection = ({ transactions = [] }) => {
       </div>
 
       {/* Chart Area */}
-      <div className="relative w-full h-[220px] px-6 pt-6 shrink-0">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="relative w-full h-[220px] px-6 pt-6 shrink-0 min-h-[220px] min-w-0">
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
             <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }} barSize={32}>
                 <defs>
                     <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">

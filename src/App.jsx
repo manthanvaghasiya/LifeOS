@@ -12,8 +12,8 @@ import { ToastProvider } from './context/ToastContext';
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Financial = lazy(() => import('./pages/Financial'));
-const HealthDashboard = lazy(() => import('./pages/HealthDashboard'));
-const AssetWatcher = lazy(() => import('./pages/AssetWatcher'));
+// const HealthDashboard = lazy(() => import('./pages/HealthDashboard'));
+// const AssetWatcher = lazy(() => import('./pages/AssetWatcher'));
 const Habits = lazy(() => import('./pages/Habits'));
 const Goals = lazy(() => import('./pages/Goals'));
 const Notes = lazy(() => import('./pages/Notes'));
@@ -34,7 +34,7 @@ const PageLoader = () => (
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
-  
+
   // --- GAMIFICATION STATE ---
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [newLevel, setNewLevel] = useState(1);
@@ -43,19 +43,19 @@ const App = () => {
     const handleAuthChange = () => {
       setIsAuthenticated(!!localStorage.getItem('token'));
     };
-    
+
     // Listen for Level Up Event
     const handleLevelUp = (e) => {
-        setNewLevel(e.detail.level);
-        setShowLevelUp(true);
+      setNewLevel(e.detail.level);
+      setShowLevelUp(true);
     };
 
     window.addEventListener('authChange', handleAuthChange);
     window.addEventListener('levelUp', handleLevelUp);
 
     return () => {
-        window.removeEventListener('authChange', handleAuthChange);
-        window.removeEventListener('levelUp', handleLevelUp);
+      window.removeEventListener('authChange', handleAuthChange);
+      window.removeEventListener('levelUp', handleLevelUp);
     };
   }, []);
 
@@ -63,53 +63,53 @@ const App = () => {
     <ThemeProvider>
       <AuthProvider>
         <ToastProvider>
-      <Router>
-        {/* Main App Container
+          <Router>
+            {/* Main App Container
           - Uses 'slate-50' for a premium dashboard background.
           - Preserves mobile padding logic for the bottom navigation.
         */}
-        <div className={`flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 ${isAuthenticated ? 'pb-24 lg:pb-0' : ''}`}>
-          
-          {isAuthenticated && <Navbar />}
+            <div className={`flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 ${isAuthenticated ? 'pb-24 lg:pb-0' : ''}`}>
 
-          {/* GLOBAL LEVEL UP MODAL */}
-          {showLevelUp && (
-              <LevelUpModal level={newLevel} onClose={() => setShowLevelUp(false)} />
-          )}
+              {isAuthenticated && <Navbar />}
 
-          <main className="flex-grow">
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
-                <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to="/" />} />
+              {/* GLOBAL LEVEL UP MODAL */}
+              {showLevelUp && (
+                <LevelUpModal level={newLevel} onClose={() => setShowLevelUp(false)} />
+              )}
 
-                {/* ✨ NEW PUBLIC ROUTES ✨ */}
+              <main className="flex-grow">
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    {/* Public Routes */}
+                    <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
+                    <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to="/" />} />
+
+                    {/* ✨ NEW PUBLIC ROUTES ✨ */}
                     <Route path="/about" element={<About />} />
                     <Route path="/pricing" element={<Pricing />} />
                     <Route path="/contact" element={<Contact />} />
 
-                {/* Protected Routes */}
-               <Route path="/" element={isAuthenticated ? <Dashboard /> : <Home />} />
-                <Route path="/transactions" element={isAuthenticated ? <Financial /> : <Navigate to="/login" />} />
-                <Route path="/health" element={isAuthenticated ? <HealthDashboard /> : <Navigate to="/login" />} />
-                <Route path="/assets" element={isAuthenticated ? <AssetWatcher /> : <Navigate to="/login" />} />
-                <Route path="/habits" element={isAuthenticated ? <Habits /> : <Navigate to="/login" />} />
-                <Route path="/goals" element={isAuthenticated ? <Goals /> : <Navigate to="/login" />} />
-                <Route path="/notes" element={isAuthenticated ? <Notes /> : <Navigate to="/login" />} />
-                <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
+                    {/* Protected Routes */}
+                    <Route path="/" element={isAuthenticated ? <Dashboard /> : <Home />} />
+                    <Route path="/transactions" element={isAuthenticated ? <Financial /> : <Navigate to="/login" />} />
+                    {/* <Route path="/health" element={isAuthenticated ? <HealthDashboard /> : <Navigate to="/login" />} />
+                <Route path="/assets" element={isAuthenticated ? <AssetWatcher /> : <Navigate to="/login" />} /> */}
+                    <Route path="/habits" element={isAuthenticated ? <Habits /> : <Navigate to="/login" />} />
+                    <Route path="/goals" element={isAuthenticated ? <Goals /> : <Navigate to="/login" />} />
+                    <Route path="/notes" element={isAuthenticated ? <Notes /> : <Navigate to="/login" />} />
+                    <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
 
-                {/* Catch-all — 404 */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </main>
+                    {/* Catch-all — 404 */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </main>
 
-          {isAuthenticated && <Footer />}
-          
-        </div>
-      </Router>
-      </ToastProvider>
+              {isAuthenticated && <Footer />}
+
+            </div>
+          </Router>
+        </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
   );

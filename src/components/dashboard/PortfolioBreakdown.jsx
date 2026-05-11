@@ -121,8 +121,8 @@ const PortfolioBreakdown = ({ transactions }) => {
         {breakdown.length > 0 ? (
           <>
             {/* CHART AREA */}
-            <div className="w-full h-[220px] -ml-4 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="w-full h-[220px] -ml-4 shrink-0 min-h-[220px] min-w-0">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <BarChart data={breakdown} margin={{ top: 20, right: 0, left: 0, bottom: 0 }} barSize={36}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#94a3b8" opacity={0.1} />
                   <XAxis

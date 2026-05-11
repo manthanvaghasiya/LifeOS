@@ -202,7 +202,7 @@ const Habits = () => {
                         <div className="bg-white dark:bg-gray-900/60 p-6 rounded-[2rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center relative overflow-hidden h-64 transition-all">
                             <h3 className="font-bold text-gray-800 dark:text-white mb-2 z-10">Daily Progress</h3>
                             <div className="relative w-40 h-40 z-10">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                                     <PieChart>
                                         <Pie data={donutData} innerRadius={55} outerRadius={75} dataKey="value" startAngle={90} endAngle={-270} stroke="none">
                                             {donutData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}

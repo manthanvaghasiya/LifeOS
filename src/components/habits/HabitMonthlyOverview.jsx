@@ -100,8 +100,8 @@ const HabitMonthlyOverview = ({ leaderboardMonth, setLeaderboardMonth, monthlySt
                     <div style={{ width: `${CHART_WIDTH + STICKY_WIDTH}px`, minWidth: '100%' }}>
                         
                         {/* A. The Graph (Aligned) */}
-                        <div className="h-48 pt-6 relative border-b border-gray-100 dark:border-gray-800" style={{ width: `${CHART_WIDTH}px`, marginLeft: `${STICKY_WIDTH}px` }}>
-                            <ResponsiveContainer width="100%" height="100%">
+                        <div className="w-full h-40 mt-6 min-h-[160px] min-w-0" style={{ width: `${CHART_WIDTH}px`, marginLeft: `${STICKY_WIDTH}px` }}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                                 <BarChart data={monthlyStats} margin={{ top: 0, right: 0, left: 0, bottom: 0 }} barCategoryGap={10}>
                                     <Tooltip 
                                         cursor={{fill: 'rgba(99, 102, 241, 0.05)'}} 
