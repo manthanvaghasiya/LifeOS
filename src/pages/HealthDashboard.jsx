@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Flame, Footprints, Timer, Scale, HeartPulse } from 'lucide-react';
+import { Activity, Flame, Footprints, Timer, Scale, HeartPulse, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import useHealthData from '../hooks/useHealthData';
 import HealthSkeleton from '../components/health/HealthSkeleton';
