@@ -24,6 +24,7 @@ app.use('/api/notes', require('./routes/notes'));
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', require('./routes/users'));
 app.use('/api/health', require('./routes/health'));
+app.use('/api/assets', require('./routes/assets'));
 
 const connectDB = async () => {
   try {
