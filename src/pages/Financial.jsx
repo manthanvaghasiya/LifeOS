@@ -12,6 +12,7 @@ import TransactionForm from '../components/financial/TransactionForm';
 import FinancialAnalytics from '../components/dashboard/FinancialAnalytics';
 import ExpenseBreakdown from '../components/dashboard/ExpenseBreakdown';
 import PortfolioBreakdown from '../components/dashboard/PortfolioBreakdown';
+import useCategories from '../hooks/useCategories';
 
 // Match constants exactly across all files
 const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
@@ -23,6 +24,10 @@ const Financial = () => {
   const [allTransactions, setAllTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewDate, setViewDate] = useState(new Date());
+  
+  // Custom categories for bank logic
+  const { categories } = useCategories();
+  const defaultBank = categories.bankAccounts?.length > 0 ? categories.bankAccounts[0] : 'Primary Bank';
   
   // Modal State
   const [showForm, setShowForm] = useState(false);
@@ -109,28 +114,28 @@ const Financial = () => {
       const destination = t.transferTo || null;
       
       if (source === 'Bank' && t.type === 'income') {
-        const bank = t.bankAccountName || 'Primary Bank';
+        const bank = t.bankAccountName || defaultBank;
         balances[bank] = (balances[bank] || 0) + t.amount;
       }
       
       if (source === 'Bank' && t.type === 'expense') {
-        const bank = t.bankAccountName || 'Primary Bank';
+        const bank = t.bankAccountName || defaultBank;
         balances[bank] = (balances[bank] || 0) - t.amount;
       }
 
       if (source === 'Bank' && t.type === 'transfer') {
-        const bank = t.bankAccountName || 'Primary Bank';
+        const bank = t.bankAccountName || defaultBank;
         balances[bank] = (balances[bank] || 0) - t.amount;
       }
 
       if (destination === 'Bank' && t.type === 'transfer') {
-        const bank = t.transferToAccountName || 'Primary Bank';
+        const bank = t.transferToAccountName || defaultBank;
         balances[bank] = (balances[bank] || 0) + t.amount;
       }
       
       // Investment withdrawal defaulting to Bank
       if (t.type === 'transfer' && !destination && source === 'Investment') {
-        const bank = t.transferToAccountName || 'Primary Bank';
+        const bank = t.transferToAccountName || defaultBank;
         balances[bank] = (balances[bank] || 0) + t.amount;
       }
     });
