@@ -6,7 +6,7 @@ const DEFAULT_CATEGORIES = {
   expense: ['Food', 'Shopping', 'Transport', 'Travel', 'Bills', 'Health', 'Education', 'Grocery', 'Entertainment', 'Fuel'],
   income: ['Salary', 'Freelance', 'Business', 'Investment', 'Gift', 'Rental'],
   investmentTypes: ['SIP', 'Mutual Fund', 'Stocks', 'Gold', 'FD', 'Crypto', 'IPO'],
-  bankAccounts: ['Primary Bank']
+  bankAccounts: []
 };
 
 const useCategories = () => {
@@ -145,8 +145,7 @@ const useCategories = () => {
 
     // Optimistic update
     setCategories(prev => {
-      const isOnlyPrimary = prev.bankAccounts.length === 1 && prev.bankAccounts[0] === 'Primary Bank';
-      const newBanks = isOnlyPrimary ? [trimmed] : [...prev.bankAccounts, trimmed];
+      const newBanks = [...prev.bankAccounts, trimmed];
       return { ...prev, bankAccounts: newBanks };
     });
 

@@ -79,7 +79,7 @@ const FinancialSummary = ({
                           bankBalances.map((b, index) => (
                             <React.Fragment key={b.name}>
                               <span className="flex items-center gap-1 whitespace-nowrap">
-                                <Landmark className="w-3 h-3 flex-shrink-0" /> {b.name === 'Primary Bank' ? 'Bank' : b.name}: {formatCurrency(b.amount)}
+                                <Landmark className="w-3 h-3 flex-shrink-0" /> {b.name}: {formatCurrency(b.amount)}
                               </span>
                               <span className="w-1 h-1 bg-white/40 rounded-full flex-shrink-0"></span>
                             </React.Fragment>

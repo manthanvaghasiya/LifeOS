@@ -14,9 +14,9 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
 
   // Form State
   const [formData, setFormData] = useState({ 
-    title: '', amount: '', paymentMode: 'Bank', transferTo: 'Cash', 
+    title: '', amount: '', paymentMode: bankAccounts.length > 0 ? 'Bank' : 'Cash', transferTo: 'Cash', 
     category: '', investmentType: 'SIP', profitAmount: '', 
-    bankAccountName: 'Primary Bank', transferToAccountName: 'Primary Bank',
+    bankAccountName: bankAccounts.length > 0 ? bankAccounts[0] : '', transferToAccountName: bankAccounts.length > 0 ? bankAccounts[0] : '',
     date: new Date().toISOString().split('T')[0] 
   });
   
@@ -66,10 +66,10 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
       setFormData({
         title: initialData.title || '',
         amount: initialData.amount || '',
-        paymentMode: initialData.paymentMode || 'Bank',
-        bankAccountName: initialData.bankAccountName || (bankAccounts.length > 0 ? bankAccounts[0] : 'Primary Bank'),
+        paymentMode: initialData.paymentMode || (bankAccounts.length > 0 ? 'Bank' : 'Cash'),
+        bankAccountName: initialData.bankAccountName || (bankAccounts.length > 0 ? bankAccounts[0] : ''),
         transferTo: initialData.type === 'transfer' ? (initialData.transferTo || 'Cash') : 'Cash',
-        transferToAccountName: initialData.transferToAccountName || (bankAccounts.length > 0 ? bankAccounts[0] : 'Primary Bank'),
+        transferToAccountName: initialData.transferToAccountName || (bankAccounts.length > 0 ? bankAccounts[0] : ''),
         category: initialData.category || 'Other',
         investmentType: initialData.investmentType || 'SIP',
         date: formattedDate,
@@ -466,8 +466,13 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
         <div className="p-6 pt-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
            <button 
              onClick={handleSubmit}
-             disabled={!formData.amount}
-             className={`w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all transform active:scale-95 ${getButtonColor()} ${!formData.amount ? 'opacity-50 cursor-not-allowed' : ''}`}
+             disabled={
+                !formData.amount || 
+                (txType !== 'transfer' && formData.paymentMode === 'Bank' && !formData.bankAccountName) || 
+                (txType === 'transfer' && formData.paymentMode === 'Bank' && !formData.bankAccountName) ||
+                (txType === 'transfer' && formData.transferTo === 'Bank' && !formData.transferToAccountName)
+             }
+             className={`w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all transform active:scale-95 ${getButtonColor()} ${(!formData.amount || (formData.paymentMode === 'Bank' && !formData.bankAccountName) || (txType === 'transfer' && formData.transferTo === 'Bank' && !formData.transferToAccountName)) ? 'opacity-50 cursor-not-allowed' : ''}`}
            >
               {initialData ? 'Update Transaction' : 'Save Transaction'}
            </button>
