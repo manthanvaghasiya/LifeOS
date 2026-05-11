@@ -5,14 +5,16 @@ import API from '../services/api';
 const DEFAULT_CATEGORIES = {
   expense: ['Food', 'Shopping', 'Transport', 'Travel', 'Bills', 'Health', 'Education', 'Grocery', 'Entertainment', 'Fuel'],
   income: ['Salary', 'Freelance', 'Business', 'Investment', 'Gift', 'Rental'],
-  investmentTypes: ['SIP', 'Mutual Fund', 'Stocks', 'Gold', 'FD', 'Crypto', 'IPO']
+  investmentTypes: ['SIP', 'Mutual Fund', 'Stocks', 'Gold', 'FD', 'Crypto', 'IPO'],
+  bankAccounts: ['Primary Bank']
 };
 
 const useCategories = () => {
   const [categories, setCategories] = useState({
     expense: [...DEFAULT_CATEGORIES.expense],
     income: [...DEFAULT_CATEGORIES.income],
-    investmentTypes: [...DEFAULT_CATEGORIES.investmentTypes]
+    investmentTypes: [...DEFAULT_CATEGORIES.investmentTypes],
+    bankAccounts: [...DEFAULT_CATEGORIES.bankAccounts]
   });
   const [loading, setLoading] = useState(true);
 
@@ -35,8 +37,11 @@ const useCategories = () => {
           ],
           investmentTypes: [
             ...DEFAULT_CATEGORIES.investmentTypes,
-            ...customCats.investmentTypes.filter(c => !DEFAULT_CATEGORIES.investmentTypes.includes(c))
-          ]
+            ...(customCats.investmentTypes ? customCats.investmentTypes.filter(c => !DEFAULT_CATEGORIES.investmentTypes.includes(c)) : [])
+          ],
+          bankAccounts: (customCats.bankAccounts && customCats.bankAccounts.length > 0)
+            ? customCats.bankAccounts
+            : [...DEFAULT_CATEGORIES.bankAccounts]
         });
       } catch (err) {
         console.error('Failed to fetch categories:', err);
@@ -44,7 +49,8 @@ const useCategories = () => {
         setCategories({
           expense: [...DEFAULT_CATEGORIES.expense],
           income: [...DEFAULT_CATEGORIES.income],
-          investmentTypes: [...DEFAULT_CATEGORIES.investmentTypes]
+          investmentTypes: [...DEFAULT_CATEGORIES.investmentTypes],
+          bankAccounts: [...DEFAULT_CATEGORIES.bankAccounts]
         });
       } finally {
         setLoading(false);
@@ -132,14 +138,40 @@ const useCategories = () => {
     }
   };
 
+  // Add bank account
+  const addBankAccount = async (name) => {
+    const trimmed = name.trim();
+    if (!trimmed || categories.bankAccounts.includes(trimmed)) return;
+
+    // Optimistic update
+    setCategories(prev => {
+      const isOnlyPrimary = prev.bankAccounts.length === 1 && prev.bankAccounts[0] === 'Primary Bank';
+      const newBanks = isOnlyPrimary ? [trimmed] : [...prev.bankAccounts, trimmed];
+      return { ...prev, bankAccounts: newBanks };
+    });
+
+    try {
+      await API.put('/users/categories', { type: 'bankAccounts', name: trimmed });
+    } catch (err) {
+      console.error('Failed to save bank account:', err);
+      // Revert on error
+      setCategories(prev => ({
+        ...prev,
+        bankAccounts: prev.bankAccounts.filter(c => c !== trimmed)
+      }));
+    }
+  };
+
   return {
     expenseCategories: categories.expense,
     incomeCategories: categories.income,
     investmentTypes: categories.investmentTypes,
+    bankAccounts: categories.bankAccounts,
     addCategory,
     addExpenseCategory,
     addIncomeCategory,
     addInvestmentType,
+    addBankAccount,
     loading
   };
 };

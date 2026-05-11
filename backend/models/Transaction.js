@@ -32,9 +32,17 @@ const TransactionSchema = new mongoose.Schema({
     type: String, // 'Cash', 'Bank', 'Investment'
     default: 'Bank'
   },
+  bankAccountName: {
+    type: String, // e.g., 'HDFC', 'SBI'
+    default: null
+  },
   // --- FIX: Add transferTo so we know the destination ---
   transferTo: {
     type: String, // 'Cash', 'Bank', 'Investment'
+    default: null
+  },
+  transferToAccountName: {
+    type: String, // e.g., 'HDFC', 'SBI'
     default: null
   },
   date: {

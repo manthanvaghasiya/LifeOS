@@ -44,8 +44,8 @@ const TransactionTable = ({ transactions, onEdit, onDelete, monthLabel }) => {
 
   // --- UI HELPERS ---
   const renderDetails = (t) => {
-    const source = t.paymentMode || 'Bank';
-    const destination = t.transferTo || (t.category === 'Investment' ? 'Investment' : t.category);
+    const source = t.paymentMode === 'Bank' ? (t.bankAccountName || 'Bank') : (t.paymentMode || 'Bank');
+    const destination = t.transferTo === 'Bank' ? (t.transferToAccountName || 'Bank') : (t.transferTo || (t.category === 'Investment' ? 'Investment' : t.category));
 
     if (t.type === 'transfer') {
       return (

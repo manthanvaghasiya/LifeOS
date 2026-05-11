@@ -102,8 +102,49 @@ const Financial = () => {
   const investmentBalance = calculateTotalBalance('Investment');
   const totalNetWorth = bankBalance + cashBalance + investmentBalance;
 
+  const calculateBankBalances = () => {
+    const balances = {};
+    allTransactions.forEach(t => {
+      const source = t.paymentMode || 'Bank';
+      const destination = t.transferTo || null;
+      
+      if (source === 'Bank' && t.type === 'income') {
+        const bank = t.bankAccountName || 'Primary Bank';
+        balances[bank] = (balances[bank] || 0) + t.amount;
+      }
+      
+      if (source === 'Bank' && t.type === 'expense') {
+        const bank = t.bankAccountName || 'Primary Bank';
+        balances[bank] = (balances[bank] || 0) - t.amount;
+      }
+
+      if (source === 'Bank' && t.type === 'transfer') {
+        const bank = t.bankAccountName || 'Primary Bank';
+        balances[bank] = (balances[bank] || 0) - t.amount;
+      }
+
+      if (destination === 'Bank' && t.type === 'transfer') {
+        const bank = t.transferToAccountName || 'Primary Bank';
+        balances[bank] = (balances[bank] || 0) + t.amount;
+      }
+      
+      // Investment withdrawal defaulting to Bank
+      if (t.type === 'transfer' && !destination && source === 'Investment') {
+        const bank = t.transferToAccountName || 'Primary Bank';
+        balances[bank] = (balances[bank] || 0) + t.amount;
+      }
+    });
+    return Object.entries(balances)
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount);
+  };
+
+  const bankBalances = calculateBankBalances();
+
   // --- 2. MONTHLY STATS ---
   const monthlyIncome = currentMonthTransactions.filter(t => t.type === 'income').reduce((acc, c) => acc + c.amount, 0);
+  const monthlyIncomeCash = currentMonthTransactions.filter(t => t.type === 'income' && t.paymentMode === 'Cash').reduce((acc, c) => acc + c.amount, 0);
+  const monthlyIncomeBank = currentMonthTransactions.filter(t => t.type === 'income' && (!t.paymentMode || t.paymentMode === 'Bank')).reduce((acc, c) => acc + c.amount, 0);
   
   // Expenses (Strictly excluding investments)
   const monthlyExpenses = currentMonthTransactions.filter(t => 
@@ -111,6 +152,36 @@ const Financial = () => {
     t.category !== 'Investment' && 
     !INVESTMENT_TYPES.includes(t.category)
   ).reduce((acc, c) => acc + c.amount, 0);
+
+  const monthlyExpensesCash = currentMonthTransactions.filter(t => 
+    t.type === 'expense' && 
+    t.category !== 'Investment' && 
+    !INVESTMENT_TYPES.includes(t.category) &&
+    t.paymentMode === 'Cash'
+  ).reduce((acc, c) => acc + c.amount, 0);
+
+  const monthlyExpensesBank = currentMonthTransactions.filter(t => 
+    t.type === 'expense' && 
+    t.category !== 'Investment' && 
+    !INVESTMENT_TYPES.includes(t.category) &&
+    (!t.paymentMode || t.paymentMode === 'Bank')
+  ).reduce((acc, c) => acc + c.amount, 0);
+
+  const currentMonthInvestmentBreakdownObj = {};
+  currentMonthTransactions.forEach(t => {
+      const isInvCategory = t.category === 'Investment' || INVESTMENT_TYPES.includes(t.category);
+      let amt = 0;
+      if (t.type === 'expense' && isInvCategory) amt = t.amount;
+      if (t.type === 'transfer' && t.transferTo === 'Investment') amt = t.amount;
+      if (t.type === 'transfer' && !t.transferTo && t.paymentMode !== 'Investment' && isInvCategory) amt = t.amount;
+      if (amt > 0) {
+          const type = t.investmentType || (t.category === 'Investment' ? 'Other' : t.category);
+          currentMonthInvestmentBreakdownObj[type] = (currentMonthInvestmentBreakdownObj[type] || 0) + amt;
+      }
+  });
+  const currentMonthInvestmentBreakdown = Object.entries(currentMonthInvestmentBreakdownObj)
+    .map(([k, v]) => `${k}: ${formatCurrency(v)}`)
+    .join(' • ');
 
   // --- HANDLERS ---
   const handleExport = () => {
@@ -180,11 +251,17 @@ const Financial = () => {
         <FinancialSummary 
           totalNetWorth={totalNetWorth} 
           bankBalance={bankBalance} 
+          bankBalances={bankBalances}
           cashBalance={cashBalance} 
           monthlyIncome={monthlyIncome} 
+          monthlyIncomeCash={monthlyIncomeCash}
+          monthlyIncomeBank={monthlyIncomeBank}
           monthlyExpenses={monthlyExpenses} 
+          monthlyExpensesCash={monthlyExpensesCash}
+          monthlyExpensesBank={monthlyExpensesBank} 
           investmentBalance={investmentBalance} 
           monthLabel={formattedMonth} 
+          customBreakdown={currentMonthInvestmentBreakdown}
         />
 
         {/* Analytics Section */}

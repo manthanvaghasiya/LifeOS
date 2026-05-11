@@ -14,7 +14,8 @@ const UserSchema = new mongoose.Schema({
   customCategories: {
     expense: { type: [String], default: [] },
     income: { type: [String], default: [] },
-    investmentTypes: { type: [String], default: [] }
+    investmentTypes: { type: [String], default: [] },
+    bankAccounts: { type: [String], default: [] }
   },
 
   createdAt: { type: Date, default: Date.now }

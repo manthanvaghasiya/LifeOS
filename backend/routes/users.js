@@ -95,13 +95,13 @@ router.get('/categories', protect, async (req, res) => {
 // 6. ADD CUSTOM CATEGORY
 router.put('/categories', protect, async (req, res) => {
   try {
-    const { type, name } = req.body; // type: 'expense' | 'income' | 'investmentTypes'
+    const { type, name } = req.body; // type: 'expense' | 'income' | 'investmentTypes' | 'bankAccounts'
 
     if (!type || !name) {
       return res.status(400).json({ message: 'Type and name are required' });
     }
 
-    if (!['expense', 'income', 'investmentTypes'].includes(type)) {
+    if (!['expense', 'income', 'investmentTypes', 'bankAccounts'].includes(type)) {
       return res.status(400).json({ message: 'Invalid category type' });
     }
 

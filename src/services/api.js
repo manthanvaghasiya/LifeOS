@@ -14,7 +14,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://wealthfolio-api.onrende
 
 const API = axios.create({
   baseURL: API_URL, 
-  timeout: 10000, // 10s timeout standard
+  timeout: 60000, // 60s timeout standard (increased to handle free-tier cold starts)
 });
 
 API.interceptors.request.use((req) => {
@@ -35,9 +35,12 @@ API.interceptors.response.use(
   (error) => {
     const originalRequest = error.config;
 
-    // 1. NETWORK ERRORS (No response)
+    // 1. NETWORK ERRORS OR TIMEOUTS (No response)
     if (!error.response) {
-       triggerToast("Network error. Please check your connection.", 'error');
+       // Only toast if it's not a canceled request
+       if (error.code !== 'ERR_CANCELED') {
+         triggerToast("Server unreachable. It might be waking up, please wait a moment.", 'error');
+       }
        return Promise.reject(error);
     }
 

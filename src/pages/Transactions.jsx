@@ -84,6 +84,7 @@ const Transactions = () => {
       Title: t.title,
       Category: t.category,
       Type: t.type.toUpperCase(),
+      Source: t.paymentMode === 'Bank' ? (t.bankAccountName || 'Bank') : (t.paymentMode || 'Bank'),
       Amount: t.amount
     }));
     const csv = Papa.unparse(csvData);
@@ -206,6 +207,7 @@ const Transactions = () => {
                   <th className="p-4 font-semibold">Date</th>
                   <th className="p-4 font-semibold">Title</th>
                   <th className="p-4 font-semibold">Category</th>
+                  <th className="p-4 font-semibold">Source</th>
                   <th className="p-4 font-semibold">Type</th>
                   <th className="p-4 font-semibold">Amount</th>
                   <th className="p-4 font-semibold text-center">Actions</th>
@@ -234,6 +236,9 @@ const Transactions = () => {
                             {DEFAULT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                             <option value="Other">Other</option>
                           </select>
+                        </td>
+                        <td className="p-4 text-gray-400">
+                          -
                         </td>
                         <td className="p-4">
                           <select
@@ -270,6 +275,11 @@ const Transactions = () => {
                         <td className="p-4">
                           <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs border border-gray-200">
                             {t.category}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className="text-xs text-gray-600 font-medium">
+                            {t.paymentMode === 'Bank' ? (t.bankAccountName || 'Bank') : (t.paymentMode || 'Bank')}
                           </span>
                         </td>
                         <td className="p-4">

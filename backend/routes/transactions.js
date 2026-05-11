@@ -18,7 +18,7 @@ router.get('/', protect, async (req, res) => {
 // ADD TRANSACTION (Updated)
 router.post('/', protect, async (req, res) => {
   try {
-    const { title, amount, type, category, paymentMode, date, investmentType, transferTo } = req.body;
+    const { title, amount, type, category, paymentMode, bankAccountName, date, investmentType, transferTo, transferToAccountName } = req.body;
 
     const transaction = await Transaction.create({
       user: req.user.id,
@@ -27,8 +27,10 @@ router.post('/', protect, async (req, res) => {
       type,
       category,
       paymentMode,
+      bankAccountName: bankAccountName || null,
       investmentType: investmentType || null,
       transferTo: transferTo || null,
+      transferToAccountName: transferToAccountName || null,
       date: date || Date.now()
     });
 

@@ -10,12 +10,13 @@ import {
 
 const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   const [txType, setTxType] = useState('expense');
-  const { expenseCategories, incomeCategories, investmentTypes, addCategory, addInvestmentType } = useCategories();
+  const { expenseCategories, incomeCategories, investmentTypes, bankAccounts, addCategory, addInvestmentType, addBankAccount } = useCategories();
 
   // Form State
   const [formData, setFormData] = useState({ 
     title: '', amount: '', paymentMode: 'Bank', transferTo: 'Cash', 
     category: '', investmentType: 'SIP', profitAmount: '', 
+    bankAccountName: 'Primary Bank', transferToAccountName: 'Primary Bank',
     date: new Date().toISOString().split('T')[0] 
   });
   
@@ -24,6 +25,8 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   const [isWithdrawalWithProfit, setIsWithdrawalWithProfit] = useState(false);
   const [isAddingInv, setIsAddingInv] = useState(false);
   const [customInv, setCustomInv] = useState('');
+  const [isAddingBank, setIsAddingBank] = useState(false);
+  const [customBank, setCustomBank] = useState('');
 
   // --- 1. SMART COLOR THEME ---
   const getThemeColor = () => {
@@ -64,7 +67,9 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
         title: initialData.title || '',
         amount: initialData.amount || '',
         paymentMode: initialData.paymentMode || 'Bank',
+        bankAccountName: initialData.bankAccountName || (bankAccounts.length > 0 ? bankAccounts[0] : 'Primary Bank'),
         transferTo: initialData.type === 'transfer' ? (initialData.transferTo || 'Cash') : 'Cash',
+        transferToAccountName: initialData.transferToAccountName || (bankAccounts.length > 0 ? bankAccounts[0] : 'Primary Bank'),
         category: initialData.category || 'Other',
         investmentType: initialData.investmentType || 'SIP',
         date: formattedDate,
@@ -81,6 +86,20 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
     setFormData({ ...formData, investmentType: newType });
     setCustomInv('');
     setIsAddingInv(false);
+  };
+
+  const handleAddBank = async () => {
+    if (!customBank.trim()) return;
+    const newBank = customBank.trim();
+
+    await addBankAccount(newBank);
+    setFormData(prev => ({ 
+      ...prev, 
+      bankAccountName: newBank, 
+      transferToAccountName: newBank 
+    }));
+    setCustomBank('');
+    setIsAddingBank(false);
   };
 
   const handleAddCategory = async () => {
@@ -130,7 +149,9 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
         type: txType,
         category: finalCategory,
         paymentMode: formData.paymentMode,
+        bankAccountName: formData.paymentMode === 'Bank' ? formData.bankAccountName : null,
         transferTo: txType === 'transfer' ? (formData.transferTo || 'Cash') : null,
+        transferToAccountName: (txType === 'transfer' && formData.transferTo === 'Bank') ? formData.transferToAccountName : null,
         investmentType: (finalCategory === 'Investment' || formData.paymentMode === 'Investment') ? formData.investmentType : null,
         date: formData.date
       };
@@ -296,6 +317,23 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
                         </button>
                      ))}
                   </div>
+                  {formData.paymentMode === 'Bank' && (
+                     <div className="mt-3 space-y-3 animate-fade-in bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex justify-between items-center">
+                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Bank</label>
+                           <button type="button" onClick={() => setIsAddingBank(!isAddingBank)} className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-bold hover:bg-blue-200 dark:hover:bg-blue-800 transition">+ ADD BANK ACCOUNT</button>
+                        </div>
+                        {isAddingBank && (
+                           <div className="flex gap-2 mb-3">
+                              <input autoFocus type="text" placeholder="Enter Bank Name..." className="flex-1 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm font-bold text-blue-800 dark:text-blue-200 outline-none focus:ring-2 focus:ring-blue-500/50" value={customBank} onChange={(e) => setCustomBank(e.target.value)} />
+                              <button type="button" onClick={handleAddBank} className="px-4 bg-blue-600 hover:bg-blue-700 transition text-white rounded-xl"><Check className="w-5 h-5" /></button>
+                           </div>
+                        )}
+                        <select className="w-full p-2.5 bg-white dark:bg-slate-700 rounded-xl font-bold text-slate-700 dark:text-slate-200 outline-none border border-slate-200 dark:border-slate-600" value={formData.bankAccountName} onChange={(e) => setFormData({...formData, bankAccountName: e.target.value})}>
+                           {bankAccounts.map(bank => <option key={bank} value={bank}>{bank}</option>)}
+                        </select>
+                     </div>
+                  )}
                </div>
             )}
 
@@ -304,7 +342,7 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
                <div className="space-y-6 animate-fade-in">
                   
                   {/* From -> To Visual Flow */}
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-start gap-4">
                      <div className="flex-1 space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">From</label>
                         <select 
@@ -316,8 +354,15 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
                            <option value="Cash">Cash</option>
                            <option value="Investment">Investment</option>
                         </select>
+                        {formData.paymentMode === 'Bank' && (
+                           <div className="mt-2 animate-fade-in">
+                              <select className="w-full p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 outline-none" value={formData.bankAccountName} onChange={(e) => setFormData({...formData, bankAccountName: e.target.value})}>
+                                 {bankAccounts.map(bank => <option key={bank} value={bank}>{bank}</option>)}
+                              </select>
+                           </div>
+                        )}
                      </div>
-                     <div className="pt-5 text-slate-300"><ArrowRight className="w-5 h-5" /></div>
+                     <div className="pt-3 text-slate-300"><ArrowRight className="w-5 h-5" /></div>
                      <div className="flex-1 space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">To</label>
                         <select 
@@ -329,6 +374,13 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
                            <option value="Cash">Cash</option>
                            <option value="Investment">Investment</option>
                         </select>
+                        {formData.transferTo === 'Bank' && (
+                           <div className="mt-2 animate-fade-in">
+                              <select className="w-full p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 outline-none" value={formData.transferToAccountName} onChange={(e) => setFormData({...formData, transferToAccountName: e.target.value})}>
+                                 {bankAccounts.map(bank => <option key={bank} value={bank}>{bank}</option>)}
+                              </select>
+                           </div>
+                        )}
                      </div>
                   </div>
 
