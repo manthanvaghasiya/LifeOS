@@ -74,15 +74,25 @@ const FinancialSummary = ({
                     {/* Kept the text-white fix from before */}
                     <h2 className="text-3xl font-black mb-1 text-white">{formatCurrency(totalNetWorth)}</h2>
                     
-                    <div className="flex items-center gap-3 text-xs font-medium text-indigo-100">
-                        <span 
-                          className="flex items-center gap-1 cursor-help" 
-                          title={bankBalances.map(b => `${b.name}: ${formatCurrency(b.amount)}`).join('\n')}
-                        >
-                          <Landmark className="w-3 h-3" /> Bank: {formatCurrency(bankBalance)}
-                        </span>
-                        <span className="w-1 h-1 bg-white/40 rounded-full"></span>
-                        <span className="flex items-center gap-1"><Banknote className="w-3 h-3" /> Cash: {formatCurrency(cashBalance)}</span>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs font-medium text-indigo-100">
+                        {bankBalances.length > 0 ? (
+                          bankBalances.map((b, index) => (
+                            <React.Fragment key={b.name}>
+                              <span className="flex items-center gap-1 whitespace-nowrap">
+                                <Landmark className="w-3 h-3 flex-shrink-0" /> {b.name === 'Primary Bank' ? 'Bank' : b.name}: {formatCurrency(b.amount)}
+                              </span>
+                              <span className="w-1 h-1 bg-white/40 rounded-full flex-shrink-0"></span>
+                            </React.Fragment>
+                          ))
+                        ) : (
+                          <>
+                            <span className="flex items-center gap-1 whitespace-nowrap">
+                              <Landmark className="w-3 h-3 flex-shrink-0" /> Bank: {formatCurrency(bankBalance)}
+                            </span>
+                            <span className="w-1 h-1 bg-white/40 rounded-full flex-shrink-0"></span>
+                          </>
+                        )}
+                        <span className="flex items-center gap-1 whitespace-nowrap"><Banknote className="w-3 h-3 flex-shrink-0" /> Cash: {formatCurrency(cashBalance)}</span>
                     </div>
                 </div>
             </div>
