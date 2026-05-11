@@ -26,8 +26,8 @@ const Financial = () => {
   const [viewDate, setViewDate] = useState(new Date());
   
   // Custom categories for bank logic
-  const { categories } = useCategories();
-  const defaultBank = categories.bankAccounts?.length > 0 ? categories.bankAccounts[0] : 'Primary Bank';
+  const { bankAccounts } = useCategories();
+  const defaultBank = bankAccounts?.length > 0 ? bankAccounts[0] : 'Primary Bank';
   
   // Modal State
   const [showForm, setShowForm] = useState(false);
