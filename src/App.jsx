@@ -12,6 +12,7 @@ import { ToastProvider } from './context/ToastContext';
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Financial = lazy(() => import('./pages/Financial'));
+const HealthDashboard = lazy(() => import('./pages/HealthDashboard'));
 const Habits = lazy(() => import('./pages/Habits'));
 const Goals = lazy(() => import('./pages/Goals'));
 const Notes = lazy(() => import('./pages/Notes'));
@@ -90,6 +91,7 @@ const App = () => {
                 {/* Protected Routes */}
                <Route path="/" element={isAuthenticated ? <Dashboard /> : <Home />} />
                 <Route path="/transactions" element={isAuthenticated ? <Financial /> : <Navigate to="/login" />} />
+                <Route path="/health" element={isAuthenticated ? <HealthDashboard /> : <Navigate to="/login" />} />
                 <Route path="/habits" element={isAuthenticated ? <Habits /> : <Navigate to="/login" />} />
                 <Route path="/goals" element={isAuthenticated ? <Goals /> : <Navigate to="/login" />} />
                 <Route path="/notes" element={isAuthenticated ? <Notes /> : <Navigate to="/login" />} />

@@ -23,6 +23,7 @@ app.use('/api/goals', require('./routes/goals'));
 app.use('/api/notes', require('./routes/notes'));
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', require('./routes/users'));
+app.use('/api/health', require('./routes/health'));
 
 const connectDB = async () => {
   try {

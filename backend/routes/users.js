@@ -123,4 +123,33 @@ router.put('/categories', protect, async (req, res) => {
   }
 });
 
+// 7. REMOVE CUSTOM CATEGORY
+router.delete('/categories', protect, async (req, res) => {
+  try {
+    const { type, name } = req.query;
+
+    if (!type || !name) {
+      return res.status(400).json({ message: 'Type and name are required' });
+    }
+
+    if (!['expense', 'income', 'investmentTypes', 'bankAccounts'].includes(type)) {
+      return res.status(400).json({ message: 'Invalid category type' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const catArray = user.customCategories[type];
+    const index = catArray.indexOf(name);
+    if (index !== -1) {
+      catArray.splice(index, 1);
+      await user.save();
+    }
+
+    res.json(user.customCategories);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to remove category' });
+  }
+});
+
 module.exports = router;

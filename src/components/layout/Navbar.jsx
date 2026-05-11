@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, CalendarCheck, Target,
-  StickyNote, TrendingUp, Moon, Sun, Zap, Menu
+  StickyNote, TrendingUp, Moon, Sun, Zap, Menu, Activity
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -71,6 +71,7 @@ const Navbar = () => {
 
   const navItems = [
     { path: '/', label: 'Home', icon: LayoutDashboard }, // Fixed Home Link
+    { path: '/health', label: 'Health', icon: Activity },
     { path: '/habits', label: 'Habits', icon: CalendarCheck },
     { path: '/goals', label: 'Goals', icon: Target },
     { path: '/transactions', label: 'Finance', icon: TrendingUp },

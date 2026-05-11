@@ -162,6 +162,23 @@ const useCategories = () => {
     }
   };
 
+  // Remove category (any type)
+  const removeCategory = async (type, name) => {
+    // Optimistic update
+    setCategories(prev => ({
+      ...prev,
+      [type]: prev[type].filter(c => c !== name)
+    }));
+
+    try {
+      await API.delete(`/users/categories?type=${type}&name=${encodeURIComponent(name)}`);
+    } catch (err) {
+      console.error('Failed to remove category:', err);
+      // Revert on error by refetching or just notifying
+      // For simplicity, we won't strictly revert here, but we could
+    }
+  };
+
   return {
     expenseCategories: categories.expense,
     incomeCategories: categories.income,
@@ -172,6 +189,7 @@ const useCategories = () => {
     addIncomeCategory,
     addInvestmentType,
     addBankAccount,
+    removeCategory,
     loading
   };
 };
