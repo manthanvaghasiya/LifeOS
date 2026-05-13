@@ -43,20 +43,40 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
 
   // --- 2. INITIALIZATION & LOGIC ---
   useEffect(() => {
-    // Set default category when type switches
-    if (!initialData) {
-      if (txType === 'expense' && !formData.category && expenseCategories.length > 0) {
-        setFormData(prev => ({ ...prev, category: expenseCategories[0] }));
-      } else if (txType === 'income' && !formData.category && incomeCategories.length > 0) {
-        setFormData(prev => ({ ...prev, category: incomeCategories[0] }));
+    setFormData(prev => {
+      let updates = {};
+      
+      // Handle expense/income category defaults
+      if (!initialData) {
+        if (txType === 'expense' && !prev.category && expenseCategories.length > 0) {
+          updates.category = expenseCategories[0];
+        } else if (txType === 'income' && !prev.category && incomeCategories.length > 0) {
+          updates.category = incomeCategories[0];
+        }
       }
-    }
 
-    // Ensure transferTo is always set for transfers
-    if (txType === 'transfer' && !formData.transferTo) {
-      setFormData(prev => ({ ...prev, transferTo: prev.transferTo || 'Cash' }));
-    }
-  }, [txType, expenseCategories, incomeCategories]);
+      // Handle transfer defaults
+      if (txType === 'transfer' && !prev.transferTo) {
+        updates.transferTo = 'Cash';
+      }
+
+      // Sync bank accounts once loaded
+      if (bankAccounts.length > 0) {
+        if (!prev.bankAccountName || !bankAccounts.includes(prev.bankAccountName)) {
+          updates.bankAccountName = bankAccounts[0];
+        }
+        if (!prev.transferToAccountName || !bankAccounts.includes(prev.transferToAccountName)) {
+          updates.transferToAccountName = bankAccounts[0];
+        }
+        // Only on initial load (if previously defaulted to Cash because bankAccounts was empty)
+        if (!initialData && prev.paymentMode === 'Cash' && prev.bankAccountName === '' && txType !== 'transfer') {
+            updates.paymentMode = 'Bank';
+        }
+      }
+
+      return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
+    });
+  }, [txType, expenseCategories, incomeCategories, bankAccounts, initialData]);
 
   useEffect(() => {
     if (initialData) {
