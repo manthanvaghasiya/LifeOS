@@ -56,6 +56,10 @@ const FinancialSummary = ({
     </div>
   );
 
+  const totalAvailable = (bankBalances.length > 0 
+    ? bankBalances.reduce((sum, b) => sum + (Number(b.amount) || 0), 0) 
+    : (Number(bankBalance) || 0)) + (Number(cashBalance) || 0);
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 animate-fade-in">
       
@@ -66,9 +70,14 @@ const FinancialSummary = ({
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-white/20 transition-colors"></div>
             
             <div className="relative z-10 flex flex-col">
-                <div className="flex items-center gap-2 mb-2 opacity-90">
-                    <Wallet className="w-5 h-5" />
-                    <span className="font-bold text-sm tracking-widest uppercase">Net Worth</span>
+                <div className="flex items-center justify-between mb-2 opacity-90">
+                    <div className="flex items-center gap-2">
+                        <Wallet className="w-5 h-5" />
+                        <span className="font-bold text-sm tracking-widest uppercase">Net Worth</span>
+                    </div>
+                    <div className="text-[10px] font-bold bg-white/20 px-2 py-1 rounded-md tracking-wider shadow-sm">
+                        AVAILABLE: {formatCurrency(totalAvailable)}
+                    </div>
                 </div>
                 <div>
                     {/* Kept the text-white fix from before */}
