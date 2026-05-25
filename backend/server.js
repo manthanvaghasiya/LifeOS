@@ -27,11 +27,12 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow non-browser clients (curl, mobile, server-to-server) which send no origin
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow non-browser clients, allowedOrigins, or any Vercel preview/production domain
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('vercel.app')) {
         return callback(null, true);
       }
-      return callback(new Error('Not allowed by CORS'));
+      // If not allowed, just pass false so it fails standard CORS, instead of throwing a 500 error
+      return callback(null, false);
     },
     credentials: true,
   })
