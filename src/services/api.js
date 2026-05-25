@@ -10,7 +10,7 @@ const triggerToast = (message, type = 'info') => {
   }));
 };
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://wealthfolio-api.onrender.com/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const API = axios.create({
   baseURL: API_URL, 
