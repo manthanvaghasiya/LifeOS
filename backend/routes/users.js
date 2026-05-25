@@ -1,6 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Transaction = require('../models/Transaction');
+const Habit = require('../models/Habit');
+const Goal = require('../models/Goal');
+const Note = require('../models/Note');
+const Task = require('../models/Task');
+const Health = require('../models/Health');
+const Asset = require('../models/Asset');
 const { protect } = require('../middleware/authMiddleware');
 const bcrypt = require('bcryptjs');
 
@@ -36,15 +43,28 @@ router.put('/profile', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: 'Update failed' }); }
 });
 
-// 3. DELETE ACCOUNT
+// 3. DELETE ACCOUNT (and all data owned by this user)
 router.delete('/profile', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id); // Fixed: findById(req.user.id)
-    // Actually, use req.user.id directly
-    await User.findByIdAndDelete(req.user.id);
-    // Optional: Delete all their data (Habits, Goals, etc.) here too
-    res.json({ message: 'User removed' });
-  } catch (err) { res.status(500).json({ message: 'Delete failed' }); }
+    const userId = req.user.id;
+
+    // Remove every record belonging to this user, then the account itself.
+    await Promise.all([
+      Transaction.deleteMany({ user: userId }),
+      Habit.deleteMany({ user: userId }),
+      Goal.deleteMany({ user: userId }),
+      Note.deleteMany({ user: userId }),
+      Task.deleteMany({ user: userId }),
+      Health.deleteMany({ user: userId }),
+      Asset.deleteMany({ user: userId }),
+    ]);
+
+    await User.findByIdAndDelete(userId);
+
+    res.json({ message: 'Account and all associated data permanently deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Delete failed' });
+  }
 });
 
 // ... existing imports and routes

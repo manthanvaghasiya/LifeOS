@@ -4,6 +4,8 @@ import PublicNavbar from '../components/landing/PublicNavbar';
 import PublicFooter from '../components/landing/PublicFooter';
 import { Check, X, ChevronDown } from 'lucide-react';
 
+const ease = 'ease-[cubic-bezier(0.22,1,0.36,1)]';
+
 const plans = [
   {
     name: 'Free',
@@ -81,18 +83,87 @@ const faqs = [
   },
 ];
 
+const PlanCard = ({ plan }) => {
+  const inner = (
+    <div
+      className={`relative h-full bg-white dark:bg-slate-950 rounded-[calc(1.5rem-1px)] p-8 flex flex-col ${
+        plan.popular ? '' : 'border border-slate-200 dark:border-white/5'
+      }`}
+    >
+      {plan.popular && (
+        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+          <span className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg shadow-blue-500/30">
+            Most Popular
+          </span>
+        </div>
+      )}
+
+      <h3 className="text-xl font-bold tracking-tight mb-1">{plan.name}</h3>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{plan.description}</p>
+
+      <div className="flex items-baseline gap-1 mb-2">
+        <span className="text-5xl font-black tracking-tight">{plan.price}</span>
+        <span className="text-sm text-slate-400 dark:text-slate-500 font-medium">{plan.period}</span>
+      </div>
+      <p className={`text-xs font-medium mb-6 ${plan.popular ? 'text-blue-600 dark:text-blue-400' : 'text-transparent select-none'}`}>
+        First month free. Cancel anytime.
+      </p>
+
+      <Link
+        to={plan.ctaLink}
+        className={`block w-full py-3 rounded-xl font-semibold text-sm text-center transition-all duration-300 ${ease} mb-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+          plan.popular
+            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5'
+            : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:-translate-y-0.5'
+        }`}
+      >
+        {plan.cta}
+      </Link>
+
+      <div className="h-px bg-slate-100 dark:bg-white/5 mb-6" />
+
+      <div className="space-y-3.5">
+        {plan.features.map((feature, idx) => (
+          <div key={idx} className="flex items-start gap-3">
+            {feature.included ? (
+              <span className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${plan.popular ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'}`}>
+                <Check className="w-2.5 h-2.5" strokeWidth={3} />
+              </span>
+            ) : (
+              <X className="w-4 h-4 text-slate-300 dark:text-slate-700 flex-shrink-0 mt-0.5" />
+            )}
+            <span className={`text-sm ${feature.included ? 'text-slate-600 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600 line-through'}`}>
+              {feature.name}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (plan.popular) {
+    // Gradient ring + slight lift on desktop for the elevated plan.
+    return (
+      <div className="relative rounded-3xl p-px bg-gradient-to-b from-blue-500 via-cyan-500/60 to-purple-500 shadow-xl shadow-blue-500/10 md:scale-[1.03]">
+        {inner}
+      </div>
+    );
+  }
+  return <div className="rounded-3xl">{inner}</div>;
+};
+
 const Pricing = () => {
-  const [openFaq, setOpenFaq] = useState(null);
+  const [openFaq, setOpenFaq] = useState(0);
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-500">
       <PublicNavbar />
 
-      <main className="pt-32 pb-24 px-6">
+      <main className="pt-36 pb-24 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center max-w-2xl mx-auto mb-20">
-            <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight">
+            <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight" style={{ lineHeight: '1.02' }}>
               Invest in
               <br />
               <span className="text-slate-400 dark:text-slate-500">yourself.</span>
@@ -102,91 +173,30 @@ const Pricing = () => {
             </p>
           </div>
 
-          {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-32">
+          {/* Plan cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto mb-32 items-stretch">
             {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`relative bg-white dark:bg-white/[0.02] border rounded-2xl p-8 transition-all duration-300 ${
-                  plan.popular
-                    ? 'border-blue-200 dark:border-blue-500/20 shadow-xl dark:shadow-blue-500/5 ring-1 ring-blue-500/10'
-                    : 'border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="px-3 py-1 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-full">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-
-                {/* Plan Info */}
-                <h3 className="text-xl font-bold mb-1">{plan.name}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{plan.description}</p>
-
-                {/* Price */}
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-4xl font-black">{plan.price}</span>
-                  <span className="text-sm text-slate-400 font-medium">{plan.period}</span>
-                </div>
-                {plan.popular && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-6">First month free. Cancel anytime.</p>
-                )}
-                {!plan.popular && <div className="mb-6" />}
-
-                {/* CTA */}
-                <Link
-                  to={plan.ctaLink}
-                  className={`block w-full py-3 rounded-xl font-semibold text-sm text-center transition-all duration-300 mb-8 ${
-                    plan.popular
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5'
-                      : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100'
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
-
-                <div className="h-px bg-slate-100 dark:bg-white/5 mb-6" />
-
-                {/* Features */}
-                <div className="space-y-3">
-                  {plan.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      {feature.included ? (
-                        <Check className={`w-4 h-4 flex-shrink-0 mt-0.5 ${plan.popular ? 'text-blue-500' : 'text-slate-400'}`} />
-                      ) : (
-                        <X className="w-4 h-4 text-slate-200 dark:text-slate-700 flex-shrink-0 mt-0.5" />
-                      )}
-                      <span className={`text-sm ${feature.included ? 'text-slate-600 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600 line-through'}`}>
-                        {feature.name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <PlanCard key={plan.name} plan={plan} />
             ))}
           </div>
 
-          {/* Comparison Table */}
+          {/* Comparison table */}
           <div className="max-w-4xl mx-auto mb-32">
             <h2 className="text-3xl md:text-4xl font-black text-center mb-12 tracking-tight">
               Compare plans
             </h2>
 
             <div className="bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden">
-              {/* Table Header */}
               <div className="grid grid-cols-3 gap-4 px-6 py-4 bg-slate-50 dark:bg-white/[0.02] border-b border-slate-100 dark:border-white/5">
-                <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Feature</span>
-                <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 text-center">Free</span>
-                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 text-center">Pro</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Feature</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">Free</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 text-center">Pro</span>
               </div>
 
-              {/* Table Rows */}
               {comparisonRows.map((row, idx) => (
                 <div
                   key={idx}
-                  className={`grid grid-cols-3 gap-4 px-6 py-3.5 ${
+                  className={`grid grid-cols-3 gap-4 px-6 py-3.5 transition-colors duration-200 hover:bg-slate-50/60 dark:hover:bg-white/[0.015] ${
                     idx < comparisonRows.length - 1 ? 'border-b border-slate-100 dark:border-white/5' : ''
                   }`}
                 >
@@ -198,41 +208,43 @@ const Pricing = () => {
             </div>
           </div>
 
-          {/* FAQ Section */}
+          {/* FAQ */}
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-black text-center mb-12 tracking-tight">
-              Questions & Answers
+              Questions &amp; Answers
             </h2>
 
             <div className="space-y-3">
-              {faqs.map((faq, idx) => (
-                <div
-                  key={idx}
-                  className="border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden transition-colors duration-300"
-                >
-                  <button
-                    onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                    className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors duration-300"
-                    aria-expanded={openFaq === idx}
-                  >
-                    <span className="text-sm font-semibold text-slate-900 dark:text-white pr-4">{faq.q}</span>
-                    <ChevronDown
-                      className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-300 ${
-                        openFaq === idx ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </button>
+              {faqs.map((faq, idx) => {
+                const open = openFaq === idx;
+                return (
                   <div
-                    className={`overflow-hidden transition-all duration-300 ${
-                      openFaq === idx ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
+                    key={idx}
+                    className={`border rounded-2xl overflow-hidden transition-colors duration-300 ${
+                      open ? 'border-slate-300 dark:border-white/15 bg-slate-50/50 dark:bg-white/[0.02]' : 'border-slate-200 dark:border-white/5'
                     }`}
                   >
-                    <p className="px-6 pb-4 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                      {faq.a}
-                    </p>
+                    <button
+                      onClick={() => setOpenFaq(open ? null : idx)}
+                      className="w-full flex items-center justify-between gap-4 px-6 py-4 text-left hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors duration-300"
+                      aria-expanded={open}
+                    >
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white">{faq.q}</span>
+                      <ChevronDown
+                        className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-300 ${ease} ${open ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                    {/* Auto-height accordion via grid-rows trick */}
+                    <div className={`grid transition-[grid-template-rows] duration-300 ${ease} ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                      <div className="min-h-0 overflow-hidden">
+                        <p className="px-6 pb-5 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                          {faq.a}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

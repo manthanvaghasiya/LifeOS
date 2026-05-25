@@ -52,7 +52,14 @@ router.put('/:id', protect, async (req, res) => {
     if (!transaction) return res.status(404).json({ message: 'Transaction not found' });
     if (transaction.user.toString() !== req.user.id) return res.status(401).json({ message: 'User not authorized' });
 
-    transaction = await Transaction.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    // Whitelist updatable fields so the request body can't overwrite `user`, `_id`, etc.
+    const allowed = ['title', 'amount', 'type', 'category', 'paymentMode', 'bankAccountName', 'date', 'investmentType', 'transferTo', 'transferToAccountName'];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    transaction = await Transaction.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
     return res.json(transaction);
   } catch (err) {
     return res.status(500).json({ message: 'Server Error' });
