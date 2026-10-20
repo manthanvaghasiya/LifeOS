@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Loader2 } from 'lucide-react';
 
 const GoalForm = ({ onClose, onSubmit, initialData }) => {
   const [formData, setFormData] = useState({ 
@@ -7,6 +7,8 @@ const GoalForm = ({ onClose, onSubmit, initialData }) => {
       type: 'Long Term', 
       deadline: '' 
   });
+  const [submitting, setSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (initialData) {
@@ -18,9 +20,19 @@ const GoalForm = ({ onClose, onSubmit, initialData }) => {
     }
   }, [initialData]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
       e.preventDefault();
-      onSubmit(formData);
+      if (!formData.title.trim()) return;
+      if (isSubmittingRef.current) return;
+      isSubmittingRef.current = true;
+      setSubmitting(true);
+
+      try {
+        await onSubmit(formData);
+      } finally {
+        isSubmittingRef.current = false;
+        setSubmitting(false);
+      }
   };
 
   return (
@@ -78,9 +90,19 @@ const GoalForm = ({ onClose, onSubmit, initialData }) => {
                 
                 <button 
                     type="submit" 
-                    className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-4 rounded-2xl font-black hover:scale-[1.02] transition-all shadow-xl shadow-slate-900/10 mt-2 uppercase tracking-widest text-xs"
+                    disabled={submitting}
+                    className={`w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-4 rounded-2xl font-black hover:scale-[1.02] transition-all shadow-xl shadow-slate-900/10 mt-2 uppercase tracking-widest text-xs flex items-center justify-center gap-2 ${
+                        submitting ? 'opacity-60 pointer-events-none' : ''
+                    }`}
                 >
-                    {initialData ? 'Update Goal' : 'Launch Goal'}
+                    {submitting ? (
+                        <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Saving...</span>
+                        </>
+                    ) : (
+                        <span>{initialData ? 'Update Goal' : 'Launch Goal'}</span>
+                    )}
                 </button>
             </form>
         </div>

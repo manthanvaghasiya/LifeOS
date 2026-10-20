@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X, Check, Wallet, TrendingUp, TrendingDown,
   Coffee, ShoppingBag, Car, Zap, Heart,
@@ -9,6 +9,7 @@ import API from '../../services/api';
 import useCategories from '../../hooks/useCategories';
 import { useToast } from '../../context/ToastContext';
 import confetti from 'canvas-confetti';
+import { Haptics } from '../../utils/haptics';
 
 // Map string names to Icon Components
 const ICON_MAP = {
@@ -57,6 +58,7 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [animating, setAnimating] = useState(false);
   const [customCatName, setCustomCatName] = useState('');
+  const isSubmittingRef = useRef(false);
 
   const toast = useToast();
   const { expenseCategories, incomeCategories, addCategory, loading: categoriesLoading } = useCategories();
@@ -80,23 +82,27 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
     
+    // Immediate synchronous lock to prevent multiple rapid clicks
+    if (isSubmittingRef.current || loading) return;
+
     // Validation
     if (!title.trim()) {
       toast.error("Wait! What is this spending for?");
       return;
     }
-    if (!amount || amount <= 0) {
+    if (!amount || parseFloat(amount) <= 0) {
       toast.warning("Please enter a valid amount");
       return;
     }
 
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       const newTransaction = {
         amount: parseFloat(amount),
-        title, 
+        title: title.trim(), 
         category,
         type: type, // Ensure correct type (income/expense)
         date: date, // Use the selected date
@@ -105,7 +111,6 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
 
       const res = await API.post('/transactions', newTransaction);
       
-      // ✨ FIXED: Used 'onSuccess' instead of 'onTransactionAdded'
       if (onSuccess) onSuccess(res.data);
       
       toast.success(`${type === 'income' ? 'Income' : 'Expense'} saved successfully!`);
@@ -123,6 +128,7 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
       console.error(error);
       toast.error(error.response?.data?.message || "Failed to save transaction");
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };
@@ -140,11 +146,16 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
       />
 
       <div
-        className={`relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-t-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transition-all duration-300 transform ${animating ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-full md:translate-y-10 opacity-0 md:scale-95'
+        className={`relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-t-[2.25rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transition-all duration-300 transform ${animating ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-full md:translate-y-10 opacity-0 md:scale-95'
           }`}
       >
+        {/* MOBILE GRAB HANDLE (Flutter Bottom Sheet Style) */}
+        <div className="w-full flex justify-center pt-3 pb-1 md:hidden select-none">
+          <div className="w-10 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+        </div>
+
         {/* HEADER */}
-        <div className="px-6 pt-6 pb-2 shrink-0 flex justify-between items-center">
+        <div className="px-6 pt-4 md:pt-6 pb-2 shrink-0 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
               Quick Add
@@ -154,23 +165,29 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
             </p>
           </div>
           <button
-            onClick={handleClose}
-            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            onClick={() => {
+              Haptics.light();
+              handleClose();
+            }}
+            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-90"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* SCROLLABLE FORM */}
-        <div className="overflow-y-auto p-6 space-y-6 custom-scrollbar">
+        <div className="overflow-y-auto p-6 space-y-6 custom-scrollbar no-scrollbar [-webkit-overflow-scrolling:touch]">
 
           {/* TYPE TOGGLE */}
           <div className="flex p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl">
             {['expense', 'income'].map((t) => (
               <button
                 key={t}
-                onClick={() => setType(t)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 ${type === t
+                onClick={() => {
+                  Haptics.medium();
+                  setType(t);
+                }}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 active:scale-95 ${type === t
                   ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm ring-1 ring-gray-200 dark:ring-gray-700'
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                   }`}
@@ -325,17 +342,23 @@ const QuickSpendModal = ({ onClose, onSuccess }) => {
         </div>
 
         {/* FOOTER */}
-        <div className="p-6 pt-2 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 z-10">
+        <div
+          className="p-6 pt-2 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 z-10"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 1.25rem)' }}
+        >
           <button
             onClick={handleSubmit}
             disabled={!amount || !title || loading}
             className={`w-full py-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-lg text-white shadow-xl transition-all duration-300 ${loading
-              ? 'bg-gray-400 cursor-not-allowed'
+              ? 'bg-gray-400 cursor-not-allowed pointer-events-none opacity-60'
               : 'bg-gray-900 dark:bg-white dark:text-gray-900 hover:scale-[1.02] active:scale-95 shadow-gray-200 dark:shadow-none'
               }`}
           >
             {loading ? (
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Saving...</span>
+              </>
             ) : (
               <>
                 <Check className="w-5 h-5 stroke-[3px]" />

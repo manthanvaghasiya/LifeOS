@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
 import { generateInsights } from '../utils/smartInsights';
 import { addXP } from '../utils/gamification';
 import { useToast } from '../context/ToastContext';
+import { Haptics } from '../utils/haptics';
 
 // UI Components
 import AmbientBackground from '../components/ui/AmbientBackground';
@@ -16,6 +17,8 @@ import HabitSection from '../components/dashboard/HabitSection';
 import TaskSection from '../components/dashboard/TaskSection';
 import SpendingSection from '../components/dashboard/SpendingSection';
 import QuickSpendModal from '../components/dashboard/QuickSpendModal';
+import PullToRefresh from '../components/ui/PullToRefresh';
+import InkWell from '../components/ui/InkWell';
 
 const INVESTMENT_TYPES = ['SIP', 'IPO', 'Stocks', 'Mutual Fund', 'Gold', 'FD', 'Liquid Fund', 'Crypto'];
 
@@ -189,11 +192,14 @@ const Dashboard = () => {
         if (monthlyProgress === habit.target) {
             triggerConfetti();
             addXP(50); // Bonus XP
+            Haptics.success();
             toast.success(`🎯 Target Smashed! ${habit.title} completed for the month!`);
         } else {
             addXP(10); // Standard XP
-            // No Toast for daily check-in (as requested: "popup remove")
+            Haptics.light();
         }
+    } else {
+        Haptics.light();
     }
 
     try { 
@@ -210,6 +216,7 @@ const Dashboard = () => {
     
     triggerConfetti();
     addXP(50);
+    Haptics.success();
     toast.success("Goal smashed! +50 XP");
 
     try { 
@@ -224,6 +231,7 @@ const Dashboard = () => {
   const handleToggleTask = useCallback(async (id) => { 
     setTasks(prev => prev.map(t => t._id === id ? { ...t, isCompleted: true } : t)); 
     addXP(5);
+    Haptics.light();
     toast.success("Task done. +5 XP");
 
     try { 
@@ -246,7 +254,7 @@ const Dashboard = () => {
         <p className="text-gray-500 mb-6">{error}</p>
         <button 
           onClick={fetchAllData} 
-          className="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl shadow-lg hover:scale-105 transition-transform"
+          className="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl shadow-lg hover:scale-105 transition-transform active:scale-95"
         >
           Retry Connection
         </button>
@@ -256,51 +264,67 @@ const Dashboard = () => {
 
   return (
     <div className="relative min-h-screen">
-      
       <AmbientBackground />
 
-      <div className="relative z-10 p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
-        <DashboardHeader user={user} onQuickSpend={() => setShowForm(true)} />
+      <PullToRefresh onRefresh={fetchAllData}>
+        <div className="relative z-10 p-4 sm:p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
+          <DashboardHeader user={user} onQuickSpend={() => setShowForm(true)} />
 
-        <DashboardStats 
-          totalNetWorth={financialStats.totalNetWorth}
-          bankBalance={financialStats.bankBalance}
-          cashBalance={financialStats.cashBalance}
-          monthlyIncome={financialStats.monthlyIncome}
-          monthlyExpenses={financialStats.monthlyExpenses}
-          monthlyInvested={financialStats.monthlyInvested}
-        />
+          <DashboardStats 
+            totalNetWorth={financialStats.totalNetWorth}
+            bankBalance={financialStats.bankBalance}
+            cashBalance={financialStats.cashBalance}
+            monthlyIncome={financialStats.monthlyIncome}
+            monthlyExpenses={financialStats.monthlyExpenses}
+            monthlyInvested={financialStats.monthlyInvested}
+          />
 
-        <div className="mb-8">
-          <SmartInsight insight={dailyInsight} />
-        </div>
+          <div className="mb-8">
+            <SmartInsight insight={dailyInsight} />
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch relative">
-            <div className="relative min-h-[500px] lg:min-h-0">
-              <div className="lg:absolute lg:inset-0 h-full">
-                {/* UPDATED: Pass ALL habits, not incomplete ones */}
-                <HabitSection 
-                  habits={habits} 
-                  onToggle={handleToggleHabit} 
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-6">
-                <div className="shrink-0">
-                  <TaskSection 
-                    tasks={pendingTasks} 
-                    goals={pendingShortTermGoals}
-                    onToggleTask={handleToggleTask}
-                    onToggleGoal={handleToggleGoal}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch relative">
+              <div className="relative min-h-[500px] lg:min-h-0">
+                <div className="lg:absolute lg:inset-0 h-full">
+                  <HabitSection 
+                    habits={habits} 
+                    onToggle={handleToggleHabit} 
                   />
                 </div>
+              </div>
 
-                <div className="h-full">
-                 <SpendingSection transactions={transactions} />
-                </div>
-            </div>
+              <div className="flex flex-col gap-6">
+                  <div className="shrink-0">
+                    <TaskSection 
+                      tasks={pendingTasks} 
+                      goals={pendingShortTermGoals}
+                      onToggleTask={handleToggleTask}
+                      onToggleGoal={handleToggleGoal}
+                    />
+                  </div>
+
+                  <div className="h-full">
+                   <SpendingSection transactions={transactions} />
+                  </div>
+              </div>
+          </div>
         </div>
+      </PullToRefresh>
+
+      {/* Flutter-style Floating Action Button (FAB) on Mobile */}
+      <div
+        className="fixed right-4 z-40 lg:hidden pointer-events-auto"
+        style={{
+          bottom: 'calc(4.75rem + max(env(safe-area-inset-bottom, 0px), 0.75rem))',
+        }}
+      >
+        <InkWell
+          onClick={() => setShowForm(true)}
+          className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-600/35 flex items-center justify-center border border-white/20 active:scale-90 transition-transform"
+          aria-label="Quick Spend"
+        >
+          <Plus size={26} strokeWidth={2.5} />
+        </InkWell>
       </div>
 
       {showForm && (

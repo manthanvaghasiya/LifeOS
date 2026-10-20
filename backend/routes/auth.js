@@ -45,9 +45,14 @@ router.post('/register', async (req, res) => {
       password: hashedPassword
     });
 
+    if (!process.env.JWT_SECRET) {
+      console.error('CRITICAL: JWT_SECRET is not configured.');
+      return res.status(500).json({ message: 'Server configuration error: JWT_SECRET is missing.' });
+    }
+
     // 4. Respond
     if (user) {
-      res.status(201).json({
+      return res.status(201).json({
         _id: user.id,
         name: user.name,
         email: user.email,
@@ -55,7 +60,8 @@ router.post('/register', async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(400).json({ message: 'Invalid user data' });
+    console.error('Register error:', error);
+    res.status(400).json({ message: error.message || 'Invalid user data' });
   }
 });
 
@@ -66,31 +72,41 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     // 0. Validate input
-    if (!email || !password) {
+    if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
+    if (!process.env.JWT_SECRET) {
+      console.error('CRITICAL: JWT_SECRET is not configured.');
+      return res.status(500).json({ message: 'Server configuration error: JWT_SECRET is missing.' });
+    }
+
     // 1. Check for user email
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
 
     // 2. Check password
-    if (user && (await bcrypt.compare(password, user.password))) {
-      res.json({
+    if (user && user.password && (await bcrypt.compare(password, user.password))) {
+      return res.json({
         _id: user.id,
         name: user.name,
         email: user.email,
         token: generateToken(user._id)
       });
     } else {
-      res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ message: error.message || 'Server error during login' });
   }
 });
 
 // Helper function to generate JWT
 const generateToken = (id) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('Server configuration error: JWT_SECRET environment variable is missing.');
+  }
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: '30d',
   });

@@ -58,9 +58,15 @@ const Habits = () => {
         } catch (err) { console.error(err); setLoading(false); }
     };
 
+    const [submitting, setSubmitting] = useState(false);
+    const isSubmittingRef = React.useRef(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!newHabit.trim()) return;
+        if (isSubmittingRef.current) return;
+        isSubmittingRef.current = true;
+        setSubmitting(true);
         try {
             if (editId) {
                 await API.put(`/habits/${editId}`, { title: newHabit, target: Number(newTarget) });
@@ -74,6 +80,9 @@ const Habits = () => {
             setNewHabit(''); setNewTarget(21);
         } catch (err) {
             toast.error("Failed to save habit.");
+        } finally {
+            isSubmittingRef.current = false;
+            setSubmitting(false);
         }
     };
 
@@ -230,6 +239,7 @@ const Habits = () => {
                                 <HabitForm
                                     handleSubmit={handleSubmit} newHabit={newHabit} setNewHabit={setNewHabit}
                                     newTarget={newTarget} setNewTarget={setNewTarget} editId={editId} cancelEdit={cancelEdit}
+                                    submitting={submitting}
                                 />
                             </div>
                         </div>

@@ -1,6 +1,6 @@
 // src/components/financial/TransactionForm.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import API from '../../services/api';
 import useCategories from '../../hooks/useCategories';
 import {
@@ -27,6 +27,8 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   const [customInv, setCustomInv] = useState('');
   const [isAddingBank, setIsAddingBank] = useState(false);
   const [customBank, setCustomBank] = useState('');
+  const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   // --- 1. SMART COLOR THEME ---
   const getThemeColor = () => {
@@ -133,8 +135,11 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if(!formData.amount) return;
+    e?.preventDefault?.();
+    if (!formData.amount || isSubmittingRef.current || loading) return;
+
+    isSubmittingRef.current = true;
+    setLoading(true);
 
     try {
       let finalCategory = formData.category;
@@ -184,7 +189,13 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
         onSuccess(res.data, false);
       }
       onClose();
-    } catch (err) { alert("Error saving transaction"); }
+    } catch (err) {
+      console.error("Error saving transaction:", err);
+      alert("Error saving transaction");
+    } finally {
+      isSubmittingRef.current = false;
+      setLoading(false);
+    }
   };
 
   const currentCategories = txType === 'income' ? incomeCategories : expenseCategories;
@@ -487,14 +498,26 @@ const TransactionForm = ({ onClose, onSuccess, initialData }) => {
            <button 
              onClick={handleSubmit}
              disabled={
+                loading ||
                 !formData.amount || 
                 (txType !== 'transfer' && formData.paymentMode === 'Bank' && !formData.bankAccountName) || 
                 (txType === 'transfer' && formData.paymentMode === 'Bank' && !formData.bankAccountName) ||
                 (txType === 'transfer' && formData.transferTo === 'Bank' && !formData.transferToAccountName)
              }
-             className={`w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all transform active:scale-95 ${getButtonColor()} ${(!formData.amount || (formData.paymentMode === 'Bank' && !formData.bankAccountName) || (txType === 'transfer' && formData.transferTo === 'Bank' && !formData.transferToAccountName)) ? 'opacity-50 cursor-not-allowed' : ''}`}
+             className={`w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all transform active:scale-95 ${getButtonColor()} ${
+               (loading || !formData.amount || (formData.paymentMode === 'Bank' && !formData.bankAccountName) || (txType === 'transfer' && formData.transferTo === 'Bank' && !formData.transferToAccountName))
+                 ? 'opacity-50 cursor-not-allowed pointer-events-none'
+                 : ''
+             }`}
            >
-              {initialData ? 'Update Transaction' : 'Save Transaction'}
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <span>{initialData ? 'Updating...' : 'Saving...'}</span>
+                </div>
+              ) : (
+                initialData ? 'Update Transaction' : 'Save Transaction'
+              )}
            </button>
         </div>
 

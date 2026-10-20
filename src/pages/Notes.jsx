@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { 
-  Plus, Search, X, Sparkles, PenTool, StickyNote, Hash, Pin, ArrowLeft 
+  Plus, Search, X, Sparkles, PenTool, StickyNote, Hash, Pin, ArrowLeft, Loader2 
 } from 'lucide-react';
 // 1. IMPORT
 import { useToast } from '../context/ToastContext';
@@ -39,12 +39,18 @@ const Notes = () => {
     } catch (err) { console.error(err); setLoading(false); }
   };
 
+  const [submitting, setSubmitting] = useState(false);
+  const isSubmittingRef = React.useRef(false);
+
   const handleSubmit = async (e) => {
     if (e) e.preventDefault(); 
     if (!formData.title.trim() && !formData.content.trim()) {
         toast.error("Can't save an empty note");
         return;
     }
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setSubmitting(true);
     
     try {
       if (editId) {
@@ -58,6 +64,10 @@ const Notes = () => {
       }
       closeForm();
     } catch (err) { toast.error('Error saving note'); }
+    finally {
+      isSubmittingRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   const handleAddTag = (e) => {
@@ -213,9 +223,13 @@ const Notes = () => {
                             {/* MOBILE: SAVE BUTTON (Top Right - Always Visible) */}
                             <button 
                                 onClick={handleSubmit}
-                                className="md:hidden bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                                disabled={submitting}
+                                className={`md:hidden bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg shadow-blue-500/20 active:scale-95 transition-all flex items-center gap-1.5 ${
+                                    submitting ? 'opacity-60 pointer-events-none' : ''
+                                }`}
                             >
-                                Save
+                                {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                <span>{submitting ? 'Saving' : 'Save'}</span>
                             </button>
 
                             {/* Desktop: Close Button */}
@@ -284,8 +298,21 @@ const Notes = () => {
                             </div>
 
                             {/* Desktop: Save Button (Hidden on Mobile) */}
-                            <button type="submit" className="hidden md:block w-full sm:w-auto px-10 py-3.5 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-slate-900/20">
-                                Save Note
+                            <button 
+                                type="submit" 
+                                disabled={submitting}
+                                className={`hidden md:flex items-center justify-center gap-2 w-full sm:w-auto px-10 py-3.5 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-slate-900/20 ${
+                                    submitting ? 'opacity-60 pointer-events-none' : ''
+                                }`}
+                            >
+                                {submitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                        <span>Saving...</span>
+                                    </>
+                                ) : (
+                                    <span>Save Note</span>
+                                )}
                             </button>
                         </div>
                     </form>

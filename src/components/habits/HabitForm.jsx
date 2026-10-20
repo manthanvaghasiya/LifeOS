@@ -1,7 +1,7 @@
 import React from 'react';
-import { Plus, X, Save, Target } from 'lucide-react';
+import { Plus, X, Save, Target, Loader2 } from 'lucide-react';
 
-const HabitForm = ({ handleSubmit, newHabit, setNewHabit, newTarget, setNewTarget, editId, cancelEdit }) => {
+const HabitForm = ({ handleSubmit, newHabit, setNewHabit, newTarget, setNewTarget, editId, cancelEdit, submitting }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
         
@@ -39,10 +39,22 @@ const HabitForm = ({ handleSubmit, newHabit, setNewHabit, newTarget, setNewTarge
         <div className="flex gap-2 pt-2">
             <button 
                 type="submit" 
-                className="flex-1 bg-white text-indigo-950 rounded-xl py-3.5 font-bold hover:bg-indigo-50 transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-2"
+                disabled={submitting}
+                className={`flex-1 bg-white text-indigo-950 rounded-xl py-3.5 font-bold hover:bg-indigo-50 transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-2 ${
+                    submitting ? 'opacity-60 pointer-events-none' : ''
+                }`}
             >
-                {editId ? <Save className="w-4 h-4 text-indigo-600"/> : <Plus className="w-4 h-4 text-indigo-600"/>}
-                <span>{editId ? 'Update Habit' : 'Start New Habit'}</span>
+                {submitting ? (
+                    <>
+                        <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
+                        <span>Saving...</span>
+                    </>
+                ) : (
+                    <>
+                        {editId ? <Save className="w-4 h-4 text-indigo-600"/> : <Plus className="w-4 h-4 text-indigo-600"/>}
+                        <span>{editId ? 'Update Habit' : 'Start New Habit'}</span>
+                    </>
+                )}
             </button>
             
             {editId && (

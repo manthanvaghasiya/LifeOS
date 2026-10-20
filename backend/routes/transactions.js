@@ -15,15 +15,34 @@ router.get('/', protect, async (req, res) => {
 
 // ... existing imports
 
-// ADD TRANSACTION (Updated)
+// ADD TRANSACTION (With multi-click duplicate protection)
 router.post('/', protect, async (req, res) => {
   try {
     const { title, amount, type, category, paymentMode, bankAccountName, date, investmentType, transferTo, transferToAccountName } = req.body;
 
+    const trimmedTitle = typeof title === 'string' ? title.trim() : '';
+    const numericAmount = Number(amount);
+
+    // Anti-duplicate protection: check if an identical transaction was created in the last 3 seconds
+    const threeSecondsAgo = new Date(Date.now() - 3000);
+    const existing = await Transaction.findOne({
+      user: req.user.id,
+      title: trimmedTitle,
+      amount: numericAmount,
+      type,
+      category,
+      createdAt: { $gte: threeSecondsAgo }
+    });
+
+    if (existing) {
+      // Idempotent response: return existing record instead of inserting a duplicate
+      return res.status(200).json(existing);
+    }
+
     const transaction = await Transaction.create({
       user: req.user.id,
-      title,
-      amount,
+      title: trimmedTitle,
+      amount: numericAmount,
       type,
       category,
       paymentMode,
@@ -31,7 +50,8 @@ router.post('/', protect, async (req, res) => {
       investmentType: investmentType || null,
       transferTo: transferTo || null,
       transferToAccountName: transferToAccountName || null,
-      date: date || Date.now()
+      date: date || Date.now(),
+      createdAt: new Date()
     });
 
     return res.status(201).json(transaction);

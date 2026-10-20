@@ -6,28 +6,34 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { Haptics } from '../../utils/haptics';
 
 const NavItem = ({ path, label, icon: Icon, isActive, isMobile }) => {
   if (isMobile) {
     return (
       <Link
         to={path}
-        className={`relative flex flex-col items-center justify-center transition-all duration-300 ${isActive
-          ? "text-blue-600 -translate-y-3"
-          : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
-          }`}
+        onClick={() => Haptics.light()}
+        className="relative flex flex-col items-center justify-center py-1 flex-1 select-none transition-transform duration-100 active:scale-90"
       >
-        <div className={`p-3 rounded-full transition-all duration-300 ${isActive
-          ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-110"
-          : "bg-transparent"
-          }`}>
-          <Icon size={isActive ? 22 : 24} strokeWidth={isActive ? 2.5 : 2} />
+        <div
+          className={`relative px-4 py-1.5 rounded-full transition-all duration-200 flex items-center justify-center ${
+            isActive
+              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 scale-105"
+              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+          }`}
+        >
+          <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
         </div>
-        {isActive && (
-          <span className="absolute -bottom-6 text-[10px] font-bold tracking-wide animate-fade-in text-blue-600 dark:text-blue-400">
-            {label}
-          </span>
-        )}
+        <span
+          className={`text-[10px] font-bold tracking-tight mt-1 transition-colors ${
+            isActive
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-slate-400 dark:text-slate-500"
+          }`}
+        >
+          {label}
+        </span>
       </Link>
     );
   }
@@ -193,37 +199,62 @@ const Navbar = () => {
         </div>
       </header>
 
-      {/* MOBILE HEADER (Top Bar) */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 lg:hidden px-4 h-16 flex items-center justify-between transition-colors duration-300">
-        <Link to="/" className="flex items-center gap-2">
+      {/* MOBILE HEADER (Top AppBar with Safe-Area support) */}
+      <header
+        className="fixed top-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 lg:hidden px-4 flex items-center justify-between transition-colors duration-300 shadow-sm"
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top, 0px), 0.5rem)',
+          height: 'calc(3.5rem + env(safe-area-inset-top, 0px))',
+        }}
+      >
+        <Link
+          to="/"
+          onClick={() => Haptics.light()}
+          className="flex items-center gap-2 select-none active:scale-95 transition-transform"
+        >
           <img src="/logo.png" alt="LifeOS" className="w-8 h-8 rounded-lg" />
-          <span className="font-bold text-lg text-slate-900 dark:text-white">LifeOS</span>
+          <span className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">LifeOS</span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+            onClick={() => {
+              Haptics.light();
+              toggleTheme();
+            }}
+            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 active:scale-90 transition-transform"
+            aria-label="Toggle color theme"
           >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            {theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-indigo-600" />}
           </button>
-          <Link to="/settings" className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm border border-blue-200 dark:border-blue-800">
+          <Link
+            to="/settings"
+            onClick={() => Haptics.light()}
+            className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm border border-blue-200 dark:border-blue-800 active:scale-90 transition-transform"
+          >
             {initials}
           </Link>
         </div>
       </header>
 
-      {/* MOBILE BOTTOM DOCK */}
-      <nav className="fixed bottom-6 left-4 right-4 z-50 lg:hidden">
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/20 dark:border-slate-700/50 shadow-2xl shadow-slate-900/20 rounded-[2rem] px-6 h-20 flex items-center justify-between">
+      {/* MOBILE BOTTOM DOCK (Flutter NavigationBar with Safe Area) */}
+      <nav
+        className="fixed left-3 right-3 z-50 lg:hidden select-none pointer-events-none"
+        style={{ bottom: 'max(env(safe-area-inset-bottom, 0px), 0.75rem)' }}
+      >
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xl shadow-slate-950/20 rounded-[2rem] px-3 py-1.5 flex items-center justify-between pointer-events-auto">
           {navItems.map((item) => (
             <NavItem key={item.path} {...item} isActive={isActive(item.path)} isMobile={true} />
           ))}
         </div>
       </nav>
 
-      {/* Spacers */}
-      <div className="h-20 lg:h-24 w-full block"></div>
+      {/* Spacers to prevent content from falling behind fixed headers */}
+      <div
+        className="lg:hidden w-full block"
+        style={{ height: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
+      />
+      <div className="hidden lg:block h-24 w-full" />
     </>
   );
 };

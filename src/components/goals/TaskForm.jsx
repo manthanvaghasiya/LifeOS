@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Link as LinkIcon, Zap } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Plus, Link as LinkIcon, Zap, Loader2 } from 'lucide-react';
 
 const TaskForm = ({ onAddTask, shortTermGoals }) => {
   const [newTask, setNewTask] = useState('');
@@ -7,25 +7,35 @@ const TaskForm = ({ onAddTask, shortTermGoals }) => {
   const [isUrgent, setIsUrgent] = useState(false);
   const [dueDate, setDueDate] = useState('');
   const [linkedGoalId, setLinkedGoalId] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newTask.trim()) return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setSubmitting(true);
 
-    onAddTask({
-        title: newTask,
-        priority,
-        isUrgent, // ✨ New Field
-        dueDate: dueDate || new Date(),
-        linkedGoalId
-    });
+    try {
+      await onAddTask({
+          title: newTask,
+          priority,
+          isUrgent, // ✨ New Field
+          dueDate: dueDate || new Date(),
+          linkedGoalId
+      });
 
-    // Reset
-    setNewTask('');
-    setPriority('Medium');
-    setIsUrgent(false);
-    setDueDate('');
-    setLinkedGoalId('');
+      // Reset
+      setNewTask('');
+      setPriority('Medium');
+      setIsUrgent(false);
+      setDueDate('');
+      setLinkedGoalId('');
+    } finally {
+      isSubmittingRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -40,8 +50,14 @@ const TaskForm = ({ onAddTask, shortTermGoals }) => {
                     value={newTask}
                     onChange={(e) => setNewTask(e.target.value)}
                 />
-                <button type="submit" className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-500/20">
-                    <Plus className="w-5 h-5" />
+                <button 
+                    type="submit" 
+                    disabled={submitting}
+                    className={`bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 ${
+                        submitting ? 'opacity-60 pointer-events-none' : ''
+                    }`}
+                >
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
                 </button>
             </div>
 

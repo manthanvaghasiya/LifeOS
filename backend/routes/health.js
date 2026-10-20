@@ -1,7 +1,36 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Health = require('../models/Health');
 const { protect } = require('../middleware/authMiddleware');
+
+// @route   GET /api/health
+// @desc    Public system diagnostic check
+// @access  Public
+router.get('/', async (req, res) => {
+  const stateMap = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting',
+  };
+  const dbState = stateMap[mongoose.connection.readyState] || 'unknown';
+  const isHealthy = mongoose.connection.readyState === 1 && !!process.env.JWT_SECRET;
+
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'healthy' : 'unhealthy',
+    environment: process.env.NODE_ENV || 'development',
+    database: {
+      connected: mongoose.connection.readyState === 1,
+      state: dbState,
+      hasMongoUri: !!process.env.MONGO_URI,
+    },
+    auth: {
+      hasJwtSecret: !!process.env.JWT_SECRET,
+    },
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Utility to get today's midnight UTC
 const getTodayMidnight = () => {

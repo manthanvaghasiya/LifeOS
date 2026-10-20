@@ -4,17 +4,47 @@
 
 /* PRODUCTION LEVEL GLOBAL STYLES */
 
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
 @layer base {
   html {
     transition: background-color 0.3s, color 0.3s;
     scroll-behavior: smooth;
-    -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: manipulation;
+    overscroll-behavior-y: none;
+    overscroll-behavior-x: none;
   }
 
   body {
     @apply bg-background text-text-body font-sans antialiased;
     -webkit-font-smoothing: antialiased; 
     -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent !important;
+    overscroll-behavior-y: none;
+  }
+
+  /* Eliminate mobile tap delay & callouts across all interactive elements */
+  * {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  /* Prevent accidental UI selection on mobile, preserve text selection inside forms/inputs */
+  button, nav, header, [role="button"], [role="tab"], .select-none {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  input, textarea {
+    user-select: text;
+    -webkit-user-select: text;
   }
 
   /* Typography Hierarchy */
@@ -69,4 +99,39 @@
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Flutter InkWell Ripple Animation */
+@keyframes inkwell-expand {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-inkwell {
+  animation: inkwell-expand 450ms cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+
+/* Hide scrollbars while preserving native momentum touch scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area padding utilities */
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top, 0px), 0.75rem);
+}
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem);
 }

@@ -48,6 +48,10 @@ const TransactionSchema = new mongoose.Schema({
   date: {
     type: Date,
     default: Date.now
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 });
 
